@@ -19,7 +19,6 @@ class RepositorioAuthImpl implements RepositorioAuth {
           }
       }; 
       final response = await _httpService.obtenerConDatos(payload,'usuarios.php');
-
       if (response != null && response['resultado'] == true) {
         final prefs = await SharedPreferences.getInstance();
         final userData = response['datos'];
@@ -49,5 +48,11 @@ class RepositorioAuthImpl implements RepositorioAuth {
         message: 'Error inesperado: $e',
       );
     }
+  }
+
+  @override
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   }
 }

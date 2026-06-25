@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/features/dashboard/presentacion/controlador/controlador_dashboard.dart';
 import 'package:xnox_app/features/dashboard/dominio/entidades/estadisticas_dashboard.dart';
+import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
+import 'package:xnox_app/features/publicidad/presentacion/screen/publicidad_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -49,10 +51,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 2:
         return const Center(child: Text('Pantalla de Ventas (Próximamente)'));
       case 3:
-        return const Center(child: Text('Pantalla de Ajustes (Próximamente)'));
+        return const PublicidadScreen();
+      case 4:
+        return _buildSettingsView();
       default:
         return _buildHomeView();
     }
+  }
+  
+  Widget _buildSettingsView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'Ajustes',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 30),
+          ElevatedButton.icon(
+            onPressed: () async {
+              await _dashboardController.cerrarSesion();
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            },
+            icon: const Icon(Icons.logout),
+            label: const Text('Cerrar Sesión'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildHomeView() {
@@ -152,6 +189,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.monetization_on),
             label: 'Ventas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.ad_units),
+            label: 'Publicidad',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
