@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('es');
   runApp(const MyApp());
 }
 
@@ -13,10 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'XNOX-SOFT',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1A2B4C)),
-        useMaterial3: true,
-      ),
+      theme: construirTema(),
       home: const LoginScreen(),
     );
   }

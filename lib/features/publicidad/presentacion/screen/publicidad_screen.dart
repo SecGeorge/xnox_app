@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:xnox_app/features/publicidad/presentacion/screen/formulario_publicidad_screen.dart';
@@ -31,53 +34,143 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al cargar publicidades: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al cargar publicidades: $e')),
+        );
+      }
     }
+  }
+
+  bool _estaVigente(Publicidad p) {
+    final hoy = DateTime.now();
+    return !hoy.isBefore(p.fechaInicio) && !hoy.isAfter(p.fechaFin);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestión de Publicidad'),
-        backgroundColor: const Color(0xFF1A2B4C),
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Publicidad')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _publicidades.isEmpty
-              ? const Center(child: Text('No hay publicidades registradas'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _publicidades.length,
-                  itemBuilder: (context, index) {
-                    final pub = _publicidades[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      child: ListTile(
-                        leading: pub.imagenUrl != null
-                            ? Image.network(pub.imagenUrl!, width: 50, height: 50, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.image))
-                            : const Icon(Icons.image),
-                        title: Text(pub.titulo),
-                        subtitle: Text('${pub.descripcion}\nDesde: ${pub.fechaInicio.toString().split(' ')[0]} hasta ${pub.fechaFin.toString().split(' ')[0]}'),
-                        isThreeLine: true,
-                      ),
-                    );
-                  },
+              ? const EstadoVacio(
+                  icono: Icons.campaign_outlined,
+                  mensaje: 'Aún no hay campañas registradas.\nCrea la primera con el botón +',
+                )
+              : RefreshIndicator(
+                  onRefresh: _cargarPublicidades,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
+                        AppEspaciado.md, AppEspaciado.md, 96),
+                    itemCount: _publicidades.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppEspaciado.sm + 4),
+                    itemBuilder: (_, i) => _tarjetaPublicidad(_publicidades[i]),
+                  ),
                 ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => const FormularioPublicidadScreen()),
+            MaterialPageRoute(
+                builder: (context) => const FormularioPublicidadScreen()),
           );
           if (result == true) {
             _cargarPublicidades();
           }
         },
-        backgroundColor: const Color(0xFF1A2B4C),
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: AppColores.primario,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva'),
+      ),
+    );
+  }
+
+  Widget _tarjetaPublicidad(Publicidad pub) {
+    final vigente = _estaVigente(pub);
+    final fmt = DateFormat('dd MMM yyyy', 'es');
+    return TarjetaApp(
+      onTap: () {},
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppEspaciado.radio)),
+            child: SizedBox(
+              height: 140,
+              width: double.infinity,
+              child: pub.imagenUrl != null
+                  ? Image.network(
+                      pub.imagenUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => _placeholderImagen(),
+                    )
+                  : _placeholderImagen(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppEspaciado.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        pub.titulo,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColores.textoPrincipal,
+                        ),
+                      ),
+                    ),
+                    EtiquetaEstado(
+                      texto: vigente ? 'Vigente' : 'Inactiva',
+                      color: vigente ? AppColores.activo : AppColores.vencido,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  pub.descripcion,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColores.textoSecundario,
+                  ),
+                ),
+                const SizedBox(height: AppEspaciado.sm + 4),
+                Row(
+                  children: [
+                    const Icon(Icons.date_range,
+                        size: 15, color: AppColores.textoSecundario),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${fmt.format(pub.fechaInicio)} — ${fmt.format(pub.fechaFin)}',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColores.textoSecundario,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _placeholderImagen() {
+    return Container(
+      color: AppColores.fondo,
+      child: const Center(
+        child: Icon(Icons.image_outlined, size: 40, color: AppColores.vencido),
       ),
     );
   }

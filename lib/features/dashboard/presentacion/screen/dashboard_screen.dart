@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/dashboard/presentacion/controlador/controlador_dashboard.dart';
 import 'package:xnox_app/features/dashboard/dominio/entidades/estadisticas_dashboard.dart';
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
+import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
 import 'package:xnox_app/features/publicidad/presentacion/screen/publicidad_screen.dart';
+import 'package:xnox_app/features/ventas/presentacion/screen/ventas_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -37,38 +41,202 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
   }
 
-  Widget _buildBody() {
+  @override
+  Widget build(BuildContext context) {
+    // Las pantallas con Scaffold propio se muestran directamente.
     switch (_selectedIndex) {
-      case 0:
-        return _buildHomeView();
       case 1:
-        return const Center(child: Text('Pantalla de Miembros (Próximamente)'));
+        return _conNav(const MiembrosScreen());
       case 2:
-        return const Center(child: Text('Pantalla de Ventas (Próximamente)'));
+        return _conNav(const VentasScreen());
       case 3:
-        return const PublicidadScreen();
-      case 4:
-        return _buildSettingsView();
-      default:
-        return _buildHomeView();
+        return _conNav(const PublicidadScreen());
     }
+
+    return _conNav(
+      Scaffold(
+        backgroundColor: AppColores.fondo,
+        body: _selectedIndex == 4 ? _buildSettingsView() : _buildHomeView(),
+      ),
+    );
   }
-  
-  Widget _buildSettingsView() {
-    return Center(
+
+  /// Envuelve cualquier pantalla con la barra de navegación inferior común.
+  Widget _conNav(Widget child) {
+    return Scaffold(
+      backgroundColor: AppColores.fondo,
+      body: child,
+      bottomNavigationBar: _buildBottomNav(),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      backgroundColor: Colors.white,
+      selectedItemColor: AppColores.primario,
+      unselectedItemColor: AppColores.textoSecundario,
+      selectedFontSize: 12,
+      unselectedFontSize: 12,
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Inicio'),
+        BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Miembros'),
+        BottomNavigationBarItem(icon: Icon(Icons.point_of_sale_outlined), activeIcon: Icon(Icons.point_of_sale), label: 'Ventas'),
+        BottomNavigationBarItem(icon: Icon(Icons.campaign_outlined), activeIcon: Icon(Icons.campaign), label: 'Publicidad'),
+        BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Ajustes'),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------------- Inicio
+  Widget _buildHomeView() {
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: _cargarDatos,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(AppEspaciado.md, AppEspaciado.lg,
+              AppEspaciado.md, AppEspaciado.lg),
+          children: [
+            _buildHeader(),
+            const SizedBox(height: AppEspaciado.lg),
+            _isLoading
+                ? const Padding(
+                    padding: EdgeInsets.only(top: 60),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                : _buildGridEstadisticas(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text(
+                'Resumen General',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Indicadores principales del negocio',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: AppColores.textoSecundario,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColores.superficie,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColores.borde),
+          ),
+          child: const Icon(Icons.notifications_none,
+              color: AppColores.primario),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGridEstadisticas() {
+    final tarjetas = [
+      _StatData('Miembros Activos', _stats?.miembrosActivos ?? '0', Icons.people, AppColores.azul),
+      _StatData('Visitas Hoy', _stats?.visitasHoy ?? '0', Icons.login, AppColores.verde),
+      _StatData('Ventas Mes', 'S/ ${_stats?.ventasMes ?? '0'}', Icons.monetization_on, AppColores.naranja),
+      _StatData('Nuevos Registros', _stats?.nuevosRegistros ?? '0', Icons.person_add, AppColores.morado),
+    ];
+
+    return GridView.count(
+      crossAxisCount: 2,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      mainAxisSpacing: AppEspaciado.sm + 4,
+      crossAxisSpacing: AppEspaciado.sm + 4,
+      childAspectRatio: 1.55,
+      children: tarjetas.map(_buildStatCard).toList(),
+    );
+  }
+
+  Widget _buildStatCard(_StatData data) {
+    return TarjetaApp(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: data.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+            ),
+            child: Icon(data.icono, color: data.color, size: 22),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                data.valor,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                data.titulo,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColores.textoSecundario,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------ Ajustes
+  Widget _buildSettingsView() {
+    return SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(AppEspaciado.md),
+        children: [
+          const SizedBox(height: AppEspaciado.sm),
           const Text(
             'Ajustes',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColores.textoPrincipal,
+            ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: AppEspaciado.lg),
+          _ajusteTile(Icons.person_outline, 'Mi perfil', 'Datos de la cuenta'),
+          const SizedBox(height: AppEspaciado.sm + 4),
+          _ajusteTile(Icons.business_outlined, 'Datos del negocio', 'Nombre, logo y dirección'),
+          const SizedBox(height: AppEspaciado.sm + 4),
+          _ajusteTile(Icons.lock_outline, 'Seguridad', 'Contraseña y acceso'),
+          const SizedBox(height: AppEspaciado.lg),
           ElevatedButton.icon(
             onPressed: () async {
               await _dashboardController.cerrarSesion();
@@ -82,9 +250,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.logout),
             label: const Text('Cerrar Sesión'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColores.moroso,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
             ),
           ),
         ],
@@ -92,114 +259,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHomeView() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Resumen General',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A2B4C),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Column(
-            children: [
-              _buildStatCard('Miembros Activos', _stats?.miembrosActivos ?? '0', Icons.people, Colors.blue),
-              const SizedBox(height: 16),
-              _buildStatCard('Visitas Hoy', _stats?.visitasHoy ?? '0', Icons.today, Colors.green),
-              const SizedBox(height: 16),
-              _buildStatCard('Ventas Mes', _stats?.ventasMes ?? '0', Icons.monetization_on, Colors.orange),
-              const SizedBox(height: 16),
-              _buildStatCard('Nuevos Registros', _stats?.nuevosRegistros ?? '0', Icons.person_add, Colors.purple),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+  Widget _ajusteTile(IconData icono, String titulo, String subtitulo) {
+    return TarjetaApp(
+      onTap: () {},
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppEspaciado.md, vertical: AppEspaciado.sm + 4),
       child: Row(
         children: [
-          Icon(icon, size: 40, color: color),
-          const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              Text(
-                value,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-            ],
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: AppColores.primario.withValues(alpha: 0.08),
+            child: Icon(icono, color: AppColores.primario, size: 22),
           ),
+          const SizedBox(width: AppEspaciado.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  titulo,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitulo,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColores.textoSecundario,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, color: AppColores.textoSecundario),
         ],
       ),
     );
   }
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: SafeArea(
-        child: _buildBody(),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF1A2B4C),
-        unselectedItemColor: Colors.grey,
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Miembros',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.monetization_on),
-            label: 'Ventas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.ad_units),
-            label: 'Publicidad',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Ajustes',
-          ),
-        ],
-      ),
-    );
-  }
+class _StatData {
+  final String titulo;
+  final String valor;
+  final IconData icono;
+  final Color color;
+  _StatData(this.titulo, this.valor, this.icono, this.color);
 }

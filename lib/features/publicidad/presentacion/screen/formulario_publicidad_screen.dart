@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:image_picker/image_picker.dart';
@@ -69,98 +70,153 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
       }
 
       final success = await _controlador.addPublicidad(publicidad, imagenData);
+      if (!mounted) return;
       if (success) {
         Navigator.of(context).pop(true);
       } else {
         throw Exception('Error al guardar la publicidad');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nueva Publicidad'),
-        backgroundColor: const Color(0xFF1A2B4C),
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Nueva Publicidad')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppEspaciado.md),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              _etiqueta('Título'),
               TextFormField(
                 controller: _tituloController,
-                decoration: const InputDecoration(labelText: 'Título', border: OutlineInputBorder()),
+                decoration: const InputDecoration(hintText: 'Ej. Promoción de verano'),
                 validator: (value) => value == null || value.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppEspaciado.md),
+              _etiqueta('Descripción'),
               TextFormField(
                 controller: _descripcionController,
-                decoration: const InputDecoration(labelText: 'Descripción', border: OutlineInputBorder()),
+                decoration: const InputDecoration(hintText: 'Detalle de la campaña'),
                 maxLines: 3,
                 validator: (value) => value == null || value.isEmpty ? 'Campo requerido' : null,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppEspaciado.md),
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _fechaInicioController,
-                      decoration: const InputDecoration(labelText: 'Fecha Inicio', border: OutlineInputBorder()),
-                      readOnly: true,
-                      onTap: () => _selectDate(context, _fechaInicioController),
-                      validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _etiqueta('Fecha Inicio'),
+                        TextFormField(
+                          controller: _fechaInicioController,
+                          decoration: const InputDecoration(
+                            hintText: 'Seleccionar',
+                            prefixIcon: Icon(Icons.event),
+                          ),
+                          readOnly: true,
+                          onTap: () => _selectDate(context, _fechaInicioController),
+                          validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: AppEspaciado.md),
                   Expanded(
-                    child: TextFormField(
-                      controller: _fechaFinController,
-                      decoration: const InputDecoration(labelText: 'Fecha Fin', border: OutlineInputBorder()),
-                      readOnly: true,
-                      onTap: () => _selectDate(context, _fechaFinController),
-                      validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _etiqueta('Fecha Fin'),
+                        TextFormField(
+                          controller: _fechaFinController,
+                          decoration: const InputDecoration(
+                            hintText: 'Seleccionar',
+                            prefixIcon: Icon(Icons.event),
+                          ),
+                          readOnly: true,
+                          onTap: () => _selectDate(context, _fechaFinController),
+                          validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Center(
-                child: Column(
-                  children: [
-                    _imageFile != null 
-                      ? Image.file(_imageFile!, height: 150) 
-                      : Container(height: 150, color: Colors.grey[200], child: const Icon(Icons.image, size: 50)),
-                    TextButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.upload_file),
-                      label: const Text('Cargar Imagen'),
+              const SizedBox(height: AppEspaciado.lg),
+              _etiqueta('Imagen'),
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  height: 170,
+                  decoration: BoxDecoration(
+                    color: AppColores.superficie,
+                    borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+                    border: Border.all(
+                      color: AppColores.borde,
+                      width: 1.4,
                     ),
-                  ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _imageFile != null
+                      ? Image.file(_imageFile!, fit: BoxFit.cover, width: double.infinity)
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.add_photo_alternate_outlined,
+                                size: 40, color: AppColores.textoSecundario),
+                            SizedBox(height: AppEspaciado.sm),
+                            Text(
+                              'Toca para cargar una imagen',
+                              style: TextStyle(color: AppColores.textoSecundario),
+                            ),
+                          ],
+                        ),
                 ),
               ),
-              const SizedBox(height: 30),
-              ElevatedButton(
+              const SizedBox(height: AppEspaciado.xl),
+              ElevatedButton.icon(
                 onPressed: _isSaving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A2B4C),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                ),
-                child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('Guardar Publicidad'),
+                icon: _isSaving
+                    ? const SizedBox.shrink()
+                    : const Icon(Icons.save_outlined),
+                label: _isSaving
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : const Text('Guardar Publicidad'),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _etiqueta(String texto) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppEspaciado.sm),
+      child: Text(
+        texto,
+        style: const TextStyle(
+          fontSize: 13.5,
+          fontWeight: FontWeight.w600,
+          color: AppColores.textoPrincipal,
         ),
       ),
     );
