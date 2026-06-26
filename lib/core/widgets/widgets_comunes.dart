@@ -113,6 +113,66 @@ class EtiquetaEstado extends StatelessWidget {
   }
 }
 
+/// Tipos de mensaje para las notificaciones (SnackBar) de la app.
+/// Colores: verde = éxito, rojo = error/validación, amarillo = alerta.
+enum TipoMensaje { exito, error, advertencia, info }
+
+extension TipoMensajeEstilo on TipoMensaje {
+  Color get color {
+    switch (this) {
+      case TipoMensaje.exito:
+        return AppColores.exito;
+      case TipoMensaje.error:
+        return AppColores.error;
+      case TipoMensaje.advertencia:
+        return AppColores.advertencia;
+      case TipoMensaje.info:
+        return AppColores.primario;
+    }
+  }
+
+  IconData get icono {
+    switch (this) {
+      case TipoMensaje.exito:
+        return Icons.check_circle_outline;
+      case TipoMensaje.error:
+        return Icons.error_outline;
+      case TipoMensaje.advertencia:
+        return Icons.warning_amber_rounded;
+      case TipoMensaje.info:
+        return Icons.info_outline;
+    }
+  }
+}
+
+/// Muestra un SnackBar estandarizado con color semántico según el [tipo].
+void mostrarMensaje(
+  BuildContext context,
+  String texto, {
+  TipoMensaje tipo = TipoMensaje.info,
+}) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        backgroundColor: tipo.color,
+        behavior: SnackBarBehavior.floating,
+        content: Row(
+          children: [
+            Icon(tipo.icono, color: Colors.white, size: 20),
+            const SizedBox(width: AppEspaciado.sm),
+            Expanded(
+              child: Text(
+                texto,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+}
+
 /// Estado vacío reutilizable.
 class EstadoVacio extends StatelessWidget {
   final IconData icono;

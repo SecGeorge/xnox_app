@@ -33,12 +33,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _isLoading = true);
     try {
       final stats = await _dashboardController.obtenerEstadisticas();
+      if (!mounted) return;
       setState(() {
         _stats = stats;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
+      mostrarMensaje(context, 'No se pudo cargar el resumen del negocio',
+          tipo: TipoMensaje.error);
     }
   }
 

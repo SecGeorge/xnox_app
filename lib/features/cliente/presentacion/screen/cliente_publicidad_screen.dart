@@ -29,44 +29,19 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
   Future<void> _cargar() async {
     setState(() => _isLoading = true);
     try {
-      final data = await _controlador.fetchPublicidades();
+      final data = await _controlador.fetchPublicidadesActivas();
+      if (!mounted) return;
       setState(() {
-        _publicidades = data.isNotEmpty ? data : _demo();
+        _publicidades = data;
         _isLoading = false;
       });
     } catch (_) {
+      if (!mounted) return;
       setState(() {
-        _publicidades = _demo();
+        _publicidades = [];
         _isLoading = false;
       });
     }
-  }
-
-  // Publicidad demo mientras no haya backend.
-  List<Publicidad> _demo() {
-    final hoy = DateTime.now();
-    return [
-      Publicidad(
-        titulo: '¡Verano fit! 2x1 en planes trimestrales',
-        descripcion:
-            'Trae a un amigo y entrenen juntos. Promo válida todo el mes.',
-        fechaInicio: hoy.subtract(const Duration(days: 3)),
-        fechaFin: hoy.add(const Duration(days: 20)),
-      ),
-      Publicidad(
-        titulo: 'Nueva zona de peso libre',
-        descripcion:
-            'Renovamos el área de pesas con racks y mancuernas hasta 50 kg.',
-        fechaInicio: hoy.subtract(const Duration(days: 10)),
-        fechaFin: hoy.add(const Duration(days: 40)),
-      ),
-      Publicidad(
-        titulo: 'Clases de funcional — Martes y Jueves 7pm',
-        descripcion: 'Cupos limitados. Inscríbete en recepción.',
-        fechaInicio: hoy.subtract(const Duration(days: 1)),
-        fechaFin: hoy.add(const Duration(days: 15)),
-      ),
-    ];
   }
 
   @override
@@ -95,7 +70,16 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                         fontSize: 13.5, color: AppColores.textoSecundario),
                   ),
                   const SizedBox(height: AppEspaciado.lg),
-                  ..._publicidades.map(_buildTarjeta),
+                  if (_publicidades.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 40),
+                      child: EstadoVacio(
+                        icono: Icons.campaign_outlined,
+                        mensaje: 'No hay novedades por ahora',
+                      ),
+                    )
+                  else
+                    ..._publicidades.map(_buildTarjeta),
                 ],
               ),
       ),

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/miembros/dominio/entidades/miembro.dart';
+import 'package:xnox_app/features/miembros/presentacion/controlador/controlador_miembros.dart';
 
 class MiembrosScreen extends StatefulWidget {
   const MiembrosScreen({super.key});
@@ -12,64 +13,44 @@ class MiembrosScreen extends StatefulWidget {
 }
 
 class _MiembrosScreenState extends State<MiembrosScreen> {
-  // Datos de demostración. Reemplazar por la respuesta del endpoint de miembros.
-  final List<Miembro> _miembros = [
-    Miembro(
-      id: 1,
-      nombre: 'Carlos Ramírez',
-      documento: '45872136',
-      plan: 'Premium Anual',
-      estado: EstadoMiembro.activo,
-      fechaVencimiento: DateTime(2026, 12, 1),
-    ),
-    Miembro(
-      id: 2,
-      nombre: 'María Fernández',
-      documento: '70114589',
-      plan: 'Mensual',
-      estado: EstadoMiembro.deudor,
-      fechaVencimiento: DateTime(2026, 7, 5),
-      saldoPendiente: 80,
-    ),
-    Miembro(
-      id: 3,
-      nombre: 'Jorge Castillo',
-      documento: '40258963',
-      plan: 'Mensual',
-      estado: EstadoMiembro.moroso,
-      fechaVencimiento: DateTime(2026, 5, 20),
-      saldoPendiente: 240,
-    ),
-    Miembro(
-      id: 4,
-      nombre: 'Lucía Torres',
-      documento: '48963201',
-      plan: 'Trimestral',
-      estado: EstadoMiembro.vencido,
-      fechaVencimiento: DateTime(2026, 6, 1),
-    ),
-    Miembro(
-      id: 5,
-      nombre: 'Andrés Salazar',
-      documento: '71203654',
-      plan: 'Premium Anual',
-      estado: EstadoMiembro.activo,
-      fechaVencimiento: DateTime(2027, 1, 15),
-    ),
-    Miembro(
-      id: 6,
-      nombre: 'Paola Mendoza',
-      documento: '46985210',
-      plan: 'Mensual',
-      estado: EstadoMiembro.deudor,
-      fechaVencimiento: DateTime(2026, 7, 2),
-      saldoPendiente: 80,
-    ),
-  ];
+  final _controlador = ControladorMiembros();
+
+  List<Miembro> _miembros = [];
+  bool _cargando = true;
+  String? _error;
 
   // null = "Todos"
   EstadoMiembro? _filtro;
   String _busqueda = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarMiembros();
+  }
+
+  Future<void> _cargarMiembros() async {
+    setState(() {
+      _cargando = true;
+      _error = null;
+    });
+    try {
+      final miembros = await _controlador.buscarMiembros();
+      if (!mounted) return;
+      setState(() {
+        _miembros = miembros;
+        _cargando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'No se pudieron cargar los miembros';
+        _cargando = false;
+      });
+      mostrarMensaje(context, 'Error al cargar miembros: $e',
+          tipo: TipoMensaje.error);
+    }
+  }
 
   List<Miembro> get _filtrados {
     return _miembros.where((m) {
@@ -94,6 +75,11 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
       appBar: AppBar(
         title: const Text('Miembros'),
         actions: [
+          IconButton(
+            onPressed: _cargando ? null : _cargarMiembros,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Actualizar',
+          ),
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.person_add_alt_1),
@@ -127,27 +113,56 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
                 _chipFiltro('Activos', EstadoMiembro.activo),
                 _chipFiltro('Deudores', EstadoMiembro.deudor),
                 _chipFiltro('Morosos', EstadoMiembro.moroso),
-                _chipFiltro('Vencidos', EstadoMiembro.vencido),
               ],
             ),
           ),
           const SizedBox(height: AppEspaciado.sm),
-          Expanded(
-            child: filtrados.isEmpty
-                ? const EstadoVacio(
-                    icono: Icons.people_outline,
-                    mensaje: 'No hay miembros en esta categoría',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(AppEspaciado.md, 0,
-                        AppEspaciado.md, AppEspaciado.lg),
-                    itemCount: filtrados.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppEspaciado.sm + 4),
-                    itemBuilder: (_, i) => _tarjetaMiembro(filtrados[i]),
-                  ),
-          ),
+          Expanded(child: _buildContenido(filtrados)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildContenido(List<Miembro> filtrados) {
+    if (_cargando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null) {
+      return RefreshIndicator(
+        onRefresh: _cargarMiembros,
+        child: ListView(
+          children: [
+            const SizedBox(height: 120),
+            const EstadoVacio(
+              icono: Icons.cloud_off_outlined,
+              mensaje: 'No se pudieron cargar los miembros.\nDesliza para reintentar.',
+            ),
+          ],
+        ),
+      );
+    }
+    if (filtrados.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _cargarMiembros,
+        child: ListView(
+          children: const [
+            SizedBox(height: 120),
+            EstadoVacio(
+              icono: Icons.people_outline,
+              mensaje: 'No hay miembros en esta categoría',
+            ),
+          ],
+        ),
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _cargarMiembros,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(
+            AppEspaciado.md, 0, AppEspaciado.md, AppEspaciado.lg),
+        itemCount: filtrados.length,
+        separatorBuilder: (_, _) => const SizedBox(height: AppEspaciado.sm + 4),
+        itemBuilder: (_, i) => _tarjetaMiembro(filtrados[i]),
       ),
     );
   }
@@ -180,7 +195,9 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
   }
 
   Widget _tarjetaMiembro(Miembro m) {
-    final fecha = DateFormat('dd MMM yyyy', 'es').format(m.fechaVencimiento);
+    final fecha = m.fechaVencimiento != null
+        ? DateFormat('dd MMM yyyy', 'es').format(m.fechaVencimiento!)
+        : 'Sin contrato';
     return TarjetaApp(
       onTap: () {},
       child: Row(
@@ -247,7 +264,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
             ),
           ),
           const SizedBox(width: AppEspaciado.sm),
-          EtiquetaEstado(texto: m.estado.etiqueta, color: m.estado.color),
+          EtiquetaEstado(texto: m.etiquetaEstado, color: m.estado.color),
         ],
       ),
     );

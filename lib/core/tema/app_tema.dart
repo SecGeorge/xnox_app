@@ -31,6 +31,11 @@ class AppColores {
   static const Color verde = Color(0xFF22A06B);
   static const Color naranja = Color(0xFFF5A623);
   static const Color morado = Color(0xFF7C5CFC);
+
+  // Semántica de mensajes / notificaciones
+  static const Color exito = Color(0xFF22A06B);       // verde  -> éxito
+  static const Color error = Color(0xFFE5484D);       // rojo   -> error / validación
+  static const Color advertencia = Color(0xFFF5A623); // amarillo -> alerta
 }
 
 class AppEspaciado {

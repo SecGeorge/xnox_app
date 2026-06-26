@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/cliente_shell.dart';
 import 'package:xnox_app/features/login/presentacion/controlador/controlador_login.dart';
 import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
+import 'package:xnox_app/features/login/presentacion/screen/registro_cliente_screen.dart';
 import 'package:xnox_app/features/dashboard/presentacion/screen/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -48,6 +50,12 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text(result.message), backgroundColor: Colors.red),
       );
     }
+  }
+
+  void _irARegistro() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const RegistroClienteScreen()),
+    );
   }
 
   @override
@@ -211,6 +219,27 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                       ),
                     ),
+                    if (_tipoUsuario == TipoUsuario.cliente) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('¿No tienes cuenta?',
+                              style: TextStyle(
+                                  fontSize: 13, color: Colors.black54)),
+                          TextButton(
+                            onPressed: _irARegistro,
+                            child: const Text(
+                              'Regístrate',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColores.acento),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 40),
                     const Text(
                       'Contactanos por WhatsApp 938197971',
