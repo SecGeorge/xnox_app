@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/dashboard/presentacion/controlador/controlador_dashboard.dart';
+import 'package:xnox_app/features/dashboard/presentacion/widget/grafico_dona.dart';
 import 'package:xnox_app/features/dashboard/dominio/entidades/estadisticas_dashboard.dart';
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
@@ -104,17 +106,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             _buildHeader(),
             const SizedBox(height: AppEspaciado.lg),
-            _isLoading
-                ? const Padding(
-                    padding: EdgeInsets.only(top: 60),
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                : _buildGridEstadisticas(),
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.only(top: 60),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else ...[
+              _buildGridEstadisticas(),
+              const SizedBox(height: AppEspaciado.md),
+              _buildDistribucionMiembros(),
+            ],
           ],
         ),
       ),
     );
   }
+
+  /// Formatea un monto como moneda peruana: 8450 -> "S/ 8,450".
+  String _soles(double valor) =>
+      'S/ ${NumberFormat('#,##0', 'es').format(valor)}';
 
   Widget _buildHeader() {
     return Row(
@@ -157,11 +167,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildGridEstadisticas() {
+    final s = _stats;
     final tarjetas = [
-      _StatData('Miembros Activos', _stats?.miembrosActivos ?? '0', Icons.people, AppColores.azul),
-      _StatData('Visitas Hoy', _stats?.visitasHoy ?? '0', Icons.login, AppColores.verde),
-      _StatData('Ventas Mes', 'S/ ${_stats?.ventasMes ?? '0'}', Icons.monetization_on, AppColores.naranja),
-      _StatData('Nuevos Registros', _stats?.nuevosRegistros ?? '0', Icons.person_add, AppColores.morado),
+      _StatData('Ingresos del Mes', s != null ? _soles(s.ingresosMes) : '--',
+          Icons.monetization_on, AppColores.verde),
+      _StatData('Miembros Activos', '${s?.miembrosActivos ?? '--'}',
+          Icons.people, AppColores.azul),
+      _StatData('Por Cobrar', s != null ? _soles(s.montoPorCobrar) : '--',
+          Icons.account_balance_wallet, AppColores.moroso),
+      _StatData('Por Vencer (7 días)', '${s?.porVencer ?? '--'}',
+          Icons.event_busy, AppColores.naranja),
     ];
 
     return GridView.count(
@@ -170,7 +185,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: AppEspaciado.sm + 4,
       crossAxisSpacing: AppEspaciado.sm + 4,
-      childAspectRatio: 1.55,
+      childAspectRatio: 1.4,
       children: tarjetas.map(_buildStatCard).toList(),
     );
   }
@@ -215,7 +230,94 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ------------------------------------------------------------------ Ajustes
+  /// Tarjeta con la distribución de miembros por estado (gráfico de dona).
+  Widget _buildDistribucionMiembros() {
+    final s = _stats;
+    if (s == null) return const SizedBox.shrink();
+
+    final segmentos = [
+      SegmentoDona('Activos', s.miembrosActivos, AppColores.activo),
+      SegmentoDona('Deudores', s.totalDeudores, AppColores.deudor),
+      SegmentoDona('Morosos', s.totalMorosos, AppColores.moroso),
+      SegmentoDona('Vencidos', s.totalVencidos, AppColores.vencido),
+    ];
+
+    return TarjetaApp(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoSeccion(
+            titulo: 'Estado de Membresías',
+            subtitulo: 'Distribución del padrón de miembros',
+          ),
+          const SizedBox(height: AppEspaciado.md),
+          Row(
+            children: [
+              GraficoDona(
+                segmentos: segmentos,
+                centroValor: '${s.totalMiembros}',
+                centroEtiqueta: 'miembros',
+              ),
+              const SizedBox(width: AppEspaciado.lg),
+              Expanded(
+                child: Column(
+                  children: segmentos
+                      .map((seg) => _leyendaItem(seg, s.totalMiembros))
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _leyendaItem(SegmentoDona seg, int total) {
+    final porcentaje = total == 0 ? 0 : (seg.valor / total * 100).round();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Container(
+            width: 11,
+            height: 11,
+            decoration: BoxDecoration(
+              color: seg.color,
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          const SizedBox(width: AppEspaciado.sm),
+          Expanded(
+            child: Text(
+              seg.etiqueta,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColores.textoSecundario,
+              ),
+            ),
+          ),
+          Text(
+            '${seg.valor}',
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: AppColores.textoPrincipal,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '($porcentaje%)',
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColores.textoSecundario,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSettingsView() {
     return SafeArea(
       child: ListView(

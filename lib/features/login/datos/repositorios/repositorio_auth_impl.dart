@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/features/login/dominio/entidades/respuesta_login.dart';
+import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
 import 'package:xnox_app/features/login/dominio/repositorios/repositorio_auth.dart';
 
 class RepositorioAuthImpl implements RepositorioAuth {
@@ -9,28 +10,31 @@ class RepositorioAuthImpl implements RepositorioAuth {
   RepositorioAuthImpl(this._httpService);
 
   @override
-  Future<RespuestaLogin> login(String usuario, String password) async {
+  Future<RespuestaLogin> login(
+      String usuario, String password, TipoUsuario tipo) async {
     try {
-      final payload = { 
-          'metodo': 'login', 
+      final payload = {
+          'metodo': 'login',
           'usuario':{
             'usuario': usuario,
-            'password': password
+            'password': password,
+            'tipo': tipo.codigo
           }
-      }; 
+      };
       final response = await _httpService.obtenerConDatos(payload,'usuarios.php');
       if (response != null && response['resultado'] == true) {
         final prefs = await SharedPreferences.getInstance();
         final userData = response['datos'];
+        await prefs.setString('tipoUsuario', tipo.codigo);
         if (userData != null) {
           await prefs.setString('idUsuario', userData['idUsuario'].toString());
           if (userData['id_sucursal'] != null) {
             await prefs.setString('idSucursal', userData['id_sucursal'].toString());
           } else {
-            await prefs.setString('idSucursal', '1'); 
+            await prefs.setString('idSucursal', '1');
           }
         }
-        
+
         return RespuestaLogin(
           success: true,
           message: 'Login exitoso',

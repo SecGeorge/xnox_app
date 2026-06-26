@@ -19,22 +19,14 @@ class RepositorioDashboardImpl implements RepositorioDashboard {
       if (response != null && response['resultado'] == true) {
         return EstadisticasDashboard.fromJson(response['datos']);
       }
-      
-      // Datos de prueba si el backend falla o no existe el endpoint aún
-      return EstadisticasDashboard(
-        miembrosActivos: '1,250',
-        visitasHoy: '84',
-        ventasMes: '\$4,200',
-        nuevosRegistros: '12',
-      );
+
+      // Datos de prueba si el backend falla o no existe el endpoint aún.
+      // TODO: eliminar al integrar con la base de datos real.
+      return EstadisticasDashboard.demo();
     } catch (e) {
-      // Datos de prueba en caso de error
-      return EstadisticasDashboard(
-        miembrosActivos: '1,250',
-        visitasHoy: '84',
-        ventasMes: '\$4,200',
-        nuevosRegistros: '12',
-      );
+      // Datos de prueba en caso de error.
+      // TODO: eliminar al integrar con la base de datos real.
+      return EstadisticasDashboard.demo();
     }
   }
 }

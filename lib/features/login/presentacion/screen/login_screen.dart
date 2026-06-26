@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/cliente_shell.dart';
 import 'package:xnox_app/features/login/presentacion/controlador/controlador_login.dart';
+import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
 import 'package:xnox_app/features/dashboard/presentacion/screen/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,24 +17,30 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _loginController = ControladorLogin();
   bool _isLoading = false;
+  TipoUsuario _tipoUsuario = TipoUsuario.administrador;
 
   void _handleLogin() async {
     setState(() => _isLoading = true);
-    
+
     final result = await _loginController.login(
       _usuarioController.text.trim(),
       _passwordController.text.trim(),
+      _tipoUsuario,
     );
 
+    if (!mounted) return;
     setState(() => _isLoading = false);
 
     if (result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result.message)),
       );
+      final destino = _tipoUsuario == TipoUsuario.cliente
+          ? const ClienteShell()
+          : const DashboardScreen();
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardScreen()),
+        MaterialPageRoute(builder: (context) => destino),
       );
     } else {
 
@@ -47,6 +55,54 @@ class _LoginScreenState extends State<LoginScreen> {
     _usuarioController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// Selector segmentado para elegir el tipo de usuario.
+  Widget _buildSelectorTipo() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F3F8),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: TipoUsuario.values.map((tipo) {
+          final seleccionado = _tipoUsuario == tipo;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _tipoUsuario = tipo),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: seleccionado ? const Color(0xFF1A2B4C) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      tipo.icono,
+                      size: 18,
+                      color: seleccionado ? Colors.white : Colors.black54,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      tipo.etiqueta,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: seleccionado ? Colors.white : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
   }
 
   @override
@@ -90,6 +146,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: 400,
                 child: Column(
                   children: [
+                    _buildSelectorTipo(),
+                    const SizedBox(height: 24),
                     TextField(
                       controller: _usuarioController,
                       decoration: InputDecoration(
