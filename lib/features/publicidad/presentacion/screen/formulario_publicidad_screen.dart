@@ -248,7 +248,7 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
       ],
     );
   }
-
+  // En este apartado colocar siempre la etiqueta 
   Widget _etiqueta(String texto) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppEspaciado.sm),

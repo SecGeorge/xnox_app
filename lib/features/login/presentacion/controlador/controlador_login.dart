@@ -6,8 +6,13 @@ import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
 
 class ControladorLogin {
   final CasoUsoLogin _casoUsoLogin;
+  final RepositorioAuthImpl _repositorio;
 
-  ControladorLogin() : _casoUsoLogin = CasoUsoLogin(RepositorioAuthImpl(HttpService()));
+  ControladorLogin._(this._repositorio)
+      : _casoUsoLogin = CasoUsoLogin(_repositorio);
+
+  factory ControladorLogin() =>
+      ControladorLogin._(RepositorioAuthImpl(HttpService()));
 
   Future<RespuestaLogin> login(
       String usuario, String password, TipoUsuario tipo) async {
@@ -16,4 +21,7 @@ class ControladorLogin {
     }
     return await _casoUsoLogin.ejecutar(usuario, password, tipo);
   }
+
+  /// Tipo de usuario de la sesión guardada (null si debe iniciar sesión).
+  Future<TipoUsuario?> sesionActiva() => _repositorio.sesionActiva();
 }

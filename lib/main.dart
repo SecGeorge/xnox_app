@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
-import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
+import 'package:xnox_app/features/login/presentacion/screen/sesion_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'XNOX-SOFT',
       debugShowCheckedModeBanner: false,
       theme: construirTema(),
-      home: const LoginScreen(),
+      home: const SesionGate(),
     );
   }
 }

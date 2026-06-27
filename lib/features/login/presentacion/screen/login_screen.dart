@@ -20,11 +20,17 @@ class _LoginScreenState extends State<LoginScreen> {
   final _loginController = ControladorLogin();
   bool _isLoading = false;
   bool _ocultarPassword = true;
+  // El texto del botón solo se muestra cuando está totalmente expandido, para
+  // que no aparezca apretado dentro del círculo durante la animación.
+  bool _mostrarTexto = true;
   TipoUsuario _tipoUsuario = TipoUsuario.administrador;
 
   void _handleLogin() async {
     FocusScope.of(context).unfocus();
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _mostrarTexto = false;
+    });
 
     final result = await _loginController.login(
       _usuarioController.text.trim(),
@@ -169,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     TextField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: _ocultarPassword,
                       decoration: InputDecoration(
                         labelText: 'Contraseña',
                         border: OutlineInputBorder(
@@ -177,6 +183,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 16),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _ocultarPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: Colors.black54,
+                          ),
+                          tooltip: _ocultarPassword
+                              ? 'Mostrar contraseña'
+                              : 'Ocultar contraseña',
+                          onPressed: () => setState(
+                              () => _ocultarPassword = !_ocultarPassword),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -194,44 +213,60 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A2B4C),
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: const Color(0xFF1A2B4C),
-                          disabledForegroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 0,
-                          shadowColor: Colors.transparent,
-                          surfaceTintColor: Colors.transparent,
-                        ).copyWith(
-                          overlayColor: WidgetStateProperty.all(
-                            Colors.white.withValues(alpha: 0.08),
-                          ),
-                        ),
-                        child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Text(
-                              'INGRESAR',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.2,
-                              ),
+                    LayoutBuilder(
+                      builder: (context, constraints) => Center(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        height: 50,
+                        width: _isLoading ? 50 : constraints.maxWidth,
+                        onEnd: () {
+                          // Al terminar de expandirse, recién mostramos el texto.
+                          if (!_isLoading && !_mostrarTexto) {
+                            setState(() => _mostrarTexto = true);
+                          }
+                        },
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _handleLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1A2B4C),
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: const Color(0xFF1A2B4C),
+                            disabledForegroundColor: Colors.white,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(_isLoading ? 25 : 8),
                             ),
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                            surfaceTintColor: Colors.transparent,
+                          ).copyWith(
+                            overlayColor: WidgetStateProperty.all(
+                              Colors.white.withValues(alpha: 0.08),
+                            ),
+                          ),
+                          child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.4,
+                                ),
+                              )
+                            : _mostrarTexto
+                                ? const Text(
+                                    'INGRESAR',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                        ),
+                      ),
                       ),
                     ),
                     if (_tipoUsuario == TipoUsuario.cliente) ...[

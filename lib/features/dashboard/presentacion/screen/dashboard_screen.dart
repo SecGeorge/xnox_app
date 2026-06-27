@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/ajustes/presentacion/screen/datos_negocio_screen.dart';
+import 'package:xnox_app/features/ajustes/presentacion/screen/perfil_screen.dart';
+import 'package:xnox_app/features/ajustes/presentacion/screen/seguridad_screen.dart';
 import 'package:xnox_app/features/dashboard/presentacion/controlador/controlador_dashboard.dart';
 import 'package:xnox_app/features/dashboard/presentacion/widget/grafico_dona.dart';
 import 'package:xnox_app/features/dashboard/dominio/entidades/estadisticas_dashboard.dart';
@@ -407,9 +410,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: AppEspaciado.lg),
-          _ajusteTile(Icons.person_outline, 'Mi perfil', 'Datos de la cuenta'),
+          _ajusteTile(
+            Icons.person_outline,
+            'Mi perfil',
+            'Datos de la cuenta',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PerfilScreen()),
+            ),
+          ),
           const SizedBox(height: AppEspaciado.sm + 4),
-          _ajusteTile(Icons.business_outlined, 'Datos del negocio', 'Nombre, logo y dirección'),
+          _ajusteTile(
+            Icons.business_outlined,
+            'Datos del negocio',
+            'Nombre, logo y dirección',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const DatosNegocioScreen()),
+            ),
+          ),
           const SizedBox(height: AppEspaciado.sm + 4),
           _ajusteTile(
             Icons.qr_code_scanner,
@@ -420,7 +437,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(height: AppEspaciado.sm + 4),
-          _ajusteTile(Icons.lock_outline, 'Seguridad', 'Contraseña y acceso'),
+          _ajusteTile(
+            Icons.lock_outline,
+            'Seguridad',
+            'Contraseña y acceso',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SeguridadScreen()),
+            ),
+          ),
           const SizedBox(height: AppEspaciado.lg),
           ElevatedButton.icon(
             onPressed: () async {

@@ -120,4 +120,14 @@ class RepositorioAuthImpl implements RepositorioAuth {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
+
+  @override
+  Future<TipoUsuario?> sesionActiva() async {
+    final prefs = await SharedPreferences.getInstance();
+    // El login guarda 'idUsuario' solo cuando autentica correctamente, así que
+    // su presencia indica que hay una sesión válida persistida.
+    final idUsuario = prefs.getString('idUsuario');
+    if (idUsuario == null || idUsuario.isEmpty) return null;
+    return TipoUsuario.desdeTexto(prefs.getString('tipoUsuario'));
+  }
 }

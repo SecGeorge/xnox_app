@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
-import 'package:xnox_app/features/cliente/presentacion/screen/detalle_publicidad_screen.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
 
@@ -33,7 +32,8 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
       final data = await _controlador.fetchPublicidadesActivas();
       if (!mounted) return;
       setState(() {
-        _publicidades = data;
+        // El cliente solo ve campañas vigentes; las inactivas se ocultan.
+        _publicidades = data.where(_estaVigente).toList();
         _isLoading = false;
       });
     } catch (_) {
@@ -43,6 +43,45 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  /// Una campaña está vigente si hoy cae dentro de su rango de fechas.
+  bool _estaVigente(Publicidad p) {
+    final hoy = DateTime.now();
+    return !hoy.isBefore(p.fechaInicio) && !hoy.isAfter(p.fechaFin);
+  }
+
+  /// Muestra la imagen de la campaña a pantalla completa, como un modal.
+  void _mostrarImagen(String url) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.92),
+      builder: (ctx) => GestureDetector(
+        onTap: () => Navigator.of(ctx).pop(),
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  errorBuilder: (c, e, s) => const Icon(Icons.broken_image,
+                      color: Colors.white54, size: 64),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -96,26 +135,26 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
       padding: const EdgeInsets.only(bottom: AppEspaciado.md),
       child: TarjetaApp(
         padding: EdgeInsets.zero,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DetallePublicidadScreen(publicidad: p),
-          ),
-        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Imagen o banner de marca.
+            // Imagen o banner de marca. Al tocar la imagen se ve en grande.
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppEspaciado.radio)),
               child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
-                  ? Image.network(p.imagenUrl!,
-                      height: 140, width: double.infinity, fit: BoxFit.cover,
-                      // Decodifica a menor resolución (más rápido y menos memoria).
-                      cacheWidth: 1000,
-                      loadingBuilder: (context, child, progress) =>
-                          progress == null ? child : _cargando(),
-                      errorBuilder: (context, error, stack) => _banner())
+                  ? GestureDetector(
+                      onTap: () => _mostrarImagen(p.imagenUrl!),
+                      child: Image.network(p.imagenUrl!,
+                          height: 140,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          // Decodifica a menor resolución (más rápido y menos memoria).
+                          cacheWidth: 1000,
+                          loadingBuilder: (context, child, progress) =>
+                              progress == null ? child : _cargando(),
+                          errorBuilder: (context, error, stack) => _banner()),
+                    )
                   : _banner(),
             ),
             Padding(

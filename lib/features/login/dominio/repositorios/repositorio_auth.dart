@@ -8,4 +8,8 @@ abstract class RepositorioAuth {
   Future<RespuestaLogin> registrarCliente(DatosRegistro datos);
   Future<List<Sucursal>> sucursalesPorCodigo(String codigoGimnasio);
   Future<void> logout();
+
+  /// Devuelve el tipo de usuario de la sesión guardada, o null si no hay
+  /// ninguna sesión activa (el usuario debe iniciar sesión).
+  Future<TipoUsuario?> sesionActiva();
 }
