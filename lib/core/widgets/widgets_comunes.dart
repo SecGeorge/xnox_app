@@ -201,3 +201,96 @@ class EstadoVacio extends StatelessWidget {
     );
   }
 }
+
+/// Diálogo de confirmación estándar de la app: compacto, moderno, con un ícono
+/// en círculo de color. Todos los modales de confirmación deben usar esto.
+///
+/// Devuelve `true` si el usuario confirma. Con [peligro] = true usa el color de
+/// error (rojo) para acciones destructivas como eliminar.
+Future<bool> confirmarDialog(
+  BuildContext context, {
+  required String titulo,
+  required String mensaje,
+  IconData icono = Icons.help_outline,
+  String textoConfirmar = 'Confirmar',
+  String textoCancelar = 'Cancelar',
+  bool peligro = false,
+}) async {
+  final color = peligro ? AppColores.error : AppColores.primario;
+  final resultado = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => Dialog(
+      backgroundColor: AppColores.superficie,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppEspaciado.lg, AppEspaciado.lg,
+            AppEspaciado.lg, AppEspaciado.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icono, color: color, size: 26),
+            ),
+            const SizedBox(height: AppEspaciado.md),
+            Text(
+              titulo,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColores.textoPrincipal,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              mensaje,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13.5,
+                color: AppColores.textoSecundario,
+              ),
+            ),
+            const SizedBox(height: AppEspaciado.lg),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColores.textoSecundario,
+                      side: const BorderSide(color: AppColores.borde),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(textoCancelar),
+                  ),
+                ),
+                const SizedBox(width: AppEspaciado.sm + 4),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text(textoConfirmar),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  return resultado == true;
+}

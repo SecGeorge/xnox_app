@@ -9,7 +9,6 @@ import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
 import 'package:xnox_app/features/pagos/presentacion/screen/pagos_screen.dart';
 import 'package:xnox_app/features/publicidad/presentacion/screen/publicidad_screen.dart';
-import 'package:xnox_app/features/ventas/presentacion/screen/ventas_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -60,15 +59,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 2:
         return _conNav(const PagosScreen());
       case 3:
-        return _conNav(const VentasScreen());
-      case 4:
         return _conNav(const PublicidadScreen());
     }
 
     return _conNav(
       Scaffold(
         backgroundColor: AppColores.fondo,
-        body: _selectedIndex == 5 ? _buildSettingsView() : _buildHomeView(),
+        body: _selectedIndex == 4 ? _buildSettingsView() : _buildHomeView(),
       ),
     );
   }
@@ -96,7 +93,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Inicio'),
         BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Miembros'),
         BottomNavigationBarItem(icon: Icon(Icons.payments_outlined), activeIcon: Icon(Icons.payments), label: 'Pagos'),
-        BottomNavigationBarItem(icon: Icon(Icons.point_of_sale_outlined), activeIcon: Icon(Icons.point_of_sale), label: 'Ventas'),
         BottomNavigationBarItem(icon: Icon(Icons.campaign_outlined), activeIcon: Icon(Icons.campaign), label: 'Publicidad'),
         BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Ajustes'),
       ],
@@ -247,7 +243,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       SegmentoDona('Activos', s.miembrosActivos, AppColores.activo),
       SegmentoDona('Deudores', s.totalDeudores, AppColores.deudor),
       SegmentoDona('Morosos', s.totalMorosos, AppColores.moroso),
-      SegmentoDona('Vencidos', s.totalVencidos, AppColores.vencido),
+      SegmentoDona('Sin membresia', s.totalVencidos, AppColores.vencido),
     ];
 
     return TarjetaApp(

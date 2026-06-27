@@ -35,4 +35,11 @@ class Ejercicio {
     final lista = [...marcas]..sort((a, b) => a.fecha.compareTo(b.fecha));
     return lista;
   }
+
+  /// Marca de la sesión anterior (penúltima por fecha), para comparar el avance.
+  Marca? get marcaAnterior {
+    if (marcas.length < 2) return null;
+    final ord = marcasOrdenadas;
+    return ord[ord.length - 2];
+  }
 }

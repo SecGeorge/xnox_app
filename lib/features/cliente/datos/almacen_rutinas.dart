@@ -54,16 +54,30 @@ class AlmacenRutinas {
     final diasRows = await db.query('rutina_dia', orderBy: 'orden ASC, id ASC');
     final ejRows = await db.query('ejercicio', orderBy: 'orden ASC, id ASC');
     final marcaRows = await db.query('marca', orderBy: 'fecha ASC, id ASC');
+    final serieRows =
+        await db.query('serie', orderBy: 'marca_id ASC, numero ASC');
+
+    // Series agrupadas por sesión (marca_id) -> [12, 10, 8, 8].
+    final seriesPorMarca = <int, List<int>>{};
+    for (final s in serieRows) {
+      final marcaId = s['marca_id'] as int;
+      (seriesPorMarca[marcaId] ??= []).add(s['repeticiones'] as int? ?? 0);
+    }
 
     // Marcas agrupadas por ejercicio.
     final marcasPorEj = <int, List<Marca>>{};
     for (final m in marcaRows) {
       final ejId = m['ejercicio_id'] as int;
+      final marcaId = m['id'] as int;
+      // Series desde la tabla normalizada; fallback al texto legado si faltara.
+      final reps = seriesPorMarca[marcaId] ??
+          _parsearReps(m['reps_series'] as String?);
       marcasPorEj.putIfAbsent(ejId, () => []).add(Marca(
+            id: marcaId,
             fecha: DateTime.tryParse(m['fecha'] as String? ?? '') ?? DateTime.now(),
             peso: (m['peso'] as num?)?.toDouble() ?? 0,
             repeticiones: m['repeticiones'] as int? ?? 0,
-            repsPorSerie: _parsearReps(m['reps_series'] as String?),
+            repsPorSerie: reps,
           ));
     }
 
@@ -205,14 +219,131 @@ class AlmacenRutinas {
       int ejercicioId, double peso, List<int> repsPorSerie) async {
     final db = await BaseDatosLocal.instancia.db;
     final total = repsPorSerie.fold<int>(0, (a, b) => a + b);
-    await db.insert('marca', {
-      'ejercicio_id': ejercicioId,
-      'fecha': DateTime.now().toIso8601String(),
-      'peso': peso,
-      'repeticiones': total,
-      'reps_series': repsPorSerie.join(','),
+    await db.transaction((txn) async {
+      // La sesión (marca) y sus series quedan agrupadas por marca_id.
+      final marcaId = await txn.insert('marca', {
+        'ejercicio_id': ejercicioId,
+        'fecha': DateTime.now().toIso8601String(),
+        'peso': peso,
+        'repeticiones': total,
+        'reps_series': repsPorSerie.join(','), // legado/fallback
+      });
+      final batch = txn.batch();
+      for (var i = 0; i < repsPorSerie.length; i++) {
+        batch.insert('serie', {
+          'marca_id': marcaId,
+          'numero': i + 1,
+          'repeticiones': repsPorSerie[i],
+        });
+      }
+      await batch.commit(noResult: true);
     });
     await cargar();
+  }
+
+  // ----------------------------------------- Registro serie por serie (hoy)
+
+  /// Agrega UNA serie a la sesión de HOY del ejercicio. Si aún no hay sesión
+  /// de hoy, la crea. Devuelve el id de la sesión (marca) para poder editarla.
+  Future<int> agregarSerie(int ejercicioId, double peso, int reps) async {
+    final db = await BaseDatosLocal.instancia.db;
+    late int marcaId;
+    await db.transaction((txn) async {
+      final marcaHoy = await _marcaDeHoy(txn, ejercicioId);
+      if (marcaHoy == null) {
+        marcaId = await txn.insert('marca', {
+          'ejercicio_id': ejercicioId,
+          'fecha': DateTime.now().toIso8601String(),
+          'peso': peso,
+          'repeticiones': reps,
+          'reps_series': '$reps',
+        });
+      } else {
+        marcaId = marcaHoy['id'] as int;
+      }
+      final cuantas = Sqflite.firstIntValue(await txn.rawQuery(
+              'SELECT COUNT(*) FROM serie WHERE marca_id = ?', [marcaId])) ??
+          0;
+      await txn.insert('serie', {
+        'marca_id': marcaId,
+        'numero': cuantas + 1,
+        'repeticiones': reps,
+      });
+      await _recomputarMarca(txn, marcaId, peso);
+    });
+    await cargar();
+    return marcaId;
+  }
+
+  /// Edita las repeticiones de una serie puntual de una sesión.
+  Future<void> editarSerie(int marcaId, int numero, int reps) async {
+    final db = await BaseDatosLocal.instancia.db;
+    await db.transaction((txn) async {
+      await txn.update('serie', {'repeticiones': reps},
+          where: 'marca_id = ? AND numero = ?', whereArgs: [marcaId, numero]);
+      await _recomputarMarca(txn, marcaId, null);
+    });
+    await cargar();
+  }
+
+  /// Actualiza el peso de trabajo de la sesión.
+  Future<void> editarPesoSesion(int marcaId, double peso) async {
+    final db = await BaseDatosLocal.instancia.db;
+    await db.update('marca', {'peso': peso},
+        where: 'id = ?', whereArgs: [marcaId]);
+    await cargar();
+  }
+
+  /// Elimina una serie de la sesión, renumera las restantes y recalcula los
+  /// totales. Si la sesión se queda sin series, elimina la sesión completa.
+  Future<void> eliminarSerie(int marcaId, int numero) async {
+    final db = await BaseDatosLocal.instancia.db;
+    await db.transaction((txn) async {
+      await txn.delete('serie',
+          where: 'marca_id = ? AND numero = ?', whereArgs: [marcaId, numero]);
+      final restantes = await txn.query('serie',
+          where: 'marca_id = ?', whereArgs: [marcaId], orderBy: 'numero ASC');
+      // Renumerar 1..N para mantener la secuencia.
+      for (var i = 0; i < restantes.length; i++) {
+        await txn.update('serie', {'numero': i + 1},
+            where: 'id = ?', whereArgs: [restantes[i]['id']]);
+      }
+      if (restantes.isEmpty) {
+        await txn.delete('marca', where: 'id = ?', whereArgs: [marcaId]);
+      } else {
+        await _recomputarMarca(txn, marcaId, null);
+      }
+    });
+    await cargar();
+  }
+
+  /// Recalcula `repeticiones` (total) y `reps_series` de la marca a partir de
+  /// sus series. Si [peso] no es null, también actualiza el peso de la sesión.
+  Future<void> _recomputarMarca(Transaction txn, int marcaId, double? peso) async {
+    final series = await txn.query('serie',
+        where: 'marca_id = ?', whereArgs: [marcaId], orderBy: 'numero ASC');
+    final reps = series.map((s) => s['repeticiones'] as int? ?? 0).toList();
+    final datos = <String, Object?>{
+      'repeticiones': reps.fold<int>(0, (a, b) => a + b),
+      'reps_series': reps.join(','),
+    };
+    if (peso != null) datos['peso'] = peso;
+    await txn.update('marca', datos, where: 'id = ?', whereArgs: [marcaId]);
+  }
+
+  /// Devuelve la fila de la marca/sesión de HOY del ejercicio, o null.
+  Future<Map<String, Object?>?> _marcaDeHoy(
+      Transaction txn, int ejercicioId) async {
+    final hoy = DateTime.now();
+    final inicio = DateTime(hoy.year, hoy.month, hoy.day).toIso8601String();
+    final fin =
+        DateTime(hoy.year, hoy.month, hoy.day, 23, 59, 59).toIso8601String();
+    final rows = await txn.query('marca',
+        where: 'ejercicio_id = ? AND fecha BETWEEN ? AND ?',
+        whereArgs: [ejercicioId, inicio, fin],
+        orderBy: 'id DESC',
+        limit: 1);
+    return rows.isNotEmpty ? rows.first : null;
   }
 
   /// Convierte "12,10,8,8" en [12, 10, 8, 8]; null/'' -> [].

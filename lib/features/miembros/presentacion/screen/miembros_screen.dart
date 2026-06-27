@@ -74,18 +74,6 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Miembros'),
-        actions: [
-          IconButton(
-            onPressed: _cargando ? null : _cargarMiembros,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.person_add_alt_1),
-            tooltip: 'Nuevo miembro',
-          ),
-        ],
       ),
       body: Column(
         children: [

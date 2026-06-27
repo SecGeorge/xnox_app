@@ -60,4 +60,19 @@ class ControladorRutinas {
   Future<void> registrarMarca(
           int ejercicioId, double peso, List<int> repsPorSerie) =>
       _almacen.agregarMarca(ejercicioId, peso, repsPorSerie);
+
+  // ----------------------------------- Registro serie por serie (sesión hoy)
+
+  /// Agrega una serie a la sesión de hoy; devuelve el id de la sesión.
+  Future<int> agregarSerie(int ejercicioId, double peso, int reps) =>
+      _almacen.agregarSerie(ejercicioId, peso, reps);
+
+  Future<void> editarSerie(int marcaId, int numero, int reps) =>
+      _almacen.editarSerie(marcaId, numero, reps);
+
+  Future<void> eliminarSerie(int marcaId, int numero) =>
+      _almacen.eliminarSerie(marcaId, numero);
+
+  Future<void> editarPesoSesion(int marcaId, double peso) =>
+      _almacen.editarPesoSesion(marcaId, peso);
 }

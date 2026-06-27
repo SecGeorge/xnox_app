@@ -169,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     TextField(
                       controller: _passwordController,
-                      obscureText: _ocultarPassword,
+                      obscureText: true,
                       decoration: InputDecoration(
                         labelText: 'Contraseña',
                         border: OutlineInputBorder(
@@ -177,16 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 16),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _ocultarPassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.black54,
-                          ),
-                          onPressed: () => setState(
-                              () => _ocultarPassword = !_ocultarPassword),
-                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -237,8 +227,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           : const Text(
                               'INGRESAR',
                               style: TextStyle(
+                                fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
+                                letterSpacing: 0.2,
                               ),
                             ),
                       ),

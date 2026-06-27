@@ -11,7 +11,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 2;
+  static const _version = 3;
 
   Database? _db;
 
@@ -40,6 +40,48 @@ class BaseDatosLocal {
       // v2: desglose de repeticiones por serie (p. ej. "12,10,8,8").
       await db.execute('ALTER TABLE marca ADD COLUMN reps_series TEXT');
     }
+    if (desde < 3) {
+      // v3: las series se normalizan en su propia tabla, agrupadas por sesión
+      // (marca_id) e indexadas para lecturas rápidas.
+      await _crearTablaSerie(db);
+      // Migrar el texto "12,10,8,8" de cada marca a filas de la tabla serie.
+      final marcas = await db.query('marca', columns: ['id', 'reps_series']);
+      final batch = db.batch();
+      for (final m in marcas) {
+        final reps = _split(m['reps_series'] as String?);
+        for (var i = 0; i < reps.length; i++) {
+          batch.insert('serie', {
+            'marca_id': m['id'],
+            'numero': i + 1,
+            'repeticiones': reps[i],
+          });
+        }
+      }
+      await batch.commit(noResult: true);
+    }
+  }
+
+  Future<void> _crearTablaSerie(Database db) async {
+    await db.execute('''
+      CREATE TABLE serie (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        marca_id INTEGER NOT NULL,
+        numero INTEGER NOT NULL,
+        repeticiones INTEGER NOT NULL,
+        FOREIGN KEY (marca_id) REFERENCES marca (id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute('CREATE INDEX idx_serie_marca ON serie (marca_id)');
+  }
+
+  /// "12,10,8,8" -> [12, 10, 8, 8] (ignora vacíos/no numéricos).
+  List<int> _split(String? texto) {
+    if (texto == null || texto.trim().isEmpty) return const [];
+    return texto
+        .split(',')
+        .map((s) => int.tryParse(s.trim()) ?? 0)
+        .where((n) => n > 0)
+        .toList();
   }
 
   Future<void> _crear(Database db, int version) async {
@@ -93,6 +135,9 @@ class BaseDatosLocal {
         FOREIGN KEY (ejercicio_id) REFERENCES ejercicio (id) ON DELETE CASCADE
       )
     ''');
+
+    // Series de cada marca/sesión, normalizadas y agrupadas por marca_id.
+    await _crearTablaSerie(db);
 
     await db.execute('CREATE INDEX idx_rutina_dia_rutina ON rutina_dia (rutina_id)');
     await db.execute('CREATE INDEX idx_ejercicio_dia ON ejercicio (dia_id)');
