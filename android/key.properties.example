@@ -1,0 +1,11 @@
+# Plantilla de credenciales de firma.
+# 1. Genera el keystore (ver instrucciones).
+# 2. Copia este archivo a key.properties y rellena tus contraseñas reales.
+#    cp key.properties.example key.properties
+#
+# key.properties YA está en .gitignore: nunca se sube a git.
+
+storePassword=TU_CONTRASEÑA_DEL_KEYSTORE
+keyPassword=TU_CONTRASEÑA_DE_LA_LLAVE
+keyAlias=upload
+storeFile=upload-keystore.jks
