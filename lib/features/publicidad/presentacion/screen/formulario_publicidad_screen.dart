@@ -4,10 +4,14 @@ import 'package:xnox_app/features/publicidad/presentacion/controlador/controlado
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 import 'dart:io';
 
 class FormularioPublicidadScreen extends StatefulWidget {
-  const FormularioPublicidadScreen({super.key});
+  /// Si se pasa [publicidad], la pantalla funciona en modo edición.
+  final Publicidad? publicidad;
+
+  const FormularioPublicidadScreen({super.key, this.publicidad});
 
   @override
   State<FormularioPublicidadScreen> createState() => _FormularioPublicidadScreenState();
@@ -16,14 +20,29 @@ class FormularioPublicidadScreen extends StatefulWidget {
 class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen> {
   final _formKey = GlobalKey<FormState>();
   final _controlador = ControladorPublicidad();
-  
+
   final _tituloController = TextEditingController();
   final _descripcionController = TextEditingController();
   final _fechaInicioController = TextEditingController();
   final _fechaFinController = TextEditingController();
-  
+
   File? _imageFile;
   bool _isSaving = false;
+
+  bool get _esEdicion => widget.publicidad != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final p = widget.publicidad;
+    if (p != null) {
+      final fmt = DateFormat('yyyy-MM-dd');
+      _tituloController.text = p.titulo;
+      _descripcionController.text = p.descripcion;
+      _fechaInicioController.text = fmt.format(p.fechaInicio);
+      _fechaFinController.text = fmt.format(p.fechaFin);
+    }
+  }
 
   Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
     final DateTime? picked = await showDatePicker(
@@ -41,7 +60,13 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    // Comprimimos al seleccionar para que la campaña cargue rápido.
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1280,
+      maxHeight: 1280,
+      imageQuality: 70,
+    );
     if (image != null) {
       setState(() {
         _imageFile = File(image.path);
@@ -55,21 +80,23 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
     setState(() => _isSaving = true);
     try {
       final publicidad = Publicidad(
+        id: widget.publicidad?.id,
         titulo: _tituloController.text,
         descripcion: _descripcionController.text,
         fechaInicio: DateTime.parse(_fechaInicioController.text),
         fechaFin: DateTime.parse(_fechaFinController.text),
       );
 
-      Map<String, dynamic> imagenData = {};
+      // Convertimos la imagen a base64 para enviarla al backend.
+      String? imagenBase64;
       if (_imageFile != null) {
-        imagenData = {
-          'nombre': _imageFile!.path.split('/').last,
-          'ruta': _imageFile!.path,
-        };
+        final bytes = await _imageFile!.readAsBytes();
+        imagenBase64 = 'data:image/png;base64,${base64Encode(bytes)}';
       }
 
-      final success = await _controlador.addPublicidad(publicidad, imagenData);
+      final success = _esEdicion
+          ? await _controlador.editarPublicidad(publicidad, imagenBase64)
+          : await _controlador.addPublicidad(publicidad, imagenBase64);
       if (!mounted) return;
       if (success) {
         Navigator.of(context).pop(true);
@@ -90,7 +117,8 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva Publicidad')),
+      appBar: AppBar(
+          title: Text(_esEdicion ? 'Editar Publicidad' : 'Nueva Publicidad')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppEspaciado.md),
         child: Form(
@@ -172,18 +200,14 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
                   clipBehavior: Clip.antiAlias,
                   child: _imageFile != null
                       ? Image.file(_imageFile!, fit: BoxFit.cover, width: double.infinity)
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.add_photo_alternate_outlined,
-                                size: 40, color: AppColores.textoSecundario),
-                            SizedBox(height: AppEspaciado.sm),
-                            Text(
-                              'Toca para cargar una imagen',
-                              style: TextStyle(color: AppColores.textoSecundario),
-                            ),
-                          ],
-                        ),
+                      : (_esEdicion && widget.publicidad?.imagenUrl != null
+                          ? Image.network(
+                              widget.publicidad!.imagenUrl!,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (c, e, s) => _placeholderImagen(),
+                            )
+                          : _placeholderImagen()),
                 ),
               ),
               const SizedBox(height: AppEspaciado.xl),
@@ -199,12 +223,29 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
                         child: CircularProgressIndicator(
                             color: Colors.white, strokeWidth: 2.5),
                       )
-                    : const Text('Guardar Publicidad'),
+                    : Text(_esEdicion
+                        ? 'Guardar Cambios'
+                        : 'Guardar Publicidad'),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _placeholderImagen() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        Icon(Icons.add_photo_alternate_outlined,
+            size: 40, color: AppColores.textoSecundario),
+        SizedBox(height: AppEspaciado.sm),
+        Text(
+          'Toca para cargar una imagen',
+          style: TextStyle(color: AppColores.textoSecundario),
+        ),
+      ],
     );
   }
 

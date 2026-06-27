@@ -19,6 +19,16 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
   final _controlador = ControladorRutinas();
 
   @override
+  void initState() {
+    super.initState();
+    // Los datos viven en SQLite: aseguramos que la caché esté cargada para
+    // poder leerla de forma síncrona en build().
+    _controlador.asegurarCargado().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ejercicios = _controlador.obtenerTodosLosEjercicios();
     final conMarcas = ejercicios.where((e) => e.marcas.isNotEmpty).toList();

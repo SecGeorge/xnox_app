@@ -7,6 +7,7 @@ import 'package:xnox_app/features/dashboard/presentacion/widget/grafico_dona.dar
 import 'package:xnox_app/features/dashboard/dominio/entidades/estadisticas_dashboard.dart';
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
+import 'package:xnox_app/features/pagos/presentacion/screen/pagos_screen.dart';
 import 'package:xnox_app/features/publicidad/presentacion/screen/publicidad_screen.dart';
 import 'package:xnox_app/features/ventas/presentacion/screen/ventas_screen.dart';
 
@@ -57,15 +58,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       case 1:
         return _conNav(const MiembrosScreen());
       case 2:
-        return _conNav(const VentasScreen());
+        return _conNav(const PagosScreen());
       case 3:
+        return _conNav(const VentasScreen());
+      case 4:
         return _conNav(const PublicidadScreen());
     }
 
     return _conNav(
       Scaffold(
         backgroundColor: AppColores.fondo,
-        body: _selectedIndex == 4 ? _buildSettingsView() : _buildHomeView(),
+        body: _selectedIndex == 5 ? _buildSettingsView() : _buildHomeView(),
       ),
     );
   }
@@ -85,13 +88,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: Colors.white,
       selectedItemColor: AppColores.primario,
       unselectedItemColor: AppColores.textoSecundario,
-      selectedFontSize: 12,
-      unselectedFontSize: 12,
+      selectedFontSize: 11,
+      unselectedFontSize: 11,
       currentIndex: _selectedIndex,
       onTap: _onItemTapped,
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Inicio'),
         BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Miembros'),
+        BottomNavigationBarItem(icon: Icon(Icons.payments_outlined), activeIcon: Icon(Icons.payments), label: 'Pagos'),
         BottomNavigationBarItem(icon: Icon(Icons.point_of_sale_outlined), activeIcon: Icon(Icons.point_of_sale), label: 'Ventas'),
         BottomNavigationBarItem(icon: Icon(Icons.campaign_outlined), activeIcon: Icon(Icons.campaign), label: 'Publicidad'),
         BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Ajustes'),

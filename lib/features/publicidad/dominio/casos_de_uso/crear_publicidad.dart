@@ -6,7 +6,7 @@ class CrearPublicidad {
 
   CrearPublicidad(this.repositorio);
 
-  Future<bool> ejecutar(Publicidad publicidad, Map<String, dynamic> imagen) async {
-    return await repositorio.crearPublicidad(publicidad, imagen);
+  Future<bool> ejecutar(Publicidad publicidad, String? imagenBase64) async {
+    return await repositorio.crearPublicidad(publicidad, imagenBase64);
   }
 }

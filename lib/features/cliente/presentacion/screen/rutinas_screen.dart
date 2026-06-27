@@ -5,7 +5,11 @@ import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/detalle_rutina_screen.dart';
 
-/// Lista de rutinas del cliente, con opción de crear una nueva.
+/// Lista de rutinas del cliente.
+///
+/// Separa las rutinas SUGERIDAS por el administrador (solo lectura, vienen del
+/// backend y se sincronizan a SQLite) de las rutinas propias del cliente (CRUD
+/// local). Al abrir: carga SQLite y sincroniza con el backend si hay conexión.
 class RutinasScreen extends StatefulWidget {
   const RutinasScreen({super.key});
 
@@ -15,10 +19,26 @@ class RutinasScreen extends StatefulWidget {
 
 class _RutinasScreenState extends State<RutinasScreen> {
   final _controlador = ControladorRutinas();
+  bool _cargando = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+  }
+
+  Future<void> _cargar() async {
+    await _controlador.sincronizar();
+    if (!mounted) return;
+    setState(() => _cargando = false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final rutinas = _controlador.obtenerRutinas();
+    final sugeridas = _controlador.obtenerSugeridas();
+    final mias = _controlador.obtenerMisRutinas();
+    final vacio = sugeridas.isEmpty && mias.isEmpty;
+
     return Scaffold(
       backgroundColor: AppColores.fondo,
       floatingActionButton: FloatingActionButton.extended(
@@ -29,27 +49,64 @@ class _RutinasScreenState extends State<RutinasScreen> {
             style: TextStyle(color: Colors.white)),
       ),
       body: SafeArea(
-        child: rutinas.isEmpty
-            ? const EstadoVacio(
-                icono: Icons.fitness_center_outlined,
-                mensaje: 'Aún no tienes rutinas.\nCrea la primera con el botón +',
-              )
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
-                    AppEspaciado.md, AppEspaciado.md, 90),
-                children: [
-                  const Text(
-                    'Mis Rutinas',
-                    style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppColores.textoPrincipal),
-                  ),
-                  const SizedBox(height: AppEspaciado.lg),
-                  ...rutinas.map(_buildTarjeta),
-                ],
+        child: _cargando
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _cargar,
+                child: vacio
+                    ? ListView(
+                        children: const [
+                          SizedBox(height: 120),
+                          EstadoVacio(
+                            icono: Icons.fitness_center_outlined,
+                            mensaje:
+                                'Aún no tienes rutinas.\nCrea la primera con el botón +',
+                          ),
+                        ],
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
+                            AppEspaciado.md, AppEspaciado.md, 90),
+                        children: [
+                          if (sugeridas.isNotEmpty) ...[
+                            _tituloSeccion('Rutinas sugeridas', Icons.verified),
+                            const SizedBox(height: AppEspaciado.sm),
+                            ...sugeridas.map(_buildTarjeta),
+                            const SizedBox(height: AppEspaciado.lg),
+                          ],
+                          _tituloSeccion('Mis rutinas', Icons.person),
+                          const SizedBox(height: AppEspaciado.sm),
+                          if (mias.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Text(
+                                'Crea tu propia rutina con el botón +',
+                                style: TextStyle(
+                                    color: AppColores.textoSecundario),
+                              ),
+                            )
+                          else
+                            ...mias.map(_buildTarjeta),
+                        ],
+                      ),
               ),
       ),
+    );
+  }
+
+  Widget _tituloSeccion(String texto, IconData icono) {
+    return Row(
+      children: [
+        Icon(icono, size: 20, color: AppColores.primario),
+        const SizedBox(width: 8),
+        Text(
+          texto,
+          style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColores.textoPrincipal),
+        ),
+      ],
     );
   }
 
@@ -80,17 +137,30 @@ class _RutinasScreenState extends State<RutinasScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(r.nombre,
-                      style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColores.textoPrincipal)),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(r.nombre,
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColores.textoPrincipal)),
+                      ),
+                      if (r.esSugerida) ...[
+                        const SizedBox(width: 8),
+                        const EtiquetaEstado(
+                            texto: 'Sugerida', color: AppColores.azul),
+                      ],
+                    ],
+                  ),
                   const SizedBox(height: 2),
-                  Text(r.dia,
+                  Text(r.resumenDias,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           fontSize: 13, color: AppColores.textoSecundario)),
                   const SizedBox(height: 4),
-                  Text('${r.totalEjercicios} ejercicios',
+                  Text('${r.totalDias} día(s) · ${r.totalEjercicios} ejercicios',
                       style: const TextStyle(
                           fontSize: 12.5,
                           fontWeight: FontWeight.w600,
@@ -98,17 +168,49 @@ class _RutinasScreenState extends State<RutinasScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right,
-                color: AppColores.textoSecundario),
+            if (!r.esSugerida)
+              IconButton(
+                icon: const Icon(Icons.delete_outline,
+                    color: AppColores.textoSecundario),
+                tooltip: 'Eliminar',
+                onPressed: () => _eliminarRutina(r),
+              )
+            else
+              const Icon(Icons.chevron_right,
+                  color: AppColores.textoSecundario),
           ],
         ),
       ),
     );
   }
 
+  Future<void> _eliminarRutina(Rutina r) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar rutina'),
+        content: Text('¿Eliminar "${r.nombre}" y todos sus ejercicios?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColores.moroso),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+    await _controlador.eliminarRutina(r.id);
+    if (!mounted) return;
+    setState(() {});
+  }
+
   Future<void> _nuevaRutina() async {
     final nombreCtrl = TextEditingController();
-    final diaCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
 
     final creada = await showModalBottomSheet<bool>(
       context: context,
@@ -138,14 +240,14 @@ class _RutinasScreenState extends State<RutinasScreen> {
               controller: nombreCtrl,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
-                  labelText: 'Nombre (ej. Push, Pull, Pierna)'),
+                  labelText: 'Nombre (ej. Pecho y Tríceps)'),
             ),
             const SizedBox(height: AppEspaciado.md),
             TextField(
-              controller: diaCtrl,
+              controller: descCtrl,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
-                  labelText: 'Día / enfoque (ej. Lunes — Pecho)'),
+                  labelText: 'Descripción (opcional)'),
             ),
             const SizedBox(height: AppEspaciado.lg),
             SizedBox(
@@ -155,7 +257,7 @@ class _RutinasScreenState extends State<RutinasScreen> {
                   if (nombreCtrl.text.trim().isEmpty) return;
                   Navigator.of(ctx).pop(true);
                 },
-                child: const Text('Crear rutina'),
+                child: const Text('Crear y agregar días'),
               ),
             ),
           ],
@@ -163,12 +265,18 @@ class _RutinasScreenState extends State<RutinasScreen> {
       ),
     );
 
-    if (creada == true) {
-      _controlador.crearRutina(
-        nombreCtrl.text.trim(),
-        diaCtrl.text.trim().isEmpty ? 'Sin asignar' : diaCtrl.text.trim(),
-      );
-      setState(() {});
-    }
+    if (creada != true) return;
+    final id = await _controlador.crearRutina(
+      nombreCtrl.text.trim(),
+      descCtrl.text.trim(),
+    );
+    if (!mounted) return;
+    setState(() {});
+    // Abrir el detalle para que agregue días y ejercicios.
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => DetalleRutinaScreen(rutinaId: id)),
+    );
+    if (!mounted) return;
+    setState(() {});
   }
 }

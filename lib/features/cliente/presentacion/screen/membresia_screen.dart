@@ -25,6 +25,7 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
   }
 
   Future<void> _cargar() async {
+    setState(() => _isLoading = true);
     final m = await _controlador.obtenerMembresia();
     if (!mounted) return;
     setState(() {
@@ -37,24 +38,37 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
   Widget build(BuildContext context) {
     final m = _membresia;
     return SafeArea(
-      child: _isLoading || m == null
+      child: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(AppEspaciado.md),
-              children: [
-                const SizedBox(height: AppEspaciado.sm),
-                const Text(
-                  'Mi Membresía',
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColores.textoPrincipal),
-                ),
-                const SizedBox(height: AppEspaciado.lg),
-                _buildTarjetaPlan(m),
-                const SizedBox(height: AppEspaciado.md),
-                _buildDetalles(m),
-              ],
+          : RefreshIndicator(
+              onRefresh: _cargar,
+              child: m == null
+                  ? ListView(
+                      children: const [
+                        SizedBox(height: 120),
+                        EstadoVacio(
+                          icono: Icons.card_membership_outlined,
+                          mensaje: 'No tienes una membresía registrada',
+                        ),
+                      ],
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.all(AppEspaciado.md),
+                      children: [
+                        const SizedBox(height: AppEspaciado.sm),
+                        const Text(
+                          'Mi Membresía',
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppColores.textoPrincipal),
+                        ),
+                        const SizedBox(height: AppEspaciado.lg),
+                        _buildTarjetaPlan(m),
+                        const SizedBox(height: AppEspaciado.md),
+                        _buildDetalles(m),
+                      ],
+                    ),
             ),
     );
   }

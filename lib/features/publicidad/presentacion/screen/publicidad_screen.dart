@@ -47,6 +47,53 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
     return !hoy.isBefore(p.fechaInicio) && !hoy.isAfter(p.fechaFin);
   }
 
+  Future<void> _editar(Publicidad pub) async {
+    final result = await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FormularioPublicidadScreen(publicidad: pub),
+      ),
+    );
+    if (result == true) {
+      if (mounted) {
+        mostrarMensaje(context, 'Publicidad actualizada',
+            tipo: TipoMensaje.exito);
+      }
+      _cargarPublicidades();
+    }
+  }
+
+  Future<void> _eliminar(Publicidad pub) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar publicidad'),
+        content: Text('¿Seguro que deseas eliminar "${pub.titulo}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColores.moroso),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || pub.id == null) return;
+
+    final ok = await _controlador.eliminarPublicidad(pub.id!);
+    if (!mounted) return;
+    if (ok) {
+      mostrarMensaje(context, 'Publicidad eliminada', tipo: TipoMensaje.exito);
+      _cargarPublicidades();
+    } else {
+      mostrarMensaje(context, 'No se pudo eliminar la publicidad',
+          tipo: TipoMensaje.error);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,6 +177,38 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
                     EtiquetaEstado(
                       texto: vigente ? 'Vigente' : 'Inactiva',
                       color: vigente ? AppColores.activo : AppColores.vencido,
+                    ),
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert,
+                          color: AppColores.textoSecundario),
+                      onSelected: (op) {
+                        if (op == 'editar') _editar(pub);
+                        if (op == 'eliminar') _eliminar(pub);
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'editar',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined, size: 20),
+                              SizedBox(width: AppEspaciado.sm),
+                              Text('Editar'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'eliminar',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline,
+                                  size: 20, color: AppColores.moroso),
+                              SizedBox(width: AppEspaciado.sm),
+                              Text('Eliminar',
+                                  style: TextStyle(color: AppColores.moroso)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

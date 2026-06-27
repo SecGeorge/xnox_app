@@ -27,7 +27,15 @@ class ControladorPublicidad {
     return await _repositorio.obtenerPublicidadesActivas();
   }
 
-  Future<bool> addPublicidad(Publicidad publicidad, Map<String, dynamic> imagen) async {
-    return await _crearPublicidad.ejecutar(publicidad, imagen);
+  Future<bool> addPublicidad(Publicidad publicidad, String? imagenBase64) async {
+    return await _crearPublicidad.ejecutar(publicidad, imagenBase64);
+  }
+
+  Future<bool> editarPublicidad(Publicidad publicidad, String? imagenBase64) {
+    return _repositorio.editarPublicidad(publicidad, imagenBase64);
+  }
+
+  Future<bool> eliminarPublicidad(int id) {
+    return _repositorio.eliminarPublicidad(id);
   }
 }

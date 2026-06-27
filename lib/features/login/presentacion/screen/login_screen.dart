@@ -19,9 +19,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _loginController = ControladorLogin();
   bool _isLoading = false;
+  bool _ocultarPassword = true;
   TipoUsuario _tipoUsuario = TipoUsuario.administrador;
 
   void _handleLogin() async {
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     final result = await _loginController.login(
@@ -34,9 +36,6 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result.success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message)),
-      );
       final destino = _tipoUsuario == TipoUsuario.cliente
           ? const ClienteShell()
           : const DashboardScreen();
@@ -170,7 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     TextField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: _ocultarPassword,
                       decoration: InputDecoration(
                         labelText: 'Contraseña',
                         border: OutlineInputBorder(
@@ -178,6 +177,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 16),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _ocultarPassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.black54,
+                          ),
+                          onPressed: () => setState(
+                              () => _ocultarPassword = !_ocultarPassword),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -203,13 +212,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1A2B4C),
                           foregroundColor: Colors.white,
+                          disabledBackgroundColor: const Color(0xFF1A2B4C),
+                          disabledForegroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                           elevation: 0,
+                          shadowColor: Colors.transparent,
+                          surfaceTintColor: Colors.transparent,
+                        ).copyWith(
+                          overlayColor: WidgetStateProperty.all(
+                            Colors.white.withValues(alpha: 0.08),
+                          ),
                         ),
-                        child: _isLoading 
-                          ? const CircularProgressIndicator(color: Colors.white)
+                        child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
                           : const Text(
                               'INGRESAR',
                               style: TextStyle(

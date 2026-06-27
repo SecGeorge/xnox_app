@@ -1,11 +1,12 @@
 import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
 
-/// Un ejercicio dentro de una rutina, con su historial de marcas (PR).
+/// Un ejercicio dentro de un día de una rutina, con su historial de marcas (PR).
 class Ejercicio {
   final int id;
   final String nombre;
   final int series;
   final int repeticiones;
+  final String? observaciones;
   final List<Marca> marcas;
 
   Ejercicio({
@@ -13,6 +14,7 @@ class Ejercicio {
     required this.nombre,
     required this.series,
     required this.repeticiones,
+    this.observaciones,
     List<Marca>? marcas,
   }) : marcas = marcas ?? [];
 

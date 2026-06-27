@@ -1,23 +1,63 @@
 import 'package:xnox_app/features/cliente/datos/almacen_rutinas.dart';
+import 'package:xnox_app/features/cliente/datos/repositorio_rutinas_remoto.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
 
-/// Orquesta las rutinas del cliente sobre el almacén en memoria.
+/// Orquesta las rutinas del cliente sobre el almacén SQLite y la sincronización
+/// con el backend (rutinas sugeridas del administrador).
 class ControladorRutinas {
   final AlmacenRutinas _almacen = AlmacenRutinas.instancia;
+  final RepositorioRutinasRemoto _remoto = RepositorioRutinasRemoto();
 
+  // -------------------------------------------------------- Lecturas (caché)
   List<Rutina> obtenerRutinas() => _almacen.rutinas;
-
+  List<Rutina> obtenerSugeridas() => _almacen.rutinasSugeridas;
+  List<Rutina> obtenerMisRutinas() => _almacen.rutinasCliente;
   List<Ejercicio> obtenerTodosLosEjercicios() => _almacen.todosLosEjercicios;
-
   Rutina? obtenerRutina(int id) => _almacen.buscarRutina(id);
 
-  void crearRutina(String nombre, String dia) =>
-      _almacen.agregarRutina(nombre, dia);
+  /// Garantiza que la caché esté cargada desde SQLite.
+  Future<void> asegurarCargado() => _almacen.asegurarCargado();
 
-  void agregarEjercicio(int rutinaId, String nombre, int series, int reps) =>
-      _almacen.agregarEjercicio(rutinaId, nombre, series, reps);
+  /// Flujo de apertura: carga SQLite y, si hay conexión, sincroniza las
+  /// rutinas sugeridas del backend. Sin Internet, se queda con SQLite.
+  Future<void> sincronizar() async {
+    await _almacen.asegurarCargado();
+    final remotas = await _remoto.obtenerSugeridas();
+    if (remotas.isNotEmpty) {
+      await _almacen.sincronizarSugeridas(remotas);
+    }
+  }
 
-  void registrarMarca(int ejercicioId, double peso, int reps) =>
-      _almacen.agregarMarca(ejercicioId, peso, reps);
+  // ------------------------------------------------ Mutaciones (solo cliente)
+  Future<int> crearRutina(String nombre, String descripcion) =>
+      _almacen.crearRutina(nombre, descripcion);
+
+  Future<void> editarRutina(int id, String nombre, String descripcion) =>
+      _almacen.editarRutina(id, nombre, descripcion);
+
+  Future<void> eliminarRutina(int id) => _almacen.eliminarRutina(id);
+
+  Future<int> agregarDia(int rutinaId, String diaSemana) =>
+      _almacen.agregarDia(rutinaId, diaSemana);
+
+  Future<void> eliminarDia(int diaId) => _almacen.eliminarDia(diaId);
+
+  Future<void> agregarEjercicio(
+    int diaId,
+    String nombre,
+    int series,
+    int repeticiones, {
+    String? observaciones,
+  }) =>
+      _almacen.agregarEjercicio(diaId, nombre, series, repeticiones,
+          observaciones: observaciones);
+
+  Future<void> eliminarEjercicio(int ejercicioId) =>
+      _almacen.eliminarEjercicio(ejercicioId);
+
+  /// Registra una marca de progreso (peso + reps por serie) en un ejercicio.
+  Future<void> registrarMarca(
+          int ejercicioId, double peso, List<int> repsPorSerie) =>
+      _almacen.agregarMarca(ejercicioId, peso, repsPorSerie);
 }

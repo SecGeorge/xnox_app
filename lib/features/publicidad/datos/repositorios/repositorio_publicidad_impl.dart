@@ -77,18 +77,53 @@ class RepositorioPublicidadImpl implements RepositorioPublicidad {
 
   @override
   Future<bool> crearPublicidad(
-      Publicidad publicidad, Map<String, dynamic> imagen) async {
+      Publicidad publicidad, String? imagenBase64) async {
     try {
       final payload = {
         'metodo': 'crear',
         'datos': publicidad.toJson(),
-        'imagen': imagen,
+        // El backend guarda la imagen base64 en imagenes/publicidad.
+        'imagen': imagenBase64,
         'sucursal_id': await _sucursalId(),
       };
       final response =
           await _httpService.obtenerConDatos(payload, 'publicidad.php');
       return response is Map && response['resultado'] == true;
     } catch (e) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> editarPublicidad(
+      Publicidad publicidad, String? imagenBase64) async {
+    try {
+      final datos = <String, dynamic>{
+        'id': publicidad.id,
+        'titulo': publicidad.titulo,
+        'descripcion': publicidad.descripcion,
+        'fecha_inicio': publicidad.fechaInicio.toIso8601String().split('T')[0],
+        'fecha_fin': publicidad.fechaFin.toIso8601String().split('T')[0],
+        // Solo se envía la imagen si se cambió; si no, el backend conserva la actual.
+        'imagen': ?imagenBase64,
+      };
+      final response = await _httpService
+          .obtenerConDatos({'metodo': 'put', 'datos': datos}, 'publicidad.php');
+      return response is Map && response['resultado'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> eliminarPublicidad(int id) async {
+    try {
+      final response = await _httpService.obtenerConDatos(
+        {'metodo': 'eliminar', 'id': id},
+        'publicidad.php',
+      );
+      return response is Map && response['resultado'] == true;
+    } catch (_) {
       return false;
     }
   }
