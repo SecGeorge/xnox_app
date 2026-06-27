@@ -7,6 +7,8 @@ import 'package:xnox_app/features/dashboard/presentacion/widget/grafico_dona.dar
 import 'package:xnox_app/features/dashboard/dominio/entidades/estadisticas_dashboard.dart';
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
+import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
+import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
 import 'package:xnox_app/features/pagos/presentacion/screen/pagos_screen.dart';
 import 'package:xnox_app/features/publicidad/presentacion/screen/publicidad_screen.dart';
 
@@ -20,13 +22,16 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final _dashboardController = ControladorDashboard();
+  final _notificacionesController = ControladorNotificaciones();
   EstadisticasDashboard? _stats;
   bool _isLoading = true;
+  int _notificacionesPendientes = 0;
 
   @override
   void initState() {
     super.initState();
     _cargarDatos();
+    _cargarNotificaciones();
   }
 
   Future<void> _cargarDatos() async {
@@ -44,6 +49,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
       mostrarMensaje(context, 'No se pudo cargar el resumen del negocio',
           tipo: TipoMensaje.error);
     }
+  }
+
+  /// Carga el conteo de notificaciones pendientes para el badge de la campanita.
+  Future<void> _cargarNotificaciones() async {
+    try {
+      final lista = await _notificacionesController.obtener();
+      if (!mounted) return;
+      setState(() => _notificacionesPendientes = lista.length);
+    } catch (_) {
+      // El badge es secundario: si falla, no interrumpimos el dashboard.
+    }
+  }
+
+  /// Abre la pantalla de notificaciones y refresca el contador al volver.
+  Future<void> _abrirNotificaciones() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NotificacionesScreen()),
+    );
+    if (!mounted) return;
+    _cargarNotificaciones();
   }
 
   void _onItemTapped(int index) {
@@ -156,17 +181,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColores.superficie,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColores.borde),
-          ),
-          child: const Icon(Icons.notifications_none,
-              color: AppColores.primario),
-        ),
+        _buildCampanita(),
       ],
+    );
+  }
+
+  /// Campanita de notificaciones con badge de pendientes.
+  Widget _buildCampanita() {
+    return InkWell(
+      onTap: _abrirNotificaciones,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColores.superficie,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColores.borde),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Icon(
+              _notificacionesPendientes > 0
+                  ? Icons.notifications
+                  : Icons.notifications_none,
+              color: AppColores.primario,
+            ),
+            if (_notificacionesPendientes > 0)
+              Positioned(
+                right: -4,
+                top: -4,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  constraints:
+                      const BoxConstraints(minWidth: 16, minHeight: 16),
+                  decoration: const BoxDecoration(
+                    color: AppColores.moroso,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    _notificacionesPendientes > 9
+                        ? '9+'
+                        : '$_notificacionesPendientes',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
