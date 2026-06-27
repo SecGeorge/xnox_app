@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class HttpService {
   //static const String RUTA_GLOBAL = "https://xnonx.xnoxsoft.es/api/";
-  static const String RUTA_GLOBAL = "http://192.168.1.81/sistema_gimnasio_vf/api/";
+  static const String RUTA_GLOBAL = "http://192.168.1.83/sistema_gimnasio_vf/api/";
   static final HttpService _instance = HttpService._internal();
   late Dio _dio;
   late CookieJar _cookieJar;
@@ -28,7 +28,7 @@ class HttpService {
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
-        if (e.response?.statusCode == 401) {
+        if (e.response?.statusCode == 401) {|
           final recuperado = await intentarRecuperarSesion();
           if (recuperado) {
             // Retry the original request

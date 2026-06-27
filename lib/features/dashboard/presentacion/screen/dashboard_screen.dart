@@ -5,6 +5,7 @@ import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/dashboard/presentacion/controlador/controlador_dashboard.dart';
 import 'package:xnox_app/features/dashboard/presentacion/widget/grafico_dona.dart';
 import 'package:xnox_app/features/dashboard/dominio/entidades/estadisticas_dashboard.dart';
+import 'package:xnox_app/features/lector_pagos/presentacion/screen/lector_pagos_screen.dart';
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
@@ -410,6 +411,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: AppEspaciado.sm + 4),
           _ajusteTile(Icons.business_outlined, 'Datos del negocio', 'Nombre, logo y dirección'),
           const SizedBox(height: AppEspaciado.sm + 4),
+          _ajusteTile(
+            Icons.qr_code_scanner,
+            'Lector de pagos',
+            'Registrar Yape/Plin automáticamente',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const LectorPagosScreen()),
+            ),
+          ),
+          const SizedBox(height: AppEspaciado.sm + 4),
           _ajusteTile(Icons.lock_outline, 'Seguridad', 'Contraseña y acceso'),
           const SizedBox(height: AppEspaciado.lg),
           ElevatedButton.icon(
@@ -434,9 +444,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _ajusteTile(IconData icono, String titulo, String subtitulo) {
+  Widget _ajusteTile(IconData icono, String titulo, String subtitulo,
+      {VoidCallback? onTap}) {
     return TarjetaApp(
-      onTap: () {},
+      onTap: onTap ?? () {},
       padding: const EdgeInsets.symmetric(
           horizontal: AppEspaciado.md, vertical: AppEspaciado.sm + 4),
       child: Row(
