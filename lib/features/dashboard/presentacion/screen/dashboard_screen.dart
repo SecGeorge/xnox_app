@@ -10,6 +10,8 @@ import 'package:xnox_app/features/dashboard/presentacion/widget/grafico_dona.dar
 import 'package:xnox_app/features/dashboard/dominio/entidades/estadisticas_dashboard.dart';
 import 'package:xnox_app/features/lector_pagos/presentacion/screen/lector_pagos_screen.dart';
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
+import 'package:xnox_app/features/marketing/presentacion/screen/campanas_screen.dart';
+import 'package:xnox_app/features/marketing/presentacion/screen/plantillas_screen.dart';
 import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
@@ -148,6 +150,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildGridEstadisticas(),
               const SizedBox(height: AppEspaciado.md),
               _buildDistribucionMiembros(),
+              const SizedBox(height: AppEspaciado.lg),
+              _buildMarketing(),
             ],
           ],
         ),
@@ -391,6 +395,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Sección de accesos al módulo de Marketing y Comunicación (WhatsApp).
+  Widget _buildMarketing() {
+    return TarjetaApp(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const EncabezadoSeccion(
+            titulo: 'Marketing y Comunicación',
+            subtitulo: 'Campañas y plantillas de WhatsApp',
+          ),
+          const SizedBox(height: AppEspaciado.md),
+          _marketingTile(
+            Icons.send,
+            'Envío de mensajes',
+            'Campañas para recordar pagos y recuperar clientes',
+            AppColores.acento,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const CampanasScreen()),
+            ),
+          ),
+          const SizedBox(height: AppEspaciado.sm + 4),
+          _marketingTile(
+            Icons.text_snippet_outlined,
+            'Plantillas de WhatsApp',
+            'Mensajes predeterminados y promociones',
+            AppColores.morado,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PlantillasScreen()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _marketingTile(IconData icono, String titulo, String subtitulo,
+      Color color,
+      {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+              ),
+              child: Icon(icono, color: color, size: 22),
+            ),
+            const SizedBox(width: AppEspaciado.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(titulo,
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColores.textoPrincipal)),
+                  const SizedBox(height: 2),
+                  Text(subtitulo,
+                      style: const TextStyle(
+                          fontSize: 12.5, color: AppColores.textoSecundario)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColores.textoSecundario),
+          ],
+        ),
       ),
     );
   }
