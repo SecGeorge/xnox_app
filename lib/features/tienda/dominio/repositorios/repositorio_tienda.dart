@@ -4,7 +4,21 @@ import 'package:xnox_app/features/tienda/dominio/entidades/producto_tienda.dart'
 class ResultadoPedido {
   final bool exito;
   final String mensaje;
-  const ResultadoPedido(this.exito, this.mensaje);
+
+  /// Id y código del pedido creado (disponibles solo cuando [exito] es true).
+  final int? pedidoId;
+  final String? codigo;
+
+  /// Total del pedido recién creado (para mostrar en el pago).
+  final double total;
+
+  const ResultadoPedido(
+    this.exito,
+    this.mensaje, {
+    this.pedidoId,
+    this.codigo,
+    this.total = 0,
+  });
 }
 
 abstract class RepositorioTienda {

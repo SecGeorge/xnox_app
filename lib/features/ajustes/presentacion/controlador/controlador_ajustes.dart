@@ -17,6 +17,19 @@ class ControladorAjustes {
   Future<String?> guardarDatosNegocio(DatosNegocio datos) =>
       _repositorio.guardarDatosNegocio(datos);
 
+  Future<String?> guardarYape({
+    required int id,
+    required String numero,
+    required String titular,
+    String? qrBase64,
+  }) =>
+      _repositorio.guardarYape(
+        id: id,
+        numero: numero,
+        titular: titular,
+        qrBase64: qrBase64,
+      );
+
   Future<bool> verificarPassword(String actual) =>
       _repositorio.verificarPassword(actual);
 

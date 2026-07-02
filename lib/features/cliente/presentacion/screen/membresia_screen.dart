@@ -4,6 +4,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/membresia_cliente.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_membresia.dart';
+import 'package:xnox_app/features/pago_yape/presentacion/pago_yape_screen.dart';
 
 /// Muestra la membresía del cliente: plan, estado, vencimiento y saldo.
 class MembresiaScreen extends StatefulWidget {
@@ -67,6 +68,10 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
                         _buildTarjetaPlan(m),
                         const SizedBox(height: AppEspaciado.md),
                         _buildDetalles(m),
+                        if (m.tieneDeuda) ...[
+                          const SizedBox(height: AppEspaciado.md),
+                          _buildBotonPagar(m),
+                        ],
                       ],
                     ),
             ),
@@ -123,6 +128,29 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBotonPagar(MembresiaCliente m) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => PagoYapeScreen(
+                monto: m.saldoPendiente,
+                concepto: 'Membresía: ${m.plan}',
+              ),
+            ),
+          );
+          // Al volver, refrescamos por si el gimnasio ya confirmó el pago.
+          _cargar();
+        },
+        style: ElevatedButton.styleFrom(backgroundColor: AppColores.morado),
+        icon: const Icon(Icons.account_balance_wallet),
+        label: Text('Pagar por Yape  ·  ${NumberFormat('#,##0.00', 'es').format(m.saldoPendiente)}'),
       ),
     );
   }

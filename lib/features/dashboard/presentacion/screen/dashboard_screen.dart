@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/ajustes/presentacion/screen/config_yape_screen.dart';
 import 'package:xnox_app/features/ajustes/presentacion/screen/datos_negocio_screen.dart';
 import 'package:xnox_app/features/ajustes/presentacion/screen/perfil_screen.dart';
 import 'package:xnox_app/features/ajustes/presentacion/screen/seguridad_screen.dart';
@@ -506,6 +507,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             'Nombre, logo y dirección',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const DatosNegocioScreen()),
+            ),
+          ),
+          const SizedBox(height: AppEspaciado.sm + 4),
+          _ajusteTile(
+            Icons.qr_code_2,
+            'Pago por Yape',
+            'Número y QR para que tus clientes paguen',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ConfigYapeScreen()),
             ),
           ),
           const SizedBox(height: AppEspaciado.sm + 4),

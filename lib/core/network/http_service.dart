@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class HttpService {
   //static const String RUTA_GLOBAL = "https://xnonx.xnoxsoft.es/api/";
-  static const String RUTA_GLOBAL = "http://192.168.1.92/sistema_gimnasio_vf/api/";
+  static const String RUTA_GLOBAL = "http://192.168.1.143/sistema_gimnasio_vf/api/";
   static final HttpService _instance = HttpService._internal();
   late Dio _dio;
   late CookieJar _cookieJar;

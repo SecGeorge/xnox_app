@@ -6,6 +6,7 @@ import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/item_carrito.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/producto_tienda.dart';
 import 'package:xnox_app/features/tienda/presentacion/controlador/controlador_tienda.dart';
+import 'package:xnox_app/features/pago_yape/presentacion/pago_yape_screen.dart';
 
 /// Catálogo de la tienda para el cliente: ve productos, arma su carrito y
 /// envía el pedido (queda pendiente hasta que el admin lo cobra).
@@ -112,6 +113,19 @@ class _ComprarScreenState extends State<ComprarScreen> {
       Navigator.of(context).pop(); // cierra el bottom sheet
       mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.exito);
       _cargar();
+      // Llevamos al cliente a pagar su pedido por Yape.
+      final concepto = resultado.codigo != null
+          ? 'Pedido ${resultado.codigo}'
+          : 'Pedido de tienda';
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PagoYapeScreen(
+            monto: resultado.total,
+            concepto: concepto,
+            pedidoId: resultado.pedidoId,
+          ),
+        ),
+      );
     } else {
       setSheet(() {});
       mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.error);

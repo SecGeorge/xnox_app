@@ -54,7 +54,49 @@ class RepositorioAjustesImpl {
       direccion: json['direccion']?.toString() ?? '',
       logo: json['logo']?.toString() ?? '',
       logoUrl: _urlLogo(json['logo']),
+      yapeNumero: json['yape_numero']?.toString() ?? '',
+      yapeTitular: json['yape_titular']?.toString() ?? '',
+      yapeQr: json['yape_qr']?.toString() ?? '',
+      yapeQrUrl: _urlLogo(json['yape_qr']),
     );
+  }
+
+  /// Guarda la configuración de pago por Yape del negocio. [qrBase64] es la
+  /// imagen del QR en base64 (con encabezado data:) o `null` si no cambió.
+  /// Devuelve `null` si todo salió bien o un mensaje de error legible.
+  Future<String?> guardarYape({
+    required int id,
+    required String numero,
+    required String titular,
+    String? qrBase64,
+  }) async {
+    final resp = await _httpService.registrar(
+      {
+        'metodo': 'guardar_yape',
+        'yape': {
+          'id': id,
+          'yape_numero': numero,
+          'yape_titular': titular,
+          'yape_qr': qrBase64 ?? '',
+          'yapeQrCambia': qrBase64 != null,
+        },
+      },
+      'ajustes.php',
+    );
+
+    if (resp is Map && resp['error'] != null) {
+      return resp['error'].toString();
+    }
+
+    final fila = resp is List && resp.isNotEmpty ? resp.first : resp;
+    if (fila is Map) {
+      final exito = fila['voit_exito']?.toString() == '1';
+      if (!exito) {
+        return fila['voit_message']?.toString() ??
+            'No se pudo guardar la configuración de Yape';
+      }
+    }
+    return null;
   }
 
   /// Guarda los datos del negocio. Devuelve `null` si todo salió bien o un

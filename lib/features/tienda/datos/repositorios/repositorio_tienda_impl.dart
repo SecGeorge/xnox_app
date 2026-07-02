@@ -68,9 +68,13 @@ class RepositorioTiendaImpl implements RepositorioTienda {
     final resp = await _httpService.registrar(payload, 'pedidos.php');
 
     if (resp is Map && resp['success'] == true) {
+      final total = items.fold<double>(0, (acc, i) => acc + i.subtotal);
       return ResultadoPedido(
         true,
         resp['mensaje']?.toString() ?? 'Pedido enviado correctamente',
+        pedidoId: int.tryParse(resp['pedido_id']?.toString() ?? ''),
+        codigo: resp['codigo']?.toString(),
+        total: total,
       );
     }
     final mensaje = (resp is Map)
