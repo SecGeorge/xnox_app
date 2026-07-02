@@ -142,6 +142,7 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
               builder: (_) => PagoYapeScreen(
                 monto: m.saldoPendiente,
                 concepto: 'Membresía: ${m.plan}',
+                contratoId: m.contratoId,
               ),
             ),
           );

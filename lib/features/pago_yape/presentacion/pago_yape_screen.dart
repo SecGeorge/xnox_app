@@ -15,18 +15,21 @@ import 'package:xnox_app/features/pago_yape/dominio/config_pago_yape.dart';
 ///
 /// - [monto]: importe a pagar (S/).
 /// - [concepto]: descripción (ej. "Pedido GYM-00021" o "Membresía").
-/// - [pedidoId]: si es un pedido de la tienda, su id (para reportar el pago).
-///   Para deuda de membresía u otros, dejar en null.
+/// - [pedidoId]: si es un pedido de la tienda, su id (para validar el pago).
+/// - [contratoId]: si es deuda de membresía, el id del contrato (para validar
+///   el pago y saldar la deuda). Se usa cuando [pedidoId] es null.
 class PagoYapeScreen extends StatefulWidget {
   final double monto;
   final String concepto;
   final int? pedidoId;
+  final int? contratoId;
 
   const PagoYapeScreen({
     super.key,
     required this.monto,
     required this.concepto,
     this.pedidoId,
+    this.contratoId,
   });
 
   @override
@@ -36,16 +39,26 @@ class PagoYapeScreen extends StatefulWidget {
 class _PagoYapeScreenState extends State<PagoYapeScreen> {
   final _repositorio = RepositorioPagoYape();
   final _qrKey = GlobalKey();
+  final _codigoController = TextEditingController();
 
   ConfigPagoYape? _config;
   bool _cargando = true;
   bool _descargando = false;
-  bool _reportando = false;
+  bool _validando = false;
+
+  /// `true` si tenemos con qué validar el pago (pedido o contrato).
+  bool get _puedeValidar => widget.pedidoId != null || widget.contratoId != null;
 
   @override
   void initState() {
     super.initState();
     _cargar();
+  }
+
+  @override
+  void dispose() {
+    _codigoController.dispose();
+    super.dispose();
   }
 
   Future<void> _cargar() async {
@@ -110,23 +123,73 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
             icon: const Icon(Icons.account_balance_wallet),
             label: const Text('Abrir app de Yape'),
           ),
+          const SizedBox(height: AppEspaciado.md),
+          if (_puedeValidar)
+            _tarjetaCodigo()
+          else
+            const Text(
+              'Tu pago será confirmado por el gimnasio.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: AppColores.textoSecundario),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tarjetaCodigo() {
+    return TarjetaApp(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Confirma tu pago',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColores.textoPrincipal,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Escribe el código de seguridad que aparece en tu comprobante de '
+            'Yape (ej. 815). Verificaremos tu pago al instante.',
+            style: TextStyle(fontSize: 12.5, color: AppColores.textoSecundario),
+          ),
+          const SizedBox(height: AppEspaciado.md),
+          TextField(
+            controller: _codigoController,
+            enabled: !_validando,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            maxLength: 12,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 4,
+            ),
+            decoration: const InputDecoration(
+              counterText: '',
+              hintText: '– – –',
+              border: OutlineInputBorder(),
+              labelText: 'Código de seguridad',
+            ),
+            onSubmitted: (_) => _validando ? null : _validarPago(),
+          ),
           const SizedBox(height: AppEspaciado.sm),
-          OutlinedButton.icon(
-            onPressed: _reportando ? null : _confirmarPago,
-            icon: _reportando
+          ElevatedButton.icon(
+            onPressed: _validando ? null : _validarPago,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColores.morado),
+            icon: _validando
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
                   )
-                : const Icon(Icons.check_circle_outline),
-            label: const Text('Ya pagué'),
-          ),
-          const SizedBox(height: AppEspaciado.md),
-          const Text(
-            'Tu pago será confirmado por el gimnasio.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppColores.textoSecundario),
+                : const Icon(Icons.verified_outlined),
+            label: Text(_validando ? 'Verificando...' : 'Validar y confirmar'),
           ),
         ],
       ),
@@ -336,36 +399,40 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
     }
   }
 
-  Future<void> _confirmarPago() async {
-    final confirmar = await confirmarDialog(
-      context,
-      titulo: '¿Ya realizaste el pago?',
-      mensaje:
-          'Confirma solo si ya pagaste ${_soles(widget.monto)} por Yape. '
-          'El gimnasio verificará tu pago.',
-      icono: Icons.account_balance_wallet,
-      textoConfirmar: 'Sí, ya pagué',
-    );
-    if (!confirmar) return;
+  Future<void> _validarPago() async {
+    final codigo = _codigoController.text.trim();
+    if (codigo.isEmpty) {
+      mostrarMensaje(
+        context,
+        'Escribe el código de seguridad de tu pago Yape',
+        tipo: TipoMensaje.advertencia,
+      );
+      return;
+    }
 
-    // Para pedidos, registramos el reporte en el backend.
+    // Cerramos el teclado antes de validar.
+    FocusScope.of(context).unfocus();
+    setState(() => _validando = true);
+
+    ResultadoPagoYape resultado;
     if (widget.pedidoId != null) {
-      setState(() => _reportando = true);
-      final error = await _repositorio.reportarPagoPedido(widget.pedidoId!);
-      if (!mounted) return;
-      setState(() => _reportando = false);
-      if (error != null) {
-        mostrarMensaje(context, error, tipo: TipoMensaje.error);
-        return;
-      }
+      resultado = await _repositorio.validarPagoPedido(widget.pedidoId!, codigo);
+    } else {
+      resultado = await _repositorio.validarPagoMembresia(
+        widget.contratoId!,
+        widget.monto,
+        codigo,
+      );
     }
 
     if (!mounted) return;
-    mostrarMensaje(
-      context,
-      '¡Gracias! Tu pago será confirmado por el gimnasio.',
-      tipo: TipoMensaje.exito,
-    );
-    Navigator.of(context).pop(true);
+    setState(() => _validando = false);
+
+    if (resultado.ok) {
+      mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.exito);
+      Navigator.of(context).pop(true);
+    } else {
+      mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.error);
+    }
   }
 }

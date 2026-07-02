@@ -57,6 +57,7 @@ class ControladorMembresia {
               DateTime.now(),
       saldoPendiente: deuda,
       codigoQr: qr,
+      contratoId: int.tryParse(contrato['contrato_id']?.toString() ?? ''),
     );
   }
 

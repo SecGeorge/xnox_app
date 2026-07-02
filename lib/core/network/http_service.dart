@@ -1,7 +1,9 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 
 class HttpService {
   //static const String RUTA_GLOBAL = "https://xnonx.xnoxsoft.es/api/";
@@ -57,6 +59,30 @@ class HttpService {
     ));
   }
 
+  /// Mensaje mostrado al usuario cuando el dispositivo no tiene conexión.
+  static const String _mensajeSinConexion =
+      'Sin conexión a internet. Verifica tu red e inténtalo de nuevo.';
+
+  /// Comprueba si el dispositivo tiene alguna interfaz de red activa
+  /// (WiFi, datos móviles, ethernet o VPN).
+  Future<bool> hayInternet() async {
+    try {
+      final resultados = await Connectivity().checkConnectivity();
+      return resultados.any((r) => r != ConnectivityResult.none);
+    } catch (_) {
+      // Ante cualquier fallo del plugin asumimos que sí hay red para no
+      // bloquear la petición; Dio reportará el error real si no la hay.
+      return true;
+    }
+  }
+
+  /// Respuesta estándar de "sin conexión". Muestra el snack amarillo global y
+  /// devuelve un mapa compatible con lo que esperan los repositorios.
+  Map<String, dynamic> _respuestaSinConexion() {
+    mostrarMensajeGlobal(_mensajeSinConexion, tipo: TipoMensaje.advertencia);
+    return {'success': false, 'sin_conexion': true, 'error': _mensajeSinConexion};
+  }
+
   Future<bool> intentarRecuperarSesion() async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = prefs.getString('idUsuario');
@@ -79,6 +105,7 @@ class HttpService {
   }
 
   Future<dynamic> registrar(Map<String, dynamic> datos, String ruta) async {
+    if (!await hayInternet()) return _respuestaSinConexion();
     try {
       final response = await _dio.post(ruta, data: datos);
       return response.data;
@@ -88,6 +115,7 @@ class HttpService {
   }
 
   Future<dynamic> obtenerConDatos(Map<String, dynamic> datos, String ruta) async {
+    if (!await hayInternet()) return _respuestaSinConexion();
     try {
       final response = await _dio.post(ruta, data: datos);
       return response.data;
@@ -97,6 +125,7 @@ class HttpService {
   }
 
   Future<dynamic> eliminar(String ruta, Map<String, dynamic> datos) async {
+    if (!await hayInternet()) return _respuestaSinConexion();
     try {
       final response = await _dio.post(ruta, data: datos);
       return response.data;
@@ -106,6 +135,7 @@ class HttpService {
   }
 
   Future<dynamic> subirArchivo(FormData formData, String url) async {
+    if (!await hayInternet()) return _respuestaSinConexion();
     try {
       final response = await _dio.post(
         url,
@@ -123,6 +153,10 @@ class HttpService {
   }
 
   Future<void> exportar(String ruta, Map<String, dynamic> payload, String nombreArchivo) async {
+    if (!await hayInternet()) {
+      _respuestaSinConexion();
+      return;
+    }
     try {
       await _dio.download(
         ruta, 
@@ -137,6 +171,17 @@ class HttpService {
   dynamic _handleError(DioException e) {
     if (e.response != null) {
       return e.response?.data;
+    }
+    // Sin respuesta del servidor: timeout, conexión rechazada o red caída
+    // aunque el dispositivo reporte tener interfaz activa.
+    const erroresConexion = {
+      DioExceptionType.connectionError,
+      DioExceptionType.connectionTimeout,
+      DioExceptionType.receiveTimeout,
+      DioExceptionType.sendTimeout,
+    };
+    if (erroresConexion.contains(e.type)) {
+      return _respuestaSinConexion();
     }
     return {'success': false, 'error': e.message};
   }

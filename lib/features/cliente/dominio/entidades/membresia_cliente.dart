@@ -12,6 +12,9 @@ class MembresiaCliente {
   /// Código que se codifica en el QR de ingreso.
   final String codigoQr;
 
+  /// Id del contrato activo (para registrar pagos de la deuda). Null si no hay.
+  final int? contratoId;
+
   MembresiaCliente({
     required this.nombre,
     required this.plan,
@@ -20,6 +23,7 @@ class MembresiaCliente {
     required this.fechaVencimiento,
     required this.saldoPendiente,
     required this.codigoQr,
+    this.contratoId,
   });
 
   /// Días restantes hasta el vencimiento (negativo si ya venció).

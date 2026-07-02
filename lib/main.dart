@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/login/presentacion/screen/sesion_gate.dart';
 
 void main() async {
@@ -16,6 +17,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'XNOX-SOFT',
+      scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: construirTema(),
       home: const SesionGate(),

@@ -145,6 +145,32 @@ extension TipoMensajeEstilo on TipoMensaje {
   }
 }
 
+/// Key global del ScaffoldMessenger. Se asigna en el [MaterialApp] y permite
+/// mostrar SnackBars sin un [BuildContext], por ejemplo desde la capa de red
+/// (avisos de "sin conexión a internet").
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
+/// Construye el SnackBar estandarizado con color e icono semánticos.
+SnackBar _construirSnackBar(String texto, TipoMensaje tipo) {
+  return SnackBar(
+    backgroundColor: tipo.color,
+    behavior: SnackBarBehavior.floating,
+    content: Row(
+      children: [
+        Icon(tipo.icono, color: Colors.white, size: 20),
+        const SizedBox(width: AppEspaciado.sm),
+        Expanded(
+          child: Text(
+            texto,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 /// Muestra un SnackBar estandarizado con color semántico según el [tipo].
 void mostrarMensaje(
   BuildContext context,
@@ -153,24 +179,20 @@ void mostrarMensaje(
 }) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        backgroundColor: tipo.color,
-        behavior: SnackBarBehavior.floating,
-        content: Row(
-          children: [
-            Icon(tipo.icono, color: Colors.white, size: 20),
-            const SizedBox(width: AppEspaciado.sm),
-            Expanded(
-              child: Text(
-                texto,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    ..showSnackBar(_construirSnackBar(texto, tipo));
+}
+
+/// Igual que [mostrarMensaje] pero sin necesitar un [BuildContext]. Usa el
+/// [scaffoldMessengerKey] global; útil para avisos como la falta de conexión.
+void mostrarMensajeGlobal(
+  String texto, {
+  TipoMensaje tipo = TipoMensaje.info,
+}) {
+  final messenger = scaffoldMessengerKey.currentState;
+  if (messenger == null) return;
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(_construirSnackBar(texto, tipo));
 }
 
 /// Estado vacío reutilizable.
