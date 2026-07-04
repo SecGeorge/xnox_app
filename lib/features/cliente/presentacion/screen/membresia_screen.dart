@@ -149,7 +149,6 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
           // Al volver, refrescamos por si el gimnasio ya confirmó el pago.
           _cargar();
         },
-        style: ElevatedButton.styleFrom(backgroundColor: AppColores.morado),
         icon: const Icon(Icons.account_balance_wallet),
         label: Text('Pagar por Yape  ·  ${NumberFormat('#,##0.00', 'es').format(m.saldoPendiente)}'),
       ),

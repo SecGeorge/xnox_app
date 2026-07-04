@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
@@ -18,12 +19,23 @@ class ClientePublicidadScreen extends StatefulWidget {
 class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
   final _controlador = ControladorPublicidad();
   List<Publicidad> _publicidades = [];
+  String _nombre = '';
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _cargarNombre();
     _cargar();
+  }
+
+  /// Lee el nombre del cliente guardado en sesión para saludarlo.
+  Future<void> _cargarNombre() async {
+    final prefs = await SharedPreferences.getInstance();
+    final nombre = prefs.getString('nombreCliente') ?? '';
+    if (!mounted) return;
+    // Mostramos solo el primer nombre para un saludo más limpio.
+    setState(() => _nombre = nombre.trim().split(' ').first);
   }
 
   Future<void> _cargar() async {
@@ -95,9 +107,9 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                 padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
                     AppEspaciado.lg, AppEspaciado.md, AppEspaciado.lg),
                 children: [
-                  const Text(
-                    'Bienvenido 👋',
-                    style: TextStyle(
+                  Text(
+                    _nombre.isEmpty ? 'Bienvenido 👋' : 'Bienvenido, $_nombre 👋',
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: AppColores.textoPrincipal,

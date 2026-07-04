@@ -5,6 +5,7 @@ import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/asistencias_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/cliente_publicidad_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/membresia_screen.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/promociones_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/qr_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/reporte_ejercicios_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/rutinas_screen.dart';
@@ -84,6 +85,11 @@ class _ClienteShellState extends State<ClienteShell> {
         iconoActivo: Icons.insights,
         label: 'Reporte',
         pantalla: ReporteEjerciciosScreen()),
+    _SeccionNav(
+        icono: Icons.card_giftcard_outlined,
+        iconoActivo: Icons.card_giftcard,
+        label: 'Promociones',
+        pantalla: PromocionesScreen()),
   ];
 
   static const List<_SeccionNav> _secciones = [..._principales, ..._secundarias];

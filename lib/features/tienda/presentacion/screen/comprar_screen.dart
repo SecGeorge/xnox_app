@@ -113,7 +113,9 @@ class _ComprarScreenState extends State<ComprarScreen> {
       Navigator.of(context).pop(); // cierra el bottom sheet
       mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.exito);
       _cargar();
-      // Llevamos al cliente a pagar su pedido por Yape.
+      // Preguntamos si quiere pagar ahora por Yape o dejarlo pendiente.
+      final pagarAhora = await _preguntarPago(resultado.total);
+      if (pagarAhora != true || !mounted) return;
       final concepto = resultado.codigo != null
           ? 'Pedido ${resultado.codigo}'
           : 'Pedido de tienda';
@@ -130,6 +132,30 @@ class _ComprarScreenState extends State<ComprarScreen> {
       setSheet(() {});
       mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.error);
     }
+  }
+
+  /// Pregunta al cliente cómo desea pagar su pedido: en recepción o por la app.
+  Future<bool?> _preguntarPago(double total) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Cómo deseas pagar?'),
+        content: Text(
+          'Tu pedido quedó registrado (${_soles(total)}). Puedes pagarlo en '
+          'recepción o pagarlo por la app con Yape.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Pagar en recepción'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Pagar por la app'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

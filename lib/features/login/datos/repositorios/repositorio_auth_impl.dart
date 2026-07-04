@@ -36,6 +36,9 @@ class RepositorioAuthImpl implements RepositorioAuth {
           // Para el cliente, el nombre de usuario es su DNI/código (sirve de QR).
           await prefs.setString(
               'usuarioNombre', userData['nombreUsuario']?.toString() ?? '');
+          // Nombre real del cliente, para saludarlo en el inicio.
+          await prefs.setString(
+              'nombreCliente', userData['nombre']?.toString() ?? '');
           final sucursal = userData['sucursal_id'] ?? userData['id_sucursal'];
           await prefs.setString('idSucursal', (sucursal ?? 2).toString());
           if (userData['miembro_id'] != null) {

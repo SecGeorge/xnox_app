@@ -4,7 +4,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/pago_yape/datos/repositorio_pago_yape.dart';
@@ -117,13 +116,6 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
           const SizedBox(height: AppEspaciado.md),
           _tarjetaNumero(c),
           const SizedBox(height: AppEspaciado.lg),
-          ElevatedButton.icon(
-            onPressed: () => _abrirYape(c),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColores.morado),
-            icon: const Icon(Icons.account_balance_wallet),
-            label: const Text('Abrir app de Yape'),
-          ),
-          const SizedBox(height: AppEspaciado.md),
           if (_puedeValidar)
             _tarjetaCodigo()
           else
@@ -180,7 +172,6 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
           const SizedBox(height: AppEspaciado.sm),
           ElevatedButton.icon(
             onPressed: _validando ? null : _validarPago,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColores.morado),
             icon: _validando
                 ? const SizedBox(
                     width: 18,
@@ -201,7 +192,7 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
       padding: const EdgeInsets.all(AppEspaciado.lg),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColores.morado, Color(0xFF9D86FF)],
+          colors: [AppColores.primario, AppColores.primarioClaro],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -243,26 +234,31 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
             ),
           ),
           const SizedBox(height: AppEspaciado.md),
-          RepaintBoundary(
-            key: _qrKey,
-            child: Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(AppEspaciado.sm),
-              child: Image.network(
-                c.qrUrl!,
-                height: 240,
-                fit: BoxFit.contain,
-                loadingBuilder: (ctx, child, progress) => progress == null
-                    ? child
-                    : const SizedBox(
-                        height: 240,
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                errorBuilder: (_, _, _) => const SizedBox(
+          Center(
+            child: RepaintBoundary(
+              key: _qrKey,
+              child: Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(AppEspaciado.sm),
+                child: Image.network(
+                  c.qrUrl!,
+                  width: 240,
                   height: 240,
-                  child: Center(
-                    child: Text('No se pudo cargar el QR',
-                        style: TextStyle(color: AppColores.textoSecundario)),
+                  fit: BoxFit.contain,
+                  loadingBuilder: (ctx, child, progress) => progress == null
+                      ? child
+                      : const SizedBox(
+                          width: 240,
+                          height: 240,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                  errorBuilder: (_, _, _) => const SizedBox(
+                    width: 240,
+                    height: 240,
+                    child: Center(
+                      child: Text('No se pudo cargar el QR',
+                          style: TextStyle(color: AppColores.textoSecundario)),
+                    ),
                   ),
                 ),
               ),
@@ -325,7 +321,7 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
               ),
               IconButton(
                 onPressed: () => _copiarNumero(c.numero),
-                icon: const Icon(Icons.copy, color: AppColores.morado),
+                icon: const Icon(Icons.copy, color: AppColores.acento),
                 tooltip: 'Copiar número',
               ),
             ],
@@ -355,26 +351,6 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
   void _copiarNumero(String numero) {
     Clipboard.setData(ClipboardData(text: numero));
     mostrarMensaje(context, 'Número copiado: $numero', tipo: TipoMensaje.info);
-  }
-
-  Future<void> _abrirYape(ConfigPagoYape c) async {
-    // Intentamos abrir la app de Yape. Si no está instalada o el esquema no es
-    // accesible, copiamos el número como respaldo.
-    try {
-      final abierto = await launchUrl(
-        Uri.parse('yape://'),
-        mode: LaunchMode.externalApplication,
-      );
-      if (!abierto) throw Exception('no abrió');
-    } catch (_) {
-      if (!mounted) return;
-      Clipboard.setData(ClipboardData(text: c.numero));
-      mostrarMensaje(
-        context,
-        'Abre tu app de Yape manualmente. Copiamos el número ${c.numero}.',
-        tipo: TipoMensaje.advertencia,
-      );
-    }
   }
 
   Future<void> _descargarQr() async {
