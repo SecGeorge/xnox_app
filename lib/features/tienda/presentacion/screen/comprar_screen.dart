@@ -6,7 +6,9 @@ import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/item_carrito.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/producto_tienda.dart';
 import 'package:xnox_app/features/tienda/presentacion/controlador/controlador_tienda.dart';
-import 'package:xnox_app/features/pago_yape/presentacion/pago_yape_screen.dart';
+import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_promociones.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_puntos.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_pedidos.dart';
 
 /// Catálogo de la tienda para el cliente: ve productos, arma su carrito y
 /// envía el pedido (queda pendiente hasta que el admin lo cobra).
@@ -19,10 +21,21 @@ class ComprarScreen extends StatefulWidget {
 
 class _ComprarScreenState extends State<ComprarScreen> {
   final _controlador = ControladorTienda();
+  final _promo = ControladorPromociones();
   CatalogoTienda? _catalogo;
+  ResumenPuntos _resumen = ResumenPuntos.vacio;
   bool _cargando = true;
   bool _enviando = false;
   String _busqueda = '';
+
+  /// Cantidad de pedidos del cliente aún pendientes de pago. Mientras haya al
+  /// menos uno, mostramos un banner que abre "Mis pedidos" para elegir cuál
+  /// pagar (evita rearmar el carrito y duplicar pedidos).
+  int _pedidosPendientes = 0;
+
+  /// Mapa producto_id -> puntos que otorga (para el distintivo "+X pts").
+  Map<int, int> get _puntosPorProducto =>
+      {for (final g in _resumen.gana) g.productoId: g.puntos};
 
   /// Carrito indexado por clave (producto + unidad).
   final Map<String, ItemCarrito> _carrito = {};
@@ -37,9 +50,20 @@ class _ComprarScreenState extends State<ComprarScreen> {
     setState(() => _cargando = true);
     try {
       final catalogo = await _controlador.obtenerCatalogo();
+      // Los puntos son secundarios: si fallan, no rompen la tienda.
+      ResumenPuntos resumen;
+      try {
+        resumen = await _promo.obtenerResumen();
+      } catch (_) {
+        resumen = ResumenPuntos.vacio;
+      }
+      // Los pedidos pendientes también son secundarios.
+      final pendientes = await _contarPendientes();
       if (!mounted) return;
       setState(() {
         _catalogo = catalogo;
+        _resumen = resumen;
+        _pedidosPendientes = pendientes;
         _cargando = false;
       });
     } catch (e) {
@@ -48,6 +72,45 @@ class _ComprarScreenState extends State<ComprarScreen> {
       mostrarMensaje(context, 'No se pudo cargar la tienda',
           tipo: TipoMensaje.error);
     }
+  }
+
+  /// Recarga solo el saldo de puntos (tras un canje, sin recargar la tienda).
+  Future<void> _recargarPuntos() async {
+    try {
+      final resumen = await _promo.obtenerResumen();
+      if (!mounted) return;
+      setState(() => _resumen = resumen);
+    } catch (_) {/* silencioso */}
+  }
+
+  Future<void> _abrirMisPuntos() async {
+    await mostrarHojaMisPuntos(context, resumen: _resumen);
+    await _recargarPuntos();
+  }
+
+  /// Cuenta cuántos pedidos del cliente siguen pendientes de pago (silencioso:
+  /// si falla, asumimos 0 para no romper la tienda).
+  Future<int> _contarPendientes() async {
+    try {
+      final pedidos = await _controlador.obtenerMisPedidos();
+      return pedidos.where((p) => p.pendiente).length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Refresca solo el conteo de pedidos pendientes (sin recargar la tienda).
+  Future<void> _recargarPedidos() async {
+    final pendientes = await _contarPendientes();
+    if (!mounted) return;
+    setState(() => _pedidosPendientes = pendientes);
+  }
+
+  /// Abre "Mis pedidos" para que el cliente elija cuál pagar; al volver
+  /// refrescamos el conteo (un pedido pagado deja de estar pendiente).
+  Future<void> _abrirMisPedidos() async {
+    await mostrarHojaMisPedidos(context);
+    await _recargarPedidos();
   }
 
   String _soles(double v) => 'S/ ${NumberFormat('#,##0.00', 'es').format(v)}';
@@ -112,22 +175,15 @@ class _ComprarScreenState extends State<ComprarScreen> {
       setState(() => _carrito.clear());
       Navigator.of(context).pop(); // cierra el bottom sheet
       mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.exito);
-      _cargar();
-      // Preguntamos si quiere pagar ahora por Yape o dejarlo pendiente.
+      // El nuevo pedido cuenta como pendiente hasta que se pague o cobre.
+      await _recargarPedidos();
+      if (!mounted) return;
+      // Preguntamos si quiere pagar ahora por la app o dejarlo pendiente.
       final pagarAhora = await _preguntarPago(resultado.total);
       if (pagarAhora != true || !mounted) return;
-      final concepto = resultado.codigo != null
-          ? 'Pedido ${resultado.codigo}'
-          : 'Pedido de tienda';
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => PagoYapeScreen(
-            monto: resultado.total,
-            concepto: concepto,
-            pedidoId: resultado.pedidoId,
-          ),
-        ),
-      );
+      // Abrimos "Mis pedidos" para que elija cuál pagar (el recién creado
+      // aparece de primero como pendiente).
+      await _abrirMisPedidos();
     } else {
       setSheet(() {});
       mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.error);
@@ -169,11 +225,165 @@ class _ComprarScreenState extends State<ComprarScreen> {
               child: Column(
                 children: [
                   _buscador(),
+                  if (_pedidosPendientes > 0) _bannerPedidosPendientes(),
+                  if (_mostrarPuntos) _bannerPuntos(),
                   Expanded(child: _listaProductos()),
                 ],
               ),
             ),
       floatingActionButton: _totalItems == 0 ? null : _botonCarrito(),
+    );
+  }
+
+  /// Mostramos el banner de puntos si el cliente tiene saldo o hay algo que
+  /// canjear (evita ruido cuando el gimnasio no usa el programa de puntos).
+  bool get _mostrarPuntos =>
+      _resumen.saldo > 0 || _resumen.canje.isNotEmpty || _resumen.gana.isNotEmpty;
+
+  /// Banner que avisa cuántos pedidos siguen pendientes de pago y abre la hoja
+  /// "Mis pedidos" para elegir cuál pagar por la app.
+  Widget _bannerPedidosPendientes() {
+    final n = _pedidosPendientes;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppEspaciado.md, 0, AppEspaciado.md, AppEspaciado.sm),
+      child: InkWell(
+        onTap: _abrirMisPedidos,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppEspaciado.md, vertical: AppEspaciado.sm + 4),
+          decoration: BoxDecoration(
+            color: AppColores.superficie,
+            borderRadius: BorderRadius.circular(AppEspaciado.radio),
+            border:
+                Border.all(color: AppColores.primario.withValues(alpha: 0.35)),
+            boxShadow: AppSombras.tarjeta,
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.receipt_long_rounded,
+                  color: AppColores.primario, size: 22),
+              const SizedBox(width: AppEspaciado.sm + 2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      n == 1
+                          ? 'Tienes 1 pedido por pagar'
+                          : 'Tienes $n pedidos por pagar',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColores.textoPrincipal,
+                      ),
+                    ),
+                    const Text(
+                      'Toca para ver y pagar por la app',
+                      style: TextStyle(
+                          color: AppColores.textoSecundario, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppEspaciado.sm),
+              ElevatedButton(
+                onPressed: _abrirMisPedidos,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppEspaciado.md, vertical: 10),
+                ),
+                child: const Text('Ver'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bannerPuntos() {
+    final puedeCanjear = _resumen.canje.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppEspaciado.md, 0, AppEspaciado.md, AppEspaciado.sm),
+      child: InkWell(
+        onTap: _abrirMisPuntos,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppEspaciado.md, vertical: AppEspaciado.sm + 4),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColores.primario, AppColores.acento],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(AppEspaciado.radio),
+            boxShadow: AppSombras.tarjeta,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+                ),
+                child: const Icon(Icons.stars_rounded,
+                    color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: AppEspaciado.sm + 2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_resumen.saldo} pts',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
+                    ),
+                    Text(
+                      puedeCanjear
+                          ? 'Toca para ver y canjear tus puntos'
+                          : 'Toca para ver tu historial de puntos',
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              if (puedeCanjear)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppEspaciado.sm + 4, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.card_giftcard_rounded,
+                          size: 15, color: AppColores.primario),
+                      SizedBox(width: 4),
+                      Text('Canjear',
+                          style: TextStyle(
+                              color: AppColores.primario,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -245,13 +455,21 @@ class _ComprarScreenState extends State<ComprarScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  _soles(p.precio),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: AppColores.primario,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      _soles(p.precio),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColores.primario,
+                      ),
+                    ),
+                    if (_puntosPorProducto[p.id] != null) ...[
+                      const SizedBox(width: AppEspaciado.sm),
+                      _chipPuntos(_puntosPorProducto[p.id]!),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -264,6 +482,35 @@ class _ComprarScreenState extends State<ComprarScreen> {
                   horizontal: AppEspaciado.md, vertical: 10),
             ),
             child: const Icon(Icons.add_shopping_cart, size: 18),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Distintivo que marca los productos que otorgan puntos al comprarse.
+  Widget _chipPuntos(int puntos) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColores.primario.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColores.primario.withValues(alpha: 0.12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.star_rounded,
+              size: 12, color: AppColores.primario.withValues(alpha: 0.55)),
+          const SizedBox(width: 3),
+          Text(
+            '+$puntos pts',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
+              color: AppColores.primario.withValues(alpha: 0.75),
+            ),
           ),
         ],
       ),

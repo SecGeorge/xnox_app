@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/item_carrito.dart';
+import 'package:xnox_app/features/tienda/dominio/entidades/pedido_cliente.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/producto_tienda.dart';
 import 'package:xnox_app/features/tienda/dominio/repositorios/repositorio_tienda.dart';
 
@@ -83,5 +84,24 @@ class RepositorioTiendaImpl implements RepositorioTienda {
             'No se pudo enviar el pedido')
         : 'No se pudo enviar el pedido';
     return ResultadoPedido(false, mensaje);
+  }
+
+  @override
+  Future<List<PedidoCliente>> obtenerMisPedidos() async {
+    final prefs = await SharedPreferences.getInstance();
+    final miembroId = int.tryParse(prefs.getString('miembroId') ?? '') ?? 0;
+    if (miembroId == 0) return const [];
+
+    final resp = await _httpService.obtenerConDatos(
+      {'metodo': 'mis_pedidos', 'miembro_id': miembroId},
+      'pedidos.php',
+    );
+    final datos = (resp is Map) ? resp['datos'] : null;
+    if (datos is! List) return const [];
+
+    return datos
+        .whereType<Map>()
+        .map((p) => PedidoCliente.fromJson(Map<String, dynamic>.from(p)))
+        .toList();
   }
 }

@@ -5,11 +5,6 @@ import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/detalle_rutina_screen.dart';
 
-/// Lista de rutinas del cliente.
-///
-/// Separa las rutinas SUGERIDAS por el administrador (solo lectura, vienen del
-/// backend y se sincronizan a SQLite) de las rutinas propias del cliente (CRUD
-/// local). Al abrir: carga SQLite y sincroniza con el backend si hay conexión.
 class RutinasScreen extends StatefulWidget {
   const RutinasScreen({super.key});
 

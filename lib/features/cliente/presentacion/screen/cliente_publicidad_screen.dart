@@ -5,6 +5,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
+import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_promociones.dart';
 
 /// Pantalla de inicio del cliente: muestra la publicidad del gimnasio
 /// (solo lectura). Si el backend no devuelve campañas, usa una lista demo.
@@ -18,7 +19,9 @@ class ClientePublicidadScreen extends StatefulWidget {
 
 class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
   final _controlador = ControladorPublicidad();
+  final _promo = ControladorPromociones();
   List<Publicidad> _publicidades = [];
+  List<LineaGana> _productosPuntos = [];
   String _nombre = '';
   bool _isLoading = true;
 
@@ -42,10 +45,18 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await _controlador.fetchPublicidadesActivas();
+      // Los productos con puntos son secundarios: si fallan, no rompen el inicio.
+      List<LineaGana> puntos;
+      try {
+        puntos = (await _promo.obtenerResumen()).gana;
+      } catch (_) {
+        puntos = [];
+      }
       if (!mounted) return;
       setState(() {
         // El cliente solo ve campañas vigentes; las inactivas se ocultan.
         _publicidades = data.where(_estaVigente).toList();
+        _productosPuntos = puntos;
         _isLoading = false;
       });
     } catch (_) {
@@ -122,6 +133,10 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                         fontSize: 13.5, color: AppColores.textoSecundario),
                   ),
                   const SizedBox(height: AppEspaciado.lg),
+                  if (_productosPuntos.isNotEmpty) ...[
+                    _buildProductosPuntos(),
+                    const SizedBox(height: AppEspaciado.lg),
+                  ],
                   if (_publicidades.isEmpty)
                     const Padding(
                       padding: EdgeInsets.only(top: 40),
@@ -134,6 +149,116 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                     ..._publicidades.map(_buildTarjeta),
                 ],
               ),
+      ),
+    );
+  }
+
+  /// Sección que muestra al cliente qué productos otorgan puntos al comprarlos.
+  Widget _buildProductosPuntos() {
+    return Container(
+      padding: const EdgeInsets.all(AppEspaciado.md),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColores.naranja.withValues(alpha: 0.10),
+            AppColores.naranja.withValues(alpha: 0.03),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        border: Border.all(color: AppColores.naranja.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColores.naranja.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+                ),
+                child: const Icon(Icons.stars_rounded,
+                    color: AppColores.naranja, size: 20),
+              ),
+              const SizedBox(width: AppEspaciado.sm + 2),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Productos que te dan puntos',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColores.textoPrincipal,
+                      ),
+                    ),
+                    Text(
+                      'Cómpralos y acumula para canjear',
+                      style: TextStyle(
+                          fontSize: 12, color: AppColores.textoSecundario),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppEspaciado.md),
+          Wrap(
+            spacing: AppEspaciado.sm,
+            runSpacing: AppEspaciado.sm,
+            children: [
+              for (final g in _productosPuntos) _chipProductoPuntos(g),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chipProductoPuntos(LineaGana g) {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppEspaciado.sm + 2, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColores.superficie,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              g.nombre,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: AppColores.textoPrincipal,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColores.naranja.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '+${g.puntos}',
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                color: AppColores.naranja,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

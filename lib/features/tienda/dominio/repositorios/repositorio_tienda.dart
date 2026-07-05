@@ -1,4 +1,5 @@
 import 'package:xnox_app/features/tienda/dominio/entidades/item_carrito.dart';
+import 'package:xnox_app/features/tienda/dominio/entidades/pedido_cliente.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/producto_tienda.dart';
 
 class ResultadoPedido {
@@ -27,4 +28,7 @@ abstract class RepositorioTienda {
 
   /// Registra un pedido pendiente con los items del carrito.
   Future<ResultadoPedido> crearPedido(int organizadorId, List<ItemCarrito> items);
+
+  /// Pedidos del cliente (pendientes y vendidos) para elegir cuál pagar.
+  Future<List<PedidoCliente>> obtenerMisPedidos();
 }

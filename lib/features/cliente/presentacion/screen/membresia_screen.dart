@@ -4,6 +4,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/membresia_cliente.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_membresia.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/asistencias_screen.dart';
 import 'package:xnox_app/features/pago_yape/presentacion/pago_yape_screen.dart';
 
 /// Muestra la membresía del cliente: plan, estado, vencimiento y saldo.
@@ -68,6 +69,8 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
                         _buildTarjetaPlan(m),
                         const SizedBox(height: AppEspaciado.md),
                         _buildDetalles(m),
+                        const SizedBox(height: AppEspaciado.md),
+                        _buildBotonAsistencias(),
                         if (m.tieneDeuda) ...[
                           const SizedBox(height: AppEspaciado.md),
                           _buildBotonPagar(m),
@@ -128,6 +131,27 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildBotonAsistencias() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => Scaffold(
+                backgroundColor: AppColores.fondo,
+                appBar: AppBar(title: const Text('Asistencias')),
+                body: const AsistenciasScreen(),
+              ),
+            ),
+          );
+        },
+        icon: const Icon(Icons.calendar_month_outlined),
+        label: const Text('Ver asistencias'),
       ),
     );
   }

@@ -2,25 +2,29 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 
 /// Resumen de puntos de fidelidad del cliente: saldo, historial de
-/// movimientos y el catálogo de promociones activas (cómo ganar / qué canjear).
+/// movimientos y la configuración global vigente de la sucursal:
+///   * [gana]  = productos que otorgan puntos al comprarse.
+///   * [canje] = catálogo de items que se pueden reclamar con puntos.
 class ResumenPuntos {
   final int saldo;
   final List<MovimientoPuntos> movimientos;
-  final List<PromocionCliente> promociones;
+  final List<LineaGana> gana;
+  final List<LineaCanje> canje;
 
   const ResumenPuntos({
     required this.saldo,
     required this.movimientos,
-    required this.promociones,
+    required this.gana,
+    required this.canje,
   });
 
   static const ResumenPuntos vacio =
-      ResumenPuntos(saldo: 0, movimientos: [], promociones: []);
+      ResumenPuntos(saldo: 0, movimientos: [], gana: [], canje: []);
 }
 
 class MovimientoPuntos {
   final int tipo; // 1 = ganó, 2 = canjeó
-  final int puntos;
+  final int puntos; // positivo al ganar, negativo al canjear
   final String concepto;
   final String fecha;
 
@@ -34,38 +38,62 @@ class MovimientoPuntos {
   bool get esGanancia => tipo == 1;
 }
 
-/// Una regla de acumulación o de canje dentro de una promoción.
-class LineaPromocion {
+/// Un producto que otorga puntos al comprarse.
+class LineaGana {
+  final int productoId;
   final String nombre;
   final int puntos;
-  final int tipo; // en canje: 1 = producto, 2 = membresía
 
-  const LineaPromocion(
-      {required this.nombre, required this.puntos, this.tipo = 0});
+  const LineaGana({
+    required this.productoId,
+    required this.nombre,
+    required this.puntos,
+  });
 }
 
-class PromocionCliente {
+/// Un item del catálogo de canje (lo que se puede reclamar con puntos).
+class LineaCanje {
+  final int id;
   final String nombre;
-  final String? descripcion;
-  final List<LineaPromocion> gana;
-  final List<LineaPromocion> canje;
+  final int puntos;
+  final int tipo; // 1 = producto, 2 = membresía
 
-  const PromocionCliente({
+  const LineaCanje({
+    required this.id,
     required this.nombre,
-    this.descripcion,
-    required this.gana,
-    required this.canje,
+    required this.puntos,
+    required this.tipo,
+  });
+
+  bool get esMembresia => tipo == 2;
+}
+
+/// Resultado de intentar un canje.
+class ResultadoCanje {
+  final bool exito;
+  final String mensaje;
+  final int? saldo; // saldo resultante si el backend lo devolvió
+
+  const ResultadoCanje({
+    required this.exito,
+    required this.mensaje,
+    this.saldo,
   });
 }
 
 class ControladorPromociones {
   final HttpService _httpService = HttpService();
 
-  Future<ResumenPuntos> obtenerResumen() async {
+  /// Lee miembro y sucursal de la sesión guardada en SharedPreferences.
+  Future<(int, int)> _sesion() async {
     final prefs = await SharedPreferences.getInstance();
     final miembroId = int.tryParse(prefs.getString('miembroId') ?? '') ?? 0;
     final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
+    return (miembroId, sucursalId);
+  }
 
+  Future<ResumenPuntos> obtenerResumen() async {
+    final (miembroId, sucursalId) = await _sesion();
     if (miembroId == 0) return ResumenPuntos.vacio;
 
     final resp = await _httpService.obtenerConDatos(
@@ -82,7 +110,6 @@ class ControladorPromociones {
     }
 
     final datos = Map<String, dynamic>.from(resp['datos'] as Map);
-
     final saldo = int.tryParse(datos['saldo']?.toString() ?? '0') ?? 0;
 
     final movimientos = <MovimientoPuntos>[];
@@ -98,32 +125,61 @@ class ControladorPromociones {
       }
     }
 
-    final promociones = <PromocionCliente>[];
-    if (datos['promociones'] is List) {
-      for (final p in (datos['promociones'] as List)) {
-        final pm = Map<String, dynamic>.from(p as Map);
-        promociones.add(PromocionCliente(
-          nombre: pm['nombre']?.toString() ?? 'Promoción',
-          descripcion: pm['descripcion']?.toString(),
-          gana: _mapearGana(pm['gana']),
-          canje: _mapearCanje(pm['canje']),
-        ));
-      }
-    }
-
     return ResumenPuntos(
       saldo: saldo,
       movimientos: movimientos,
-      promociones: promociones,
+      gana: _mapearGana(datos['gana']),
+      canje: _mapearCanje(datos['canje']),
     );
   }
 
-  List<LineaPromocion> _mapearGana(dynamic lista) {
-    final out = <LineaPromocion>[];
+  /// Ejecuta un canje del item [canjeId]; descuenta los puntos del miembro.
+  Future<ResultadoCanje> canjear(int canjeId) async {
+    final (miembroId, sucursalId) = await _sesion();
+    if (miembroId == 0) {
+      return const ResultadoCanje(
+          exito: false, mensaje: 'Debes iniciar sesión para canjear');
+    }
+
+    final resp = await _httpService.registrar(
+      {
+        'metodo': 'canjear',
+        'miembro_id': miembroId,
+        'sucursal_id': sucursalId,
+        'canje_id': canjeId,
+      },
+      'promociones.php',
+    );
+
+    if (resp is! Map) {
+      return const ResultadoCanje(exito: false, mensaje: 'No se pudo canjear');
+    }
+
+    final exito = resp['success'] == true;
+    String mensaje;
+    int? saldo;
+
+    if (resp['datos'] is List && (resp['datos'] as List).isNotEmpty) {
+      final row = Map<String, dynamic>.from((resp['datos'] as List).first as Map);
+      mensaje = row['voit_message']?.toString() ??
+          resp['mensaje']?.toString() ??
+          (exito ? 'Canje realizado' : 'No se pudo canjear');
+      saldo = int.tryParse(row['saldo']?.toString() ?? '');
+    } else {
+      mensaje = resp['mensaje']?.toString() ??
+          (exito ? 'Canje realizado' : 'No se pudo canjear');
+    }
+
+    return ResultadoCanje(exito: exito, mensaje: mensaje, saldo: saldo);
+  }
+
+  List<LineaGana> _mapearGana(dynamic lista) {
+    final out = <LineaGana>[];
     if (lista is List) {
       for (final g in lista) {
         final gm = Map<String, dynamic>.from(g as Map);
-        out.add(LineaPromocion(
+        out.add(LineaGana(
+          productoId: int.tryParse(gm['producto_id']?.toString() ?? '0') ?? 0,
           nombre: gm['producto_nombre']?.toString() ?? 'Producto',
           puntos: int.tryParse(gm['puntos']?.toString() ?? '0') ?? 0,
         ));
@@ -132,8 +188,8 @@ class ControladorPromociones {
     return out;
   }
 
-  List<LineaPromocion> _mapearCanje(dynamic lista) {
-    final out = <LineaPromocion>[];
+  List<LineaCanje> _mapearCanje(dynamic lista) {
+    final out = <LineaCanje>[];
     if (lista is List) {
       for (final c in lista) {
         final cm = Map<String, dynamic>.from(c as Map);
@@ -141,7 +197,8 @@ class ControladorPromociones {
         final nombre = tipo == 2
             ? (cm['membresia_nombre']?.toString() ?? 'Membresía')
             : (cm['producto_nombre']?.toString() ?? 'Producto');
-        out.add(LineaPromocion(
+        out.add(LineaCanje(
+          id: int.tryParse(cm['id']?.toString() ?? '0') ?? 0,
           nombre: nombre,
           puntos: int.tryParse(cm['puntos']?.toString() ?? '0') ?? 0,
           tipo: tipo,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 
@@ -145,13 +147,16 @@ extension TipoMensajeEstilo on TipoMensaje {
   }
 }
 
-/// Key global del ScaffoldMessenger. Se asigna en el [MaterialApp] y permite
-/// mostrar SnackBars sin un [BuildContext], por ejemplo desde la capa de red
-/// (avisos de "sin conexión a internet").
+/// Key global del ScaffoldMessenger. Se asigna en el [MaterialApp]. Se conserva
+/// como respaldo por si el overlay del navigator aún no está disponible.
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
 
-/// Construye el SnackBar estandarizado con color e icono semánticos.
+/// Key global del Navigator. Se asigna en el [MaterialApp] y permite insertar
+/// el toast en el overlay raíz, por encima de hojas modales y diálogos.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+/// Construye el SnackBar estandarizado (solo se usa como respaldo).
 SnackBar _construirSnackBar(String texto, TipoMensaje tipo) {
   return SnackBar(
     backgroundColor: tipo.color,
@@ -171,28 +176,160 @@ SnackBar _construirSnackBar(String texto, TipoMensaje tipo) {
   );
 }
 
-/// Muestra un SnackBar estandarizado con color semántico según el [tipo].
+/// Muestra un mensaje flotante (toast) con color semántico según el [tipo].
+/// Mantiene la firma con [context] por compatibilidad, pero el aviso se dibuja
+/// en el overlay raíz para que sea visible también sobre hojas y diálogos.
 void mostrarMensaje(
   BuildContext context,
   String texto, {
   TipoMensaje tipo = TipoMensaje.info,
 }) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(_construirSnackBar(texto, tipo));
+  _mostrarToast(texto, tipo);
 }
 
-/// Igual que [mostrarMensaje] pero sin necesitar un [BuildContext]. Usa el
-/// [scaffoldMessengerKey] global; útil para avisos como la falta de conexión.
+/// Igual que [mostrarMensaje] pero sin necesitar un [BuildContext]; útil para
+/// avisos como la falta de conexión desde la capa de red.
 void mostrarMensajeGlobal(
   String texto, {
   TipoMensaje tipo = TipoMensaje.info,
 }) {
-  final messenger = scaffoldMessengerKey.currentState;
-  if (messenger == null) return;
-  messenger
-    ..hideCurrentSnackBar()
-    ..showSnackBar(_construirSnackBar(texto, tipo));
+  _mostrarToast(texto, tipo);
+}
+
+// --- Toast flotante -------------------------------------------------------
+//
+// Mostramos un único aviso a la vez en el overlay raíz. Los toques repetidos
+// reemplazan al anterior al instante (no se encolan) y el aviso queda por
+// encima de hojas modales y diálogos.
+
+OverlayEntry? _toastEntrada;
+Timer? _toastTimer;
+
+void _mostrarToast(String texto, TipoMensaje tipo) {
+  final overlay = navigatorKey.currentState?.overlay;
+  if (overlay == null) {
+    // Respaldo: si aún no hay overlay, usamos el messenger global.
+    scaffoldMessengerKey.currentState
+      ?..clearSnackBars()
+      ..showSnackBar(_construirSnackBar(texto, tipo));
+    return;
+  }
+
+  // Reemplazamos cualquier aviso previo de inmediato.
+  _toastTimer?.cancel();
+  _toastEntrada?.remove();
+
+  final key = GlobalKey<_ToastState>();
+  final entrada = OverlayEntry(
+    builder: (_) => _Toast(key: key, texto: texto, tipo: tipo),
+  );
+  _toastEntrada = entrada;
+  overlay.insert(entrada);
+
+  _toastTimer = Timer(const Duration(milliseconds: 2600), () async {
+    await key.currentState?.cerrar();
+    // Solo lo quitamos si sigue siendo el aviso vigente (no fue reemplazado).
+    if (_toastEntrada == entrada) {
+      entrada.remove();
+      _toastEntrada = null;
+    }
+  });
+}
+
+/// Distancia desde el borde inferior para que el aviso quede por encima del
+/// botón del carrito y la barra de navegación.
+const double _kToastMargenInferior = 120;
+
+class _Toast extends StatefulWidget {
+  final String texto;
+  final TipoMensaje tipo;
+
+  const _Toast({super.key, required this.texto, required this.tipo});
+
+  @override
+  State<_Toast> createState() => _ToastState();
+}
+
+class _ToastState extends State<_Toast> with SingleTickerProviderStateMixin {
+  late final AnimationController _controlador = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 220),
+  );
+  late final Animation<double> _fade =
+      CurvedAnimation(parent: _controlador, curve: Curves.easeOut);
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.4),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: _controlador, curve: Curves.easeOut));
+
+  @override
+  void initState() {
+    super.initState();
+    _controlador.forward();
+  }
+
+  /// Anima la salida del aviso; el llamador se encarga de quitar la entrada.
+  Future<void> cerrar() async {
+    if (!mounted) return;
+    try {
+      await _controlador.reverse();
+    } catch (_) {/* controlador liberado */}
+  }
+
+  @override
+  void dispose() {
+    _controlador.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    return Positioned(
+      left: AppEspaciado.md,
+      right: AppEspaciado.md,
+      bottom:
+          media.viewInsets.bottom + media.padding.bottom + _kToastMargenInferior,
+      child: IgnorePointer(
+        child: FadeTransition(
+          opacity: _fade,
+          child: SlideTransition(
+            position: _slide,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppEspaciado.md, vertical: AppEspaciado.sm + 4),
+                  decoration: BoxDecoration(
+                    color: widget.tipo.color,
+                    borderRadius: BorderRadius.circular(AppEspaciado.radio),
+                    boxShadow: AppSombras.tarjeta,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(widget.tipo.icono, color: Colors.white, size: 20),
+                      const SizedBox(width: AppEspaciado.sm),
+                      Flexible(
+                        child: Text(
+                          widget.texto,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Estado vacío reutilizable.
