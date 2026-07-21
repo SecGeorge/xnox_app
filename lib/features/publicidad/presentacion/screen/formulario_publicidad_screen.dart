@@ -29,7 +29,16 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
   File? _imageFile;
   bool _isSaving = false;
 
+  // Posición del encuadre: qué parte de la imagen completa se ve en el marco.
+  // -1..1 en cada eje (Alignment). La imagen NO se recorta; solo se guarda esta
+  // posición para mostrar la parte elegida.
+  Alignment _encuadre = Alignment.center;
+
   bool get _esEdicion => widget.publicidad != null;
+
+  bool get _tieneImagen =>
+      _imageFile != null ||
+      (_esEdicion && (widget.publicidad?.imagenUrl?.isNotEmpty ?? false));
 
   @override
   void initState() {
@@ -41,6 +50,7 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
       _descripcionController.text = p.descripcion;
       _fechaInicioController.text = fmt.format(p.fechaInicio);
       _fechaFinController.text = fmt.format(p.fechaFin);
+      _encuadre = p.alineacion; // conserva el encuadre guardado
     }
   }
 
@@ -60,18 +70,30 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    // Comprimimos al seleccionar para que la campaña cargue rápido.
+    // Se guarda la imagen COMPLETA (solo la reducimos para que cargue rápido).
+    // El encuadre se elige después arrastrando la imagen dentro del marco.
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 1280,
-      maxHeight: 1280,
-      imageQuality: 70,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 75,
     );
-    if (image != null) {
-      setState(() {
-        _imageFile = File(image.path);
-      });
-    }
+    if (image == null) return;
+    setState(() {
+      _imageFile = File(image.path);
+      _encuadre = Alignment.center; // imagen nueva -> encuadre centrado
+    });
+  }
+
+  /// Actualiza el encuadre al arrastrar la imagen dentro del marco.
+  /// [boxW]/[boxH] son el tamaño del marco; convierten el desplazamiento en
+  /// pixeles a un cambio de [Alignment] (-1..1).
+  void _arrastrarEncuadre(DragUpdateDetails d, double boxW, double boxH) {
+    setState(() {
+      final nx = (_encuadre.x - d.delta.dx * 2 / boxW).clamp(-1.0, 1.0);
+      final ny = (_encuadre.y - d.delta.dy * 2 / boxH).clamp(-1.0, 1.0);
+      _encuadre = Alignment(nx, ny);
+    });
   }
 
   Future<void> _save() async {
@@ -85,13 +107,15 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
         descripcion: _descripcionController.text,
         fechaInicio: DateTime.parse(_fechaInicioController.text),
         fechaFin: DateTime.parse(_fechaFinController.text),
+        encuadre:
+            '${_encuadre.x.toStringAsFixed(2)},${_encuadre.y.toStringAsFixed(2)}',
       );
 
       // Convertimos la imagen a base64 para enviarla al backend.
       String? imagenBase64;
       if (_imageFile != null) {
         final bytes = await _imageFile!.readAsBytes();
-        imagenBase64 = 'data:image/png;base64,${base64Encode(bytes)}';
+        imagenBase64 = 'data:image/jpeg;base64,${base64Encode(bytes)}';
       }
 
       final success = _esEdicion
@@ -185,31 +209,29 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
               ),
               const SizedBox(height: AppEspaciado.lg),
               _etiqueta('Imagen'),
-              GestureDetector(
-                onTap: _pickImage,
-                child: Container(
-                  height: 170,
-                  decoration: BoxDecoration(
-                    color: AppColores.superficie,
-                    borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                    border: Border.all(
-                      color: AppColores.borde,
-                      width: 1.4,
+              _selectorImagen(),
+              if (_tieneImagen) ...[
+                const SizedBox(height: AppEspaciado.sm),
+                Row(
+                  children: [
+                    const Icon(Icons.open_with,
+                        size: 16, color: AppColores.textoSecundario),
+                    const SizedBox(width: 6),
+                    const Expanded(
+                      child: Text(
+                        'Arrastra la imagen para elegir qué parte se ve en el marco',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColores.textoSecundario),
+                      ),
                     ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: _imageFile != null
-                      ? Image.file(_imageFile!, fit: BoxFit.cover, width: double.infinity)
-                      : (_esEdicion && widget.publicidad?.imagenUrl != null
-                          ? Image.network(
-                              widget.publicidad!.imagenUrl!,
-                              fit: BoxFit.cover,
-                              width: double.infinity,
-                              errorBuilder: (c, e, s) => _placeholderImagen(),
-                            )
-                          : _placeholderImagen()),
+                    TextButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.image_outlined, size: 18),
+                      label: const Text('Cambiar'),
+                    ),
+                  ],
                 ),
-              ),
+              ],
               const SizedBox(height: AppEspaciado.xl),
               ElevatedButton.icon(
                 onPressed: _isSaving ? null : _save,
@@ -232,6 +254,57 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
         ),
       ),
     );
+  }
+
+  /// Marco de la publicidad. Muestra la imagen completa con [BoxFit.cover] y la
+  /// posición [_encuadre]; al arrastrar se cambia qué parte se ve. Si no hay
+  /// imagen, toca para cargar una.
+  Widget _selectorImagen() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final h = w / AppEspaciado.publicidadRatio;
+        return GestureDetector(
+          onTap: _tieneImagen ? null : _pickImage,
+          onPanUpdate:
+              _tieneImagen ? (d) => _arrastrarEncuadre(d, w, h) : null,
+          child: Container(
+            width: w,
+            height: h,
+            decoration: BoxDecoration(
+              color: AppColores.superficie,
+              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+              border: Border.all(color: AppColores.borde, width: 1.4),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: _imagenMarco(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _imagenMarco() {
+    if (_imageFile != null) {
+      return Image.file(
+        _imageFile!,
+        fit: BoxFit.cover,
+        alignment: _encuadre,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+    if (_esEdicion && (widget.publicidad?.imagenUrl?.isNotEmpty ?? false)) {
+      return Image.network(
+        widget.publicidad!.imagenUrl!,
+        fit: BoxFit.cover,
+        alignment: _encuadre,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (c, e, s) => _placeholderImagen(),
+      );
+    }
+    return _placeholderImagen();
   }
 
   Widget _placeholderImagen() {

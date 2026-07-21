@@ -152,6 +152,7 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
                   ? Image.network(
                       pub.imagenUrl!,
                       fit: BoxFit.cover,
+                      alignment: pub.alineacion,
                       errorBuilder: (c, e, s) => _placeholderImagen(),
                     )
                   : _placeholderImagen(),

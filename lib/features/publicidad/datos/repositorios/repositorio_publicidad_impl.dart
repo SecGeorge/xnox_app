@@ -33,6 +33,9 @@ class RepositorioPublicidadImpl implements RepositorioPublicidad {
       fechaFin:
           DateTime.tryParse(j['fecha_fin']?.toString() ?? '') ?? DateTime.now(),
       imagenUrl: _urlImagen(j['imagen'] ?? j['imagen_url']),
+      encuadre: (j['encuadre']?.toString().isNotEmpty ?? false)
+          ? j['encuadre'].toString()
+          : '0,0',
     );
   }
 
@@ -102,6 +105,7 @@ class RepositorioPublicidadImpl implements RepositorioPublicidad {
         'id': publicidad.id,
         'titulo': publicidad.titulo,
         'descripcion': publicidad.descripcion,
+        'encuadre': publicidad.encuadre,
         'fecha_inicio': publicidad.fechaInicio.toIso8601String().split('T')[0],
         'fecha_fin': publicidad.fechaFin.toIso8601String().split('T')[0],
         // Solo se envía la imagen si se cambió; si no, el backend conserva la actual.

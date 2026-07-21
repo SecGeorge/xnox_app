@@ -49,6 +49,13 @@ class AppEspaciado {
 
   static const double radio = 16;
   static const double radioSm = 12;
+
+  /// Proporción (ancho / alto) del marco de las publicidades. Se usa al recortar
+  /// la imagen en el admin y al mostrar la tarjeta al cliente, para que lo que
+  /// el usuario encuadra sea exactamente lo que se ve en el marco.
+  static const double publicidadRatioX = 5;
+  static const double publicidadRatioY = 2;
+  static const double publicidadRatio = publicidadRatioX / publicidadRatioY;
 }
 
 class AppSombras {

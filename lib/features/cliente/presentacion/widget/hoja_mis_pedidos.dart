@@ -6,10 +6,9 @@ import 'package:xnox_app/features/pago_yape/presentacion/pago_yape_screen.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/pedido_cliente.dart';
 import 'package:xnox_app/features/tienda/presentacion/controlador/controlador_tienda.dart';
 
-/// Abre una hoja inferior con los pedidos del cliente para que elija cuál pagar
-/// por la app. Muestra el estado de cada uno (pendiente de pago vs. vendido) y
-/// solo permite pagar los que siguen pendientes. Devuelve `true` si algún pago
-/// se confirmó, para que el llamador refresque su vista.
+/// Abre una hoja inferior con los pedidos PENDIENTES de pago del cliente para
+/// que elija cuál pagar por la app. Devuelve `true` si algún pago se confirmó,
+/// para que el llamador refresque su vista.
 Future<bool> mostrarHojaMisPedidos(BuildContext context) async {
   final resultado = await showModalBottomSheet<bool>(
     context: context,
@@ -114,7 +113,7 @@ class _HojaMisPedidosState extends State<_HojaMisPedidos> {
                 const SizedBox(width: AppEspaciado.sm),
                 const Expanded(
                   child: Text(
-                    'Mis pedidos',
+                    'Pedidos por pagar',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -140,7 +139,7 @@ class _HojaMisPedidosState extends State<_HojaMisPedidos> {
                 padding: EdgeInsets.symmetric(vertical: 28),
                 child: EstadoVacio(
                   icono: Icons.receipt_long_outlined,
-                  mensaje: 'Aún no tienes pedidos',
+                  mensaje: 'No tienes pedidos pendientes de pago',
                 ),
               )
             else
@@ -167,43 +166,29 @@ class _HojaMisPedidosState extends State<_HojaMisPedidos> {
   }
 
   Widget _fila(PedidoCliente pedido) {
-    final pendiente = pedido.pendiente;
-    final color = pendiente ? AppColores.advertencia : AppColores.exito;
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
+            color: AppColores.advertencia.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            pendiente ? Icons.schedule_rounded : Icons.check_circle_rounded,
-            size: 18,
-            color: color,
-          ),
+          child: const Icon(Icons.schedule_rounded,
+              size: 18, color: AppColores.advertencia),
         ),
         const SizedBox(width: AppEspaciado.sm + 2),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Text(
-                    pedido.codigo,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColores.textoPrincipal,
-                    ),
-                  ),
-                  const SizedBox(width: AppEspaciado.sm),
-                  EtiquetaEstado(
-                    texto: pendiente ? 'Por pagar' : 'Pagado',
-                    color: color,
-                  ),
-                ],
+              Text(
+                pedido.codigo,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColores.textoPrincipal,
+                ),
               ),
               const SizedBox(height: 3),
               Text(
@@ -217,17 +202,16 @@ class _HojaMisPedidosState extends State<_HojaMisPedidos> {
           ),
         ),
         const SizedBox(width: AppEspaciado.sm),
-        if (pendiente)
-          SizedBox(
-            height: 34,
-            child: ElevatedButton(
-              onPressed: () => _pagar(pedido),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: AppEspaciado.md),
-              ),
-              child: const Text('Pagar', style: TextStyle(fontSize: 12.5)),
+        SizedBox(
+          height: 34,
+          child: ElevatedButton(
+            onPressed: () => _pagar(pedido),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: AppEspaciado.md),
             ),
+            child: const Text('Pagar', style: TextStyle(fontSize: 12.5)),
           ),
+        ),
       ],
     );
   }

@@ -2,15 +2,21 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xnox_app/core/database/empresa_dao.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 
 class HttpService {
   //static const String RUTA_GLOBAL = "https://xnonx.xnoxsoft.es/api/";
-  static const String RUTA_GLOBAL = "http://192.168.1.9/sistema_gimnasio_vf/api/";
+  // Ruta de arranque / fallback. La ruta real la define la empresa activa del
+  // catálogo (tabla `empresa`), que se aplica en init() o al elegirla en la
+  // pantalla de selección; esta constante solo se usa si la BD no da una ruta.
+  static const String RUTA_GLOBAL = "http://192.168.1.47/sistema_gimnasio_vf/api/";
   static final HttpService _instance = HttpService._internal();
   late Dio _dio;
-  late CookieJar _cookieJar;
+  late CookieManager _cookieManager;
+  bool _cookiesPersistentes = false;
 
   factory HttpService() => _instance;
 
@@ -21,8 +27,9 @@ class HttpService {
       receiveTimeout: const Duration(seconds: 10),
     ));
 
-    _cookieJar = CookieJar();
-    _dio.interceptors.add(CookieManager(_cookieJar));
+    // Jar en memoria como arranque; se reemplaza por uno persistente en init().
+    _cookieManager = CookieManager(CookieJar());
+    _dio.interceptors.add(_cookieManager);
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         // Ensure we send JSON as default
@@ -58,6 +65,55 @@ class HttpService {
       },
     ));
   }
+
+  /// Reemplaza el jar en memoria por uno persistente en disco para que la
+  /// cookie de sesión de PHP sobreviva al cierre y reapertura de la app. Sin
+  /// esto, al reabrir se pierde la sesión, las peticiones devuelven 401 y el
+  /// interceptor terminaba borrando los datos guardados (sucursal, miembro…).
+  /// Debe llamarse una vez desde main() antes de runApp().
+  Future<void> init() async {
+    // Apuntar la app a la empresa activa del catálogo antes de cualquier
+    // petición. Si aún no hay empresa elegida se mantiene RUTA_GLOBAL como
+    // fallback; la pantalla de selección aplicará la ruta al escogerla.
+    try {
+      final empresa = await EmpresaDao.instancia.activa();
+      if (empresa != null) {
+        aplicarRuta(empresa.rutaGlobal);
+      }
+    } catch (_) {
+      // Si la BD falla seguimos con la ruta de arranque (fallback).
+    }
+
+    if (_cookiesPersistentes) return;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final jar = PersistCookieJar(
+        ignoreExpires: true,
+        storage: FileStorage('${dir.path}/.cookies/'),
+      );
+      final persistente = CookieManager(jar);
+      final indice = _dio.interceptors.indexOf(_cookieManager);
+      if (indice >= 0) {
+        _dio.interceptors[indice] = persistente;
+      } else {
+        _dio.interceptors.insert(0, persistente);
+      }
+      _cookieManager = persistente;
+      _cookiesPersistentes = true;
+    } catch (_) {
+      // Si falla el acceso a disco seguimos con el jar en memoria; la app
+      // funciona, solo pierde la persistencia de la sesión entre reinicios.
+    }
+  }
+
+  /// Cambia en caliente la URL base de la API (p. ej. al elegir empresa en la
+  /// pantalla de selección). Dio la usa desde la siguiente petición.
+  void aplicarRuta(String ruta) {
+    _dio.options.baseUrl = ruta;
+  }
+
+  /// Ruta base actual de la API.
+  String get rutaActual => _dio.options.baseUrl;
 
   /// Mensaje mostrado al usuario cuando el dispositivo no tiene conexión.
   static const String _mensajeSinConexion =

@@ -11,7 +11,23 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 3;
+  static const _version = 4;
+
+  /// Catálogo de empresas (tenants) que se siembra al crear/actualizar la BD.
+  /// Cada una define la ruta base de la API a la que apunta la app. La empresa
+  /// activa la elige el usuario en la pantalla de selección del primer arranque.
+  static const List<Map<String, String>> catalogoEmpresas = [
+    {
+      'codigo': 'oxygeenfit',
+      'nombre': 'Oxygeen Fit',
+      'ruta_global': 'https://oxygeenfit.xnoxsoft.es/api/',
+    },
+    {
+      'codigo': 'xnonx',
+      'nombre': 'Xnonx',
+      'ruta_global': 'https://xnonx.xnoxsoft.es/api/',
+    },
+  ];
 
   Database? _db;
 
@@ -59,6 +75,44 @@ class BaseDatosLocal {
       }
       await batch.commit(noResult: true);
     }
+    if (desde < 4) {
+      // v4: catálogo de empresas (multi-tenant). Guarda código, nombre y ruta
+      // base de la API; la app apunta a la empresa marcada como activa.
+      await _crearTablaEmpresa(db);
+      await _sembrarEmpresas(db);
+    }
+  }
+
+  Future<void> _crearTablaEmpresa(Database db) async {
+    await db.execute('''
+      CREATE TABLE empresa (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        codigo TEXT NOT NULL UNIQUE,
+        nombre TEXT NOT NULL,
+        ruta_global TEXT NOT NULL,
+        activa INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+  }
+
+  /// Inserta el catálogo inicial de empresas. Ninguna queda activa: eso obliga
+  /// a pasar por la pantalla de selección en el primer arranque. Usa INSERT OR
+  /// IGNORE para no duplicar si el código ya existe.
+  Future<void> _sembrarEmpresas(Database db) async {
+    final batch = db.batch();
+    for (final e in catalogoEmpresas) {
+      batch.insert(
+        'empresa',
+        {
+          'codigo': e['codigo'],
+          'nombre': e['nombre'],
+          'ruta_global': e['ruta_global'],
+          'activa': 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<void> _crearTablaSerie(Database db) async {
@@ -138,6 +192,10 @@ class BaseDatosLocal {
 
     // Series de cada marca/sesión, normalizadas y agrupadas por marca_id.
     await _crearTablaSerie(db);
+
+    // Catálogo de empresas (multi-tenant) y su siembra inicial.
+    await _crearTablaEmpresa(db);
+    await _sembrarEmpresas(db);
 
     await db.execute('CREATE INDEX idx_rutina_dia_rutina ON rutina_dia (rutina_id)');
     await db.execute('CREATE INDEX idx_ejercicio_dia ON ejercicio (dia_id)');
