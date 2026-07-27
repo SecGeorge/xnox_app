@@ -12,7 +12,7 @@ class HttpService {
   // Ruta de arranque / fallback. La ruta real la define la empresa activa del
   // catálogo (tabla `empresa`), que se aplica en init() o al elegirla en la
   // pantalla de selección; esta constante solo se usa si la BD no da una ruta.
-  static const String RUTA_GLOBAL = "http://192.168.1.47/sistema_gimnasio_vf/api/";
+  static const String RUTA_GLOBAL = "http://192.168.1.163/sistema_gimnasio_vf/api/";
   static final HttpService _instance = HttpService._internal();
   late Dio _dio;
   late CookieManager _cookieManager;

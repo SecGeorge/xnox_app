@@ -20,6 +20,10 @@ class RepositorioNotificacionesImpl implements RepositorioNotificaciones {
         'notificacion': {
           'idUsuario': usuarioId,
           'sucursal_id': sucursalId,
+          // El servidor decide el público con la sesión; esto solo se usa
+          // como respaldo si la sesión caducó. Ver NotificacionAplicacion.
+          'tipo_usuario': prefs.getString('tipoUsuario') ?? '',
+          'miembro_id': prefs.getString('miembroId') ?? '',
         },
       },
       'notificaciones.php',

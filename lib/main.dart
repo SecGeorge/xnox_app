@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:xnox_app/core/database/empresa_dao.dart';
 import 'package:xnox_app/core/network/http_service.dart';
+import 'package:xnox_app/core/servicios/servicio_notificaciones.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/empresa/dominio/entidades/empresa.dart';
-import 'package:xnox_app/features/empresa/presentacion/screen/seleccion_empresa_screen.dart';
+import 'package:xnox_app/features/empresa/presentacion/screen/codigo_empresa_screen.dart';
 import 'package:xnox_app/features/login/presentacion/screen/sesion_gate.dart';
 
 void main() async {
@@ -14,6 +17,10 @@ void main() async {
   // Cookie de sesión persistente en disco: mantiene la sesión (y con ella los
   // datos guardados como la sucursal) al cerrar y reabrir la app.
   await HttpService().init();
+  // Firebase Cloud Messaging: permiso, canal de Android y token del
+  // dispositivo. A propósito SIN await: el diálogo de permiso no se resuelve
+  // hasta que el usuario contesta, y esperarlo dejaría la app en blanco.
+  unawaited(ServicioNotificaciones().init());
   runApp(const MyApp());
 }
 
@@ -33,7 +40,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// Puerta de arranque: decide si mostrar la selección de empresa (primer
+/// Puerta de arranque: decide si pedir el código del gimnasio (primer
 /// arranque, aún no hay empresa activa) o entrar directo al flujo de sesión.
 /// HttpService().init() ya aplicó la ruta de la empresa activa antes de runApp.
 class ArranqueGate extends StatefulWidget {
@@ -58,7 +65,7 @@ class _ArranqueGateState extends State<ArranqueGate> {
           );
         }
         return snapshot.data == null
-            ? const SeleccionEmpresaScreen()
+            ? const CodigoEmpresaScreen()
             : const SesionGate();
       },
     );

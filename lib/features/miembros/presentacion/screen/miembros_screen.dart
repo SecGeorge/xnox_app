@@ -223,20 +223,30 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Row(
+                // Wrap y no Row: con nombres largos la columna se estrecha y
+                // "Vence + saldo" no entraban en una línea (desbordaba). Así el
+                // saldo baja a la siguiente línea en vez de recortarse.
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 2,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    const Icon(Icons.event,
-                        size: 14, color: AppColores.textoSecundario),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Vence: $fecha',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColores.textoSecundario,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.event,
+                            size: 14, color: AppColores.textoSecundario),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Vence: $fecha',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColores.textoSecundario,
+                          ),
+                        ),
+                      ],
                     ),
-                    if (m.saldoPendiente > 0) ...[
-                      const SizedBox(width: 10),
+                    if (m.saldoPendiente > 0)
                       Text(
                         'S/ ${m.saldoPendiente.toStringAsFixed(0)}',
                         style: TextStyle(
@@ -245,7 +255,6 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
                           color: m.estado.color,
                         ),
                       ),
-                    ],
                   ],
                 ),
               ],

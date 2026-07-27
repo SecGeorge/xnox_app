@@ -261,14 +261,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Icons.event_busy, AppColores.naranja),
     ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppEspaciado.sm + 4,
-      crossAxisSpacing: AppEspaciado.sm + 4,
-      childAspectRatio: 1.4,
-      children: tarjetas.map(_buildStatCard).toList(),
+    // Dos filas en vez de un GridView con proporción fija: con una altura
+    // calculada a partir del ancho, el texto se desbordaba (8px) según la
+    // métrica de fuente del dispositivo. Con IntrinsicHeight cada fila mide lo
+    // que necesita su tarjeta más alta, y ambas quedan iguales.
+    return Column(
+      children: [
+        _filaEstadisticas(tarjetas[0], tarjetas[1]),
+        const SizedBox(height: _espacioTarjetas),
+        _filaEstadisticas(tarjetas[2], tarjetas[3]),
+      ],
+    );
+  }
+
+  static const double _espacioTarjetas = AppEspaciado.sm + 4;
+
+  Widget _filaEstadisticas(_StatData izquierda, _StatData derecha) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _buildStatCard(izquierda)),
+          const SizedBox(width: _espacioTarjetas),
+          Expanded(child: _buildStatCard(derecha)),
+        ],
+      ),
     );
   }
 
@@ -276,7 +293,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return TarjetaApp(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -286,6 +303,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             child: Icon(data.icono, color: data.color, size: 22),
           ),
+          const SizedBox(height: AppEspaciado.md),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

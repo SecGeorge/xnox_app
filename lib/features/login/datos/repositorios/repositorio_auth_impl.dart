@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/network/http_service.dart';
+import 'package:xnox_app/core/servicios/servicio_notificaciones.dart';
 import 'package:xnox_app/features/login/dominio/entidades/datos_registro.dart';
 import 'package:xnox_app/features/login/dominio/entidades/respuesta_login.dart';
 import 'package:xnox_app/features/login/dominio/entidades/sucursal.dart';
@@ -45,6 +46,10 @@ class RepositorioAuthImpl implements RepositorioAuth {
             await prefs.setString('miembroId', userData['miembro_id'].toString());
           }
         }
+
+        // Ya hay sesión: el backend puede asociar el token de este teléfono a
+        // quien acaba de entrar y mandarle notificaciones.
+        await ServicioNotificaciones().registrarEnBackend();
 
         return RespuestaLogin(
           success: true,
@@ -120,6 +125,9 @@ class RepositorioAuthImpl implements RepositorioAuth {
 
   @override
   Future<void> logout() async {
+    // Antes de borrar la sesión: el backend deja de mandar avisos a este
+    // teléfono. Si se hiciera después, ya no sabríamos de quién era el token.
+    await ServicioNotificaciones().darDeBajaEnBackend();
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }

@@ -116,14 +116,31 @@ class _PagosScreenState extends State<PagosScreen> {
           AppColores.naranja),
     ];
 
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppEspaciado.sm + 4,
-      crossAxisSpacing: AppEspaciado.sm + 4,
-      childAspectRatio: 1.35,
-      children: tarjetas.map(_tarjetaKpi).toList(),
+    // Dos filas en vez de un GridView con proporción fija: con una altura
+    // calculada a partir del ancho, el texto se desbordaba (4px) según la
+    // métrica de fuente del dispositivo. Con IntrinsicHeight cada fila mide lo
+    // que necesita su tarjeta más alta, y ambas quedan iguales.
+    return Column(
+      children: [
+        _filaKpis(tarjetas[0], tarjetas[1]),
+        const SizedBox(height: _espacioTarjetas),
+        _filaKpis(tarjetas[2], tarjetas[3]),
+      ],
+    );
+  }
+
+  static const double _espacioTarjetas = AppEspaciado.sm + 4;
+
+  Widget _filaKpis(_Kpi izquierda, _Kpi derecha) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _tarjetaKpi(izquierda)),
+          const SizedBox(width: _espacioTarjetas),
+          Expanded(child: _tarjetaKpi(derecha)),
+        ],
+      ),
     );
   }
 
@@ -131,7 +148,7 @@ class _PagosScreenState extends State<PagosScreen> {
     return TarjetaApp(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             padding: const EdgeInsets.all(8),
@@ -141,6 +158,7 @@ class _PagosScreenState extends State<PagosScreen> {
             ),
             child: Icon(kpi.icono, color: kpi.color, size: 22),
           ),
+          const SizedBox(height: AppEspaciado.md),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

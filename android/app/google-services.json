@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "643859129679",
+    "project_id": "xnoxsoft-6ade4",
+    "storage_bucket": "xnoxsoft-6ade4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:643859129679:android:c549af6cffcf859839513a",
+        "android_client_info": {
+          "package_name": "com.xnoxsoft.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6q-4HvJ8WwKmjN3MYXJbRQmAQFCwk8RM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

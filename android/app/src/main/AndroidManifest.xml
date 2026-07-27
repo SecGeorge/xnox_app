@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- Android 13+ exige pedir este permiso en tiempo de ejecución; sin él la
+         app no muestra ninguna notificación y no se reporta ningún error. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="xnox_app"
         android:name="${applicationName}"
@@ -39,6 +42,12 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- Canal por el que FCM entrega los avisos cuando la app está cerrada
+             o en segundo plano. Debe coincidir con `ServicioNotificaciones.canal`;
+             si no existe, Android los agrupa en un canal "Varios" sin sonido. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="xnox_avisos_v2" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
