@@ -15,12 +15,17 @@ class RepositorioPublicidadImpl implements RepositorioPublicidad {
 
   /// Construye la URL absoluta de la imagen a partir de la ruta relativa
   /// que guarda el backend (ej. "./imagenes/publicidad/x.png").
+  ///
+  /// Usa `rutaActual` y NO la constante `RUTA_GLOBAL`: la app es multi-empresa
+  /// y cada una vive en su propio servidor. Con la constante, los datos venían
+  /// de la empresa activa pero la imagen se pedía siempre a la URL de
+  /// desarrollo, así que en producción no se veía ninguna.
   String? _urlImagen(dynamic ruta) {
     final r = ruta?.toString().trim() ?? '';
     if (r.isEmpty) return null;
     if (r.startsWith('http')) return r;
     final limpia = r.replaceFirst(RegExp(r'^(\.{1,2}/)+'), '');
-    return '${HttpService.RUTA_GLOBAL}$limpia';
+    return '${_httpService.rutaActual}$limpia';
   }
 
   Publicidad _aPublicidad(Map<String, dynamic> j) {

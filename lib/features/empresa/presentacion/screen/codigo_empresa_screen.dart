@@ -55,22 +55,43 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _procesando = true);
 
-    final ruta = CodigoEmpresa.ruta(codigo);
+    // Si el gimnasio ya está en la tabla `empresa` usamos la URL guardada; si
+    // no, se arma desde el subdominio y al guardarlo queda para siempre. Se
+    // valida y se navega contra la ruta en uso (en debug puede ser el servidor
+    // de desarrollo), pero lo que se guarda es siempre la URL real.
+    final guardado = await EmpresaDao.instancia.porCodigo(codigo);
+    final rutaReal =
+        CodigoEmpresa.rutaReal(codigo, rutaGuardada: guardado?.rutaGlobal);
+    final ruta = CodigoEmpresa.rutaEnUso(codigo, rutaReal);
     final resultado = await const VerificadorEmpresa().verificar(ruta, codigo);
     if (!mounted) return;
     if (resultado != ResultadoVerificacion.valido) {
       setState(() => _procesando = false);
       mostrarMensajeGlobal(
-        resultado == ResultadoVerificacion.codigoNoCoincide
-            ? 'El código "$codigo" no es válido. Verifícalo con tu gimnasio.'
-            : 'No pudimos conectar con el gimnasio "$codigo". Revisa el código y tu conexión.',
+        resultado == ResultadoVerificacion.sinConexion
+            ? 'Sin conexión a internet. Verifica tu red e inténtalo de nuevo.'
+            : 'No encontramos el gimnasio "$codigo". Revisa el código con tu gimnasio.',
         tipo: TipoMensaje.error,
       );
       return;
     }
 
+    // Qué código reconoce ese servidor dentro de sus peticiones: se guarda para
+    // que el registro de clientes no tenga que volver a pedirlo.
+    final codigoBackend = await const VerificadorEmpresa().codigoQueReconoce(
+          ruta,
+          CodigoEmpresa.candidatosParaBackend(codigo),
+        ) ??
+        guardado?.codigoBackend;
+    if (!mounted) return;
+
     try {
-      await EmpresaDao.instancia.guardarYActivar(codigo: codigo, rutaGlobal: ruta);
+      await EmpresaDao.instancia.guardarYActivar(
+        codigo: codigo,
+        rutaGlobal: rutaReal,
+        nombre: guardado?.nombre,
+        codigoBackend: codigoBackend,
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _procesando = false);

@@ -11,11 +11,40 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 5;
+  static const _version = 7;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
   static const String _codigoEmpresaDesarrollo = 'local';
+
+  /// Gimnasios ya conocidos, con su URL exacta. Se siembran inactivos: no se
+  /// eligen de una lista, solo sirven para que al escribir uno de estos códigos
+  /// la app use la URL guardada en vez de armarla desde el subdominio. Un
+  /// código que no esté aquí se guarda solo cuando el usuario lo escribe.
+  /// `codigo_backend` es el código que ese servidor reconoce en las peticiones
+  /// (su constante `CODIGO_GIMNASIO`). Cada gimnasio se configura con el mismo
+  /// código que escribe el usuario, así que se siembra igual; el arranque lo
+  /// confirma contra el servidor y corrige el valor si allí es otro.
+  static const List<Map<String, String>> codigosConocidos = [
+    {
+      'codigo': 'PASSIONFIT',
+      'nombre': 'Passion Fit',
+      'ruta_global': 'https://passionfit.xnoxsoft.es/api/',
+      'codigo_backend': 'PASSIONFIT',
+    },
+    {
+      'codigo': 'OXYGEENFIT',
+      'nombre': 'Oxygeen Fit',
+      'ruta_global': 'https://oxygeenfit.xnoxsoft.es/api/',
+      'codigo_backend': 'OXYGEENFIT',
+    },
+    {
+      'codigo': 'XNONX',
+      'nombre': 'Xnonx',
+      'ruta_global': 'https://xnonx.xnoxsoft.es/api/',
+      'codigo_backend': 'XNONX',
+    },
+  ];
 
   Database? _db;
 
@@ -78,6 +107,54 @@ class BaseDatosLocal {
         whereArgs: [_codigoEmpresaDesarrollo],
       );
     }
+    if (desde < 6) {
+      // v6: los gimnasios conocidos viven en la tabla, con su URL exacta, para
+      // consultarlos cuando se escribe el código.
+      await _sembrarCodigosConocidos(db);
+    }
+    if (desde < 7) {
+      // v7: el código que el servidor reconoce en sus peticiones (su constante
+      // CODIGO_GIMNASIO) no es el que escribe el usuario, así que se guarda
+      // aparte. Sin esto el registro de clientes tenía que volver a pedirlo.
+      if (!await _existeColumna(db, 'empresa', 'codigo_backend')) {
+        await db.execute('ALTER TABLE empresa ADD COLUMN codigo_backend TEXT');
+      }
+      await db.update(
+        'empresa',
+        {'codigo_backend': _codigoBackendPorDefecto},
+        where: 'codigo_backend IS NULL',
+      );
+    }
+  }
+
+  /// Valor de partida para las filas que ya existían: mientras un gimnasio no
+  /// esté configurado con su propio código, su servidor sigue reconociendo este.
+  /// El arranque lo corrige en cuanto el servidor acepta el código real.
+  static const String _codigoBackendPorDefecto = 'PASSIONFIT';
+
+  Future<bool> _existeColumna(Database db, String tabla, String columna) async {
+    final info = await db.rawQuery('PRAGMA table_info($tabla)');
+    return info.any((c) => c['name'] == columna);
+  }
+
+  /// Inserta los gimnasios conocidos sin tocar los que ya estén (INSERT OR
+  /// IGNORE por `codigo`), así no se pisa la empresa activa ni su URL.
+  Future<void> _sembrarCodigosConocidos(Database db) async {
+    final batch = db.batch();
+    for (final gimnasio in codigosConocidos) {
+      batch.insert(
+        'empresa',
+        {
+          'codigo': gimnasio['codigo'],
+          'nombre': gimnasio['nombre'],
+          'ruta_global': gimnasio['ruta_global'],
+          'codigo_backend': gimnasio['codigo_backend'],
+          'activa': 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<void> _crearTablaEmpresa(Database db) async {
@@ -87,6 +164,7 @@ class BaseDatosLocal {
         codigo TEXT NOT NULL UNIQUE,
         nombre TEXT NOT NULL,
         ruta_global TEXT NOT NULL,
+        codigo_backend TEXT,
         activa INTEGER NOT NULL DEFAULT 0
       )
     ''');
@@ -170,9 +248,10 @@ class BaseDatosLocal {
     // Series de cada marca/sesión, normalizadas y agrupadas por marca_id.
     await _crearTablaSerie(db);
 
-    // Empresa (multi-tenant): se llena con el código de gimnasio que el
-    // usuario escribe en el primer arranque.
+    // Empresa (multi-tenant): trae los gimnasios conocidos y se completa con el
+    // código que el usuario escribe en el primer arranque.
     await _crearTablaEmpresa(db);
+    await _sembrarCodigosConocidos(db);
 
     await db.execute('CREATE INDEX idx_rutina_dia_rutina ON rutina_dia (rutina_id)');
     await db.execute('CREATE INDEX idx_ejercicio_dia ON ejercicio (dia_id)');

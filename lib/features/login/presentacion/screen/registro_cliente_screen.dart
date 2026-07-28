@@ -1,8 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:xnox_app/core/database/empresa_dao.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/login/dominio/entidades/sucursal.dart';
 import 'package:xnox_app/features/login/presentacion/controlador/controlador_registro.dart';
 
@@ -15,7 +15,6 @@ class RegistroClienteScreen extends StatefulWidget {
 }
 
 class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
-  final _codigoCtrl = TextEditingController();
   final _documentoCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _confirmarCtrl = TextEditingController();
@@ -25,53 +24,57 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
   Sucursal? _sucursalSeleccionada;
   bool _isLoading = false;
   bool _verPassword = false;
-  bool _cargandoSucursales = false;
+  bool _cargandoSucursales = true;
   String? _sucursalesError;
-  Timer? _debounceSucursales;
+
+  /// Código de gimnasio que ya escribió el usuario al abrir la app por primera
+  /// vez; no se le vuelve a pedir aquí.
+  String _codigoGimnasio = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarSucursales();
+  }
 
   @override
   void dispose() {
-    _debounceSucursales?.cancel();
-    _codigoCtrl.dispose();
     _documentoCtrl.dispose();
     _passwordCtrl.dispose();
     _confirmarCtrl.dispose();
     super.dispose();
   }
 
-  /// Al escribir el código de gimnasio, esperamos a que el usuario deje de
-  /// teclear (debounce) y recargamos las sucursales de ese gimnasio.
-  void _onCodigoChanged(String valor) {
-    _debounceSucursales?.cancel();
-    setState(() {
-      _sucursalSeleccionada = null;
-      _sucursales = [];
-      _sucursalesError = null;
-    });
-    final codigo = valor.trim();
-    if (codigo.isEmpty) return;
-    _debounceSucursales =
-        Timer(const Duration(milliseconds: 600), () => _cargarSucursales(codigo));
-  }
-
-  Future<void> _cargarSucursales(String codigo) async {
-    setState(() => _cargandoSucursales = true);
-    final sucursales = await _controlador.cargarSucursales(codigo);
+  /// Sucursales del gimnasio guardado. Se usa el código que reconoce ese
+  /// servidor (`codigoParaBackend`), que no siempre es el que escribió el
+  /// usuario.
+  Future<void> _cargarSucursales() async {
+    final empresa = await EmpresaDao.instancia.activa();
+    if (!mounted) return;
+    if (empresa == null) {
+      setState(() {
+        _cargandoSucursales = false;
+        _sucursalesError = 'No hay un gimnasio configurado en esta app';
+      });
+      return;
+    }
+    _codigoGimnasio = empresa.codigoParaBackend;
+    final sucursales = await _controlador.cargarSucursales(_codigoGimnasio);
     if (!mounted) return;
     setState(() {
       _cargandoSucursales = false;
       _sucursales = sucursales;
-      _sucursalSeleccionada = null;
-      _sucursalesError = sucursales.isEmpty
-          ? 'Código inválido o sin sucursales disponibles'
-          : null;
+      _sucursalSeleccionada = sucursales.length == 1 ? sucursales.first : null;
+      _sucursalesError =
+          sucursales.isEmpty ? 'No hay sucursales disponibles' : null;
     });
   }
 
   Future<void> _registrar() async {
+    if (_isLoading) return;
     setState(() => _isLoading = true);
     final result = await _controlador.registrar(
-      codigoGimnasio: _codigoCtrl.text,
+      codigoGimnasio: _codigoGimnasio,
       idSucursal: _sucursalSeleccionada?.id,
       documento: _documentoCtrl.text,
       password: _passwordCtrl.text,
@@ -80,11 +83,11 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result.message),
-        backgroundColor: result.success ? null : Colors.red,
-      ),
+    // Un solo aviso a la vez: los toques repetidos reemplazan el anterior en
+    // lugar de apilar varios.
+    mostrarMensajeGlobal(
+      result.message,
+      tipo: result.success ? TipoMensaje.exito : TipoMensaje.error,
     );
 
     // Si se creó la cuenta, volvemos al login para iniciar sesión.
@@ -116,19 +119,6 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                     fontSize: 13.5, color: AppColores.textoSecundario),
               ),
               const SizedBox(height: AppEspaciado.xl),
-              TextField(
-                controller: _codigoCtrl,
-                textCapitalization: TextCapitalization.characters,
-                onChanged: _onCodigoChanged,
-                decoration: InputDecoration(
-                  labelText: 'Código de gimnasio',
-                  helperText: 'Ingresa el código para ver las sucursales',
-                  prefixIcon: const Icon(Icons.qr_code_2_outlined),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-              const SizedBox(height: AppEspaciado.md),
               DropdownButtonFormField<Sucursal>(
                 initialValue: _sucursalSeleccionada,
                 isExpanded: true,

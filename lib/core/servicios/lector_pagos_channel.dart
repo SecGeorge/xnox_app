@@ -16,13 +16,17 @@ class LectorPagosChannel {
       MethodChannel('com.example.xnox_app/lector_pagos');
 
   /// Escribe en SharedPreferences el endpoint al que el servicio nativo debe
-  /// enviar los pagos. Lo deriva de [HttpService.RUTA_GLOBAL] para que dev/prod
-  /// queden siempre sincronizados con el resto de la app.
+  /// enviar los pagos.
+  ///
+  /// Lo deriva de la ruta de la empresa ACTIVA, no de la constante
+  /// [HttpService.RUTA_GLOBAL]: con la constante, un gimnasio en producción
+  /// enviaba sus pagos de Yape al servidor de desarrollo, así que se perdían
+  /// sin ningún error visible.
   static Future<void> sincronizarConfig() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       'lector_endpoint',
-      '${HttpService.RUTA_GLOBAL}recibir_notificacion.php',
+      '${HttpService().rutaActual}recibir_notificacion.php',
     );
   }
 

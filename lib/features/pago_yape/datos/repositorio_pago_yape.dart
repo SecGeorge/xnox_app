@@ -24,7 +24,9 @@ class RepositorioPagoYape {
     if (r.isEmpty) return null;
     if (r.startsWith('http')) return r;
     final limpia = r.replaceFirst(RegExp(r'^(\.{1,2}/)+'), '');
-    return '${HttpService.RUTA_GLOBAL}$limpia';
+    // Ruta de la empresa activa, no la constante: cada empresa tiene su
+    // servidor y con la constante el QR se pedía siempre al de desarrollo.
+    return '${HttpService().rutaActual}$limpia';
   }
 
   /// Obtiene el número, titular y QR de Yape del negocio (tabla `ajustes`).

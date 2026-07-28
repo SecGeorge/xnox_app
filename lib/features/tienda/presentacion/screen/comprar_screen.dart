@@ -118,7 +118,10 @@ class _ComprarScreenState extends State<ComprarScreen> {
   String _urlImagen(String img) {
     if (img.isEmpty) return '';
     final limpio = img.startsWith('./') ? img.substring(2) : img;
-    return '${HttpService.RUTA_GLOBAL}$limpio';
+    // Ruta de la empresa activa, no la constante: cada empresa tiene su
+    // servidor y con la constante las fotos de los productos se pedían
+    // siempre al de desarrollo.
+    return '${HttpService().rutaActual}$limpio';
   }
 
   int get _totalItems =>
