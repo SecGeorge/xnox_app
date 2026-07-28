@@ -74,4 +74,19 @@ class EmpresaDao {
     });
     return activa();
   }
+
+  /// Corrige el código que el servidor reconoce en sus peticiones cuando se
+  /// descubre cuál es de verdad (p. ej. al cargar las sucursales en el
+  /// registro). Sin esto, un valor mal resuelto en el arranque —porque la red
+  /// falló justo en ese momento— se quedaba guardado para siempre y el
+  /// registro de clientes no encontraba sucursales nunca más.
+  Future<void> actualizarCodigoBackend(int id, String codigoBackend) async {
+    final db = await _bd.db;
+    await db.update(
+      'empresa',
+      {'codigo_backend': codigoBackend},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

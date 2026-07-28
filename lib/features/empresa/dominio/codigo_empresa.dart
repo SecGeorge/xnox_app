@@ -31,18 +31,23 @@ class CodigoEmpresa {
 
   /// Códigos que se prueban contra el servidor, en orden, para saber cuál
   /// reconoce como suyo (su constante `CODIGO_GIMNASIO`, que es lo que hay que
-  /// enviarle al registrar un cliente).
+  /// enviarle al registrar un cliente y al pedirle sus sucursales).
   ///
   /// Cada gimnasio se configura con el mismo código que escribe el usuario, así
-  /// que ese es el primero. [_codigoBackendHeredado] es solo para los
-  /// despliegues que aún no se han configurado: cuando todos lo estén, se puede
-  /// borrar y dejar únicamente el código escrito.
+  /// que ese es el primero. [_codigosBackendHeredados] son los valores que
+  /// quedaron en despliegues que aún no siguen esa regla; cuando todos estén
+  /// alineados se puede vaciar esa lista.
+  ///
+  /// Si un gimnasio responde cero sucursales con todos estos candidatos, lo que
+  /// hay que revisar es su `ConstantesDominio::CODIGO_GIMNASIO`: debe ser igual
+  /// al código que escribe el usuario. Añadir aquí el valor raro del servidor es
+  /// tapar el problema, y hay que mantenerlo para siempre.
   static List<String> candidatosParaBackend(String codigo) =>
-      <String>{codigo, _codigoBackendHeredado}.toList();
+      <String>{codigo, ..._codigosBackendHeredados}.toList();
 
   /// Constante que compartían todos los despliegues antes de configurar cada
   /// gimnasio con su propio código.
-  static const String _codigoBackendHeredado = 'PASSIONFIT';
+  static const List<String> _codigosBackendHeredados = ['PASSIONFIT'];
 
   /// Deja el texto tal como se guarda y se envía al backend.
   static String normalizar(String texto) => texto.trim().toUpperCase();

@@ -12,6 +12,9 @@ class ControladorRutinas {
   // -------------------------------------------------------- Lecturas (caché)
   List<Rutina> obtenerRutinas() => _almacen.rutinas;
   List<Rutina> obtenerSugeridas() => _almacen.rutinasSugeridas;
+
+  /// Rutinas que el gimnasio armó para este cliente.
+  List<Rutina> obtenerAsignadas() => _almacen.rutinasAsignadas;
   List<Rutina> obtenerMisRutinas() => _almacen.rutinasCliente;
   List<Ejercicio> obtenerTodosLosEjercicios() => _almacen.todosLosEjercicios;
   Rutina? obtenerRutina(int id) => _almacen.buscarRutina(id);

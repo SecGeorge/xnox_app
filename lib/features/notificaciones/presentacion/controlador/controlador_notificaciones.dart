@@ -12,4 +12,18 @@ class ControladorNotificaciones {
   Future<List<Notificacion>> obtener() => _repositorio.obtener();
 
   Future<void> marcarLeido(int id) => _repositorio.marcarLeido(id);
+
+  /// Crea una notificación y la envía por push. Solo para administradores.
+  Future<bool> crear({
+    required String titulo,
+    required String mensaje,
+    required int tipoEnvio,
+    int? miembroId,
+  }) =>
+      _repositorio.crear(
+        titulo: titulo,
+        mensaje: mensaje,
+        tipoEnvio: tipoEnvio,
+        miembroId: miembroId,
+      );
 }

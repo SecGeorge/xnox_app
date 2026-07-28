@@ -20,12 +20,22 @@ class RepositorioRutinasRemoto {
     return int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
   }
 
-  /// Devuelve las rutinas sugeridas activas. Lista vacía si no hay conexión o
-  /// el backend no responde (la app sigue funcionando con SQLite).
+  Future<int> _miembroId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return int.tryParse(prefs.getString('miembroId') ?? '') ?? 0;
+  }
+
+  /// Devuelve las rutinas activas del backend: las generales de la sucursal más
+  /// las que el administrador armó para este cliente. Lista vacía si no hay
+  /// conexión o el backend no responde (la app sigue funcionando con SQLite).
   Future<List<Rutina>> obtenerSugeridas() async {
     try {
       final response = await _http.obtenerConDatos(
-        {'metodo': 'listar_sugeridas', 'sucursal_id': await _sucursalId()},
+        {
+          'metodo': 'listar_sugeridas',
+          'sucursal_id': await _sucursalId(),
+          'miembro_id': await _miembroId(),
+        },
         'rutinas.php',
       );
       return _mapear(response);
@@ -75,6 +85,8 @@ class RepositorioRutinasRemoto {
       nombre: j['nombre']?.toString() ?? '',
       descripcion: j['descripcion']?.toString() ?? '',
       origen: OrigenRutina.admin,
+      // Con miembro_id la rutina es solo para este cliente.
+      personalizada: _entero(j['miembro_id']) > 0,
       dias: dias,
     );
   }

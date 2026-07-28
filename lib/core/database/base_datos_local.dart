@@ -11,7 +11,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 7;
+  static const _version = 9;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -125,6 +125,29 @@ class BaseDatosLocal {
         where: 'codigo_backend IS NULL',
       );
     }
+    if (desde < 8) {
+      // v8: el administrador puede armar una rutina para UN cliente. Sigue
+      // siendo 'admin' (solo lectura), pero se marca para mostrarla aparte de
+      // las generales de la sucursal.
+      if (!await _existeColumna(db, 'rutina', 'personalizada')) {
+        await db.execute(
+            'ALTER TABLE rutina ADD COLUMN personalizada INTEGER NOT NULL DEFAULT 0');
+      }
+    }
+    if (desde < 9) {
+      // v9: realinea `codigo_backend` con el valor sembrado. Un código que el
+      // servidor no reconoce deja el registro de clientes sin sucursales, y
+      // hasta ahora ese valor equivocado se quedaba guardado para siempre. Si
+      // el gimnasio usa otro, el propio registro vuelve a resolverlo y lo pisa.
+      for (final gimnasio in codigosConocidos) {
+        await db.update(
+          'empresa',
+          {'codigo_backend': gimnasio['codigo_backend']},
+          where: 'codigo = ? AND (codigo_backend IS NULL OR codigo_backend != ?)',
+          whereArgs: [gimnasio['codigo'], gimnasio['codigo_backend']],
+        );
+      }
+    }
   }
 
   /// Valor de partida para las filas que ya existían: mientras un gimnasio no
@@ -197,6 +220,8 @@ class BaseDatosLocal {
     // origen: 'admin' = rutina sugerida (solo lectura, viene del backend)
     //         'cliente' = rutina propia del cliente (CRUD local)
     // servidor_id: id de la rutina en el backend (solo rutinas 'admin').
+    // personalizada: 1 si el administrador armó esa rutina 'admin' para este
+    //                cliente en concreto (no la ven los demás).
     await db.execute('''
       CREATE TABLE rutina (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -204,6 +229,7 @@ class BaseDatosLocal {
         nombre TEXT NOT NULL,
         descripcion TEXT,
         origen TEXT NOT NULL,
+        personalizada INTEGER NOT NULL DEFAULT 0,
         fecha_sync TEXT
       )
     ''');

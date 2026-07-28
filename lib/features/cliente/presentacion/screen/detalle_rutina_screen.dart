@@ -69,14 +69,16 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                 ],
                 if (rutina.esSugerida) ...[
                   Row(
-                    children: const [
-                      Icon(Icons.lock_outline,
+                    children: [
+                      const Icon(Icons.lock_outline,
                           size: 16, color: AppColores.textoSecundario),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Rutina sugerida (solo lectura). Puedes registrar tus marcas.',
-                          style: TextStyle(
+                          rutina.personalizada
+                              ? 'Rutina que tu gimnasio armó para ti (solo lectura). Puedes registrar tus marcas.'
+                              : 'Rutina sugerida (solo lectura). Puedes registrar tus marcas.',
+                          style: const TextStyle(
                               fontSize: 12.5,
                               color: AppColores.textoSecundario),
                         ),

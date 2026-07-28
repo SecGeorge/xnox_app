@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
 import 'package:xnox_app/features/notificaciones/dominio/entidades/notificacion.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
+import 'package:xnox_app/features/notificaciones/presentacion/screen/crear_notificacion_screen.dart';
 
 /// Pantalla que lista las notificaciones de la sucursal (membresías vencidas,
 /// por vencer, deudas, productos por vencer). Permite marcarlas como leídas.
@@ -23,10 +26,21 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
   bool _isLoading = true;
   bool _huboCambios = false;
 
+  /// Si la sesión es de administrador se ofrece el botón de enviar avisos.
+  bool _esAdministrador = false;
+
   @override
   void initState() {
     super.initState();
     _cargar();
+    _cargarRol();
+  }
+
+  Future<void> _cargarRol() async {
+    final prefs = await SharedPreferences.getInstance();
+    final tipo = TipoUsuario.desdeTexto(prefs.getString('tipoUsuario'));
+    if (!mounted) return;
+    setState(() => _esAdministrador = tipo == TipoUsuario.administrador);
   }
 
   Future<void> _cargar() async {
@@ -79,7 +93,28 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
           child: _buildContenido(),
         ),
       ),
+      // Solo el administrador puede enviar avisos. El backend lo verifica
+      // igualmente por rol; esto es únicamente para no mostrar un botón que
+      // acabaría en un error de permisos.
+      floatingActionButton: _esAdministrador
+          ? FloatingActionButton.extended(
+              onPressed: _abrirCrear,
+              icon: const Icon(Icons.campaign_outlined),
+              label: const Text('Enviar aviso'),
+            )
+          : null,
     );
+  }
+
+  /// Abre el formulario de envío y recarga la lista si se envió algo.
+  Future<void> _abrirCrear() async {
+    final enviado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => const CrearNotificacionScreen()),
+    );
+    if (enviado == true) {
+      _huboCambios = true;
+      await _cargar();
+    }
   }
 
   Widget _buildContenido() {

@@ -44,4 +44,38 @@ class RepositorioNotificacionesImpl implements RepositorioNotificaciones {
       'notificaciones.php',
     );
   }
+
+  @override
+  Future<bool> crear({
+    required String titulo,
+    required String mensaje,
+    required int tipoEnvio,
+    String tipo = 'info',
+    int? miembroId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
+
+    final resp = await _httpService.registrar(
+      {
+        'metodo': 'registrar',
+        'notificacion': {
+          'titulo': titulo,
+          // El backend espera 'mensage' (con la errata original de la API).
+          'mensage': mensaje,
+          'tipo': tipo,
+          'tipo_envio': tipoEnvio,
+          'miembro_id': miembroId,
+          'sucursal_id': sucursalId,
+        },
+      },
+      'notificaciones.php',
+    );
+
+    // El SP responde con voit_exito; un 401/403 llega como mapa con 'error'.
+    if (resp is List && resp.isNotEmpty && resp.first is Map) {
+      return (resp.first['voit_exito']?.toString() ?? '0') == '1';
+    }
+    return false;
+  }
 }

@@ -30,9 +30,10 @@ class _RutinasScreenState extends State<RutinasScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final asignadas = _controlador.obtenerAsignadas();
     final sugeridas = _controlador.obtenerSugeridas();
     final mias = _controlador.obtenerMisRutinas();
-    final vacio = sugeridas.isEmpty && mias.isEmpty;
+    final vacio = asignadas.isEmpty && sugeridas.isEmpty && mias.isEmpty;
 
     return Scaffold(
       backgroundColor: AppColores.fondo,
@@ -63,6 +64,14 @@ class _RutinasScreenState extends State<RutinasScreen> {
                         padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
                             AppEspaciado.md, AppEspaciado.md, 90),
                         children: [
+                          // Lo primero: lo que el gimnasio armó para este cliente.
+                          if (asignadas.isNotEmpty) ...[
+                            _tituloSeccion(
+                                'Mi rutina asignada', Icons.assignment_ind),
+                            const SizedBox(height: AppEspaciado.sm),
+                            ...asignadas.map(_buildTarjeta),
+                            const SizedBox(height: AppEspaciado.lg),
+                          ],
                           if (sugeridas.isNotEmpty) ...[
                             _tituloSeccion('Rutinas sugeridas', Icons.verified),
                             const SizedBox(height: AppEspaciado.sm),
@@ -141,7 +150,11 @@ class _RutinasScreenState extends State<RutinasScreen> {
                                 fontWeight: FontWeight.w700,
                                 color: AppColores.textoPrincipal)),
                       ),
-                      if (r.esSugerida) ...[
+                      if (r.personalizada) ...[
+                        const SizedBox(width: 8),
+                        const EtiquetaEstado(
+                            texto: 'Para ti', color: AppColores.acento),
+                      ] else if (r.esSugerida) ...[
                         const SizedBox(width: 8),
                         const EtiquetaEstado(
                             texto: 'Sugerida', color: AppColores.azul),

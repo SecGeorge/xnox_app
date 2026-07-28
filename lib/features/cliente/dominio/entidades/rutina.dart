@@ -14,6 +14,11 @@ class Rutina {
   final String nombre;
   final String descripcion;
   final OrigenRutina origen;
+
+  /// True si el administrador armó esta rutina para ESTE cliente. Sigue siendo
+  /// de solo lectura, pero no la ve nadie más, así que se muestra aparte.
+  final bool personalizada;
+
   final List<DiaRutina> dias;
 
   Rutina({
@@ -22,11 +27,15 @@ class Rutina {
     required this.nombre,
     this.descripcion = '',
     this.origen = OrigenRutina.cliente,
+    this.personalizada = false,
     List<DiaRutina>? dias,
   }) : dias = dias ?? [];
 
-  /// True si es una rutina sugerida del administrador (solo lectura).
+  /// True si viene del administrador (solo lectura): general o personalizada.
   bool get esSugerida => origen == OrigenRutina.admin;
+
+  /// True si es una rutina general de la sucursal (la ven todos los clientes).
+  bool get esGeneral => esSugerida && !personalizada;
 
   /// Todos los ejercicios de todos los días (para reportes y conteos).
   List<Ejercicio> get ejercicios =>

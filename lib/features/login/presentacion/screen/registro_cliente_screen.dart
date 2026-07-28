@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:xnox_app/core/database/empresa_dao.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/login/dominio/entidades/sucursal.dart';
@@ -27,6 +26,9 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
   bool _cargandoSucursales = true;
   String? _sucursalesError;
 
+  /// El fallo fue de red/servidor, así que volver a intentarlo puede funcionar.
+  bool _puedeReintentar = false;
+
   /// Código de gimnasio que ya escribió el usuario al abrir la app por primera
   /// vez; no se le vuelve a pedir aquí.
   String _codigoGimnasio = '';
@@ -45,33 +47,52 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
     super.dispose();
   }
 
-  /// Sucursales del gimnasio guardado. Se usa el código que reconoce ese
-  /// servidor (`codigoParaBackend`), que no siempre es el que escribió el
+  /// Sucursales del gimnasio guardado. El controlador se encarga de dar con el
+  /// código que reconoce ese servidor, que no siempre es el que escribió el
   /// usuario.
   Future<void> _cargarSucursales() async {
-    final empresa = await EmpresaDao.instancia.activa();
+    setState(() {
+      _cargandoSucursales = true;
+      _sucursalesError = null;
+      _puedeReintentar = false;
+    });
+
+    final resultado = await _controlador.cargarSucursales();
     if (!mounted) return;
-    if (empresa == null) {
-      setState(() {
-        _cargandoSucursales = false;
-        _sucursalesError = 'No hay un gimnasio configurado en esta app';
-      });
-      return;
-    }
-    _codigoGimnasio = empresa.codigoParaBackend;
-    final sucursales = await _controlador.cargarSucursales(_codigoGimnasio);
-    if (!mounted) return;
+
     setState(() {
       _cargandoSucursales = false;
-      _sucursales = sucursales;
-      _sucursalSeleccionada = sucursales.length == 1 ? sucursales.first : null;
-      _sucursalesError =
-          sucursales.isEmpty ? 'No hay sucursales disponibles' : null;
+      _codigoGimnasio = resultado.codigo;
+      _sucursales = resultado.sucursales;
+      _sucursalSeleccionada =
+          resultado.sucursales.length == 1 ? resultado.sucursales.first : null;
+
+      if (resultado.hayDatos) {
+        _sucursalesError = null;
+        _puedeReintentar = false;
+      } else if (resultado.consultado) {
+        // El gimnasio respondió y no tiene sucursales: reintentar no arregla
+        // nada, es algo que tiene que configurar el gimnasio.
+        _sucursalesError = 'Este gimnasio no tiene sucursales configuradas';
+        _puedeReintentar = false;
+      } else {
+        // No se pudo consultar (red o servidor): se ofrece reintentar en vez
+        // de dejar el formulario bloqueado.
+        _sucursalesError = resultado.mensaje ?? 'No se pudieron cargar las sucursales';
+        _puedeReintentar = true;
+      }
     });
   }
 
   Future<void> _registrar() async {
     if (_isLoading) return;
+
+    // Con sucursales cargadas pero ninguna elegida, se marca el propio campo
+    // en vez de dejar solo un aviso que se va solo.
+    if (_sucursalSeleccionada == null && _sucursales.isNotEmpty) {
+      setState(() => _sucursalesError = 'Selecciona una sucursal');
+    }
+
     setState(() => _isLoading = true);
     final result = await _controlador.registrar(
       codigoGimnasio: _codigoGimnasio,
@@ -151,8 +172,24 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                 // Deshabilitado hasta que haya sucursales cargadas.
                 onChanged: _sucursales.isEmpty
                     ? null
-                    : (s) => setState(() => _sucursalSeleccionada = s),
+                    : (s) => setState(() {
+                          _sucursalSeleccionada = s;
+                          _sucursalesError = null;
+                        }),
               ),
+              // Un fallo de red dejaba el formulario bloqueado sin salida:
+              // ahora se puede volver a pedir la lista sin salir de la pantalla.
+              if (_puedeReintentar && !_cargandoSucursales)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: _cargarSucursales,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Reintentar'),
+                    style: TextButton.styleFrom(
+                        foregroundColor: AppColores.acento),
+                  ),
+                ),
               const SizedBox(height: AppEspaciado.md),
               TextField(
                 controller: _documentoCtrl,

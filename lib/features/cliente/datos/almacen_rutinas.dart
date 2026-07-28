@@ -21,9 +21,13 @@ class AlmacenRutinas {
   // ----------------------------------------------------------------- Lecturas
   List<Rutina> get rutinas => List.unmodifiable(_rutinas);
 
-  /// Rutinas sugeridas del administrador (solo lectura).
+  /// Rutinas generales del administrador, las que ven todos los clientes.
   List<Rutina> get rutinasSugeridas =>
-      _rutinas.where((r) => r.origen == OrigenRutina.admin).toList();
+      _rutinas.where((r) => r.esGeneral).toList();
+
+  /// Rutina(s) que el administrador armó para este cliente (solo lectura).
+  List<Rutina> get rutinasAsignadas =>
+      _rutinas.where((r) => r.esSugerida && r.personalizada).toList();
 
   /// Rutinas propias del cliente (CRUD local).
   List<Rutina> get rutinasCliente =>
@@ -118,6 +122,7 @@ class AlmacenRutinas {
         origen: (r['origen'] as String?) == 'admin'
             ? OrigenRutina.admin
             : OrigenRutina.cliente,
+        personalizada: (r['personalizada'] as int? ?? 0) == 1,
         dias: diasPorRutina[id] ?? [],
       );
     }).toList();
@@ -395,6 +400,7 @@ class AlmacenRutinas {
             {
               'nombre': remota.nombre,
               'descripcion': remota.descripcion,
+              'personalizada': remota.personalizada ? 1 : 0,
               'fecha_sync': ahora,
             },
             where: 'id = ?',
@@ -406,6 +412,7 @@ class AlmacenRutinas {
             'nombre': remota.nombre,
             'descripcion': remota.descripcion,
             'origen': 'admin',
+            'personalizada': remota.personalizada ? 1 : 0,
             'fecha_sync': ahora,
           });
         }

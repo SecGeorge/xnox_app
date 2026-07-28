@@ -447,16 +447,18 @@ class _ComprarScreenState extends State<ComprarScreen> {
                     color: AppColores.textoPrincipal,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  [p.nombreMarca, 'Stock: ${p.stock.toStringAsFixed(0)}']
-                      .where((e) => e.trim().isNotEmpty)
-                      .join(' · '),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColores.textoSecundario,
+                // Al cliente no se le muestra el stock: es información interna
+                // del negocio. Se sigue usando como tope al agregar al carrito.
+                if (p.nombreMarca.trim().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    p.nombreMarca,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColores.textoSecundario,
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -708,6 +710,12 @@ class _ComprarScreenState extends State<ComprarScreen> {
           if (item.cantidad < item.stock) {
             setSheet(() => item.cantidad++);
             setState(() {});
+          } else {
+            // Antes el botón no hacía nada al llegar al tope y el cliente lo
+            // deducía del stock en pantalla; ahora que no lo ve, hay que
+            // decírselo (mismo aviso que al agregar desde el catálogo).
+            mostrarMensaje(context, 'No hay más stock de ${item.nombre}',
+                tipo: TipoMensaje.advertencia);
           }
         }),
         const SizedBox(width: AppEspaciado.sm),

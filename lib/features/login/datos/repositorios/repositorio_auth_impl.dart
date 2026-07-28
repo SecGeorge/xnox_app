@@ -3,6 +3,7 @@ import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/core/servicios/servicio_notificaciones.dart';
 import 'package:xnox_app/features/login/dominio/entidades/datos_registro.dart';
 import 'package:xnox_app/features/login/dominio/entidades/respuesta_login.dart';
+import 'package:xnox_app/features/login/dominio/entidades/resultado_sucursales.dart';
 import 'package:xnox_app/features/login/dominio/entidades/sucursal.dart';
 import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
 import 'package:xnox_app/features/login/dominio/repositorios/repositorio_auth.dart';
@@ -101,7 +102,7 @@ class RepositorioAuthImpl implements RepositorioAuth {
   }
 
   @override
-  Future<List<Sucursal>> sucursalesPorCodigo(String codigoGimnasio) async {
+  Future<ResultadoSucursales> sucursalesPorCodigo(String codigoGimnasio) async {
     try {
       final payload = {
         'metodo': 'por_codigo_gimnasio',
@@ -110,16 +111,28 @@ class RepositorioAuthImpl implements RepositorioAuth {
       final response =
           await _httpService.obtenerConDatos(payload, 'sucursal.php');
 
-      final datos = response is Map ? response['datos'] : null;
+      if (response is! Map) {
+        return ResultadoSucursales.errorServidor(codigoGimnasio);
+      }
+
+      final datos = response['datos'];
       if (datos is List) {
-        return datos
+        final sucursales = datos
             .whereType<Map>()
             .map((e) => Sucursal.fromJson(Map<String, dynamic>.from(e)))
             .toList();
+        return ResultadoSucursales.ok(sucursales, codigoGimnasio);
       }
-      return [];
+
+      // Sin `datos`: el servicio no llegó a responder (el HttpService ya
+      // devuelve un mapa marcado en ese caso) o devolvió un error propio.
+      final mensaje = response['error']?.toString();
+      if (response['sin_conexion'] == true) {
+        return ResultadoSucursales.sinConexion(codigoGimnasio, mensaje);
+      }
+      return ResultadoSucursales.errorServidor(codigoGimnasio, mensaje);
     } catch (_) {
-      return [];
+      return ResultadoSucursales.errorServidor(codigoGimnasio);
     }
   }
 
