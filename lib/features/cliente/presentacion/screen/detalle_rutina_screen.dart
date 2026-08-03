@@ -8,6 +8,7 @@ import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/grafico_linea.dart';
+import 'package:xnox_app/features/ejercicios/presentacion/widget/hoja_agregar_ejercicio.dart';
 
 /// Detalle de una rutina: días de entrenamiento con sus ejercicios. Permite,
 /// solo en las rutinas del cliente, agregar días y ejercicios. Registrar marcas
@@ -170,6 +171,20 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
           children: [
             Row(
               children: [
+                // Imagen de referencia del catálogo, si el ejercicio la tiene.
+                if (e.imagenUrl != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+                    child: Image.network(
+                      e.imagenUrl!,
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  const SizedBox(width: AppEspaciado.sm),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,44 +476,20 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
     setState(() {});
   }
 
+  /// Alta con autocompletado contra el catálogo del gimnasio. Si el ejercicio
+  /// no existe se crea ahí mismo (pidiendo fotos) sin frenar la rutina.
   Future<void> _agregarEjercicio(int diaId) async {
-    final nombreCtrl = TextEditingController();
-    final seriesCtrl = TextEditingController(text: '4');
-    final repsCtrl = TextEditingController(text: '10');
-    final obsCtrl = TextEditingController();
+    final elegido = await mostrarHojaAgregarEjercicio(context);
+    if (elegido == null) return;
 
-    final ok = await _formSheet(
-      titulo: 'Agregar ejercicio',
-      campos: [
-        _Campo(nombreCtrl, 'Nombre del ejercicio', capitalizar: true),
-        _Campo(seriesCtrl, 'Series', numerico: true),
-        _Campo(repsCtrl, 'Repeticiones', numerico: true),
-        _Campo(obsCtrl, 'Observaciones (opcional)', capitalizar: true),
-      ],
-      validar: () {
-        if (nombreCtrl.text.trim().isEmpty) {
-          return 'Ingresa el nombre del ejercicio';
-        }
-        final series = int.tryParse(seriesCtrl.text.trim());
-        if (series == null || series <= 0) {
-          return 'Las series deben ser un número mayor a 0';
-        }
-        final reps = int.tryParse(repsCtrl.text.trim());
-        if (reps == null || reps <= 0) {
-          return 'Las repeticiones deben ser un número mayor a 0';
-        }
-        return null;
-      },
-    );
-
-    if (ok != true) return;
     await _controlador.agregarEjercicio(
       diaId,
-      nombreCtrl.text.trim(),
-      int.tryParse(seriesCtrl.text) ?? 0,
-      int.tryParse(repsCtrl.text) ?? 0,
-      observaciones:
-          obsCtrl.text.trim().isEmpty ? null : obsCtrl.text.trim(),
+      elegido.nombre,
+      elegido.series,
+      elegido.repeticiones,
+      observaciones: elegido.observaciones,
+      catalogoId: elegido.catalogoId,
+      imagenUrl: elegido.imagenUrl,
     );
     if (!mounted) return;
     setState(() {});
@@ -837,141 +828,4 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
       peligro: true,
     );
   }
-
-  /// Hoja de formulario reutilizable. [validar] devuelve `null` si todo está
-  /// correcto, o el mensaje de alerta a mostrar cuando un campo es inválido.
-  Future<bool?> _formSheet({
-    required String titulo,
-    required List<_Campo> campos,
-    required String? Function() validar,
-    String? nota,
-  }) {
-    return showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        String? error;
-        return StatefulBuilder(
-          builder: (ctx, setSheet) => Padding(
-            padding: EdgeInsets.only(
-              left: AppEspaciado.lg,
-              right: AppEspaciado.lg,
-              top: AppEspaciado.lg,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + AppEspaciado.lg,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(titulo,
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColores.textoPrincipal)),
-                  const SizedBox(height: AppEspaciado.md),
-                  if (nota != null) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColores.azul.withValues(alpha: 0.08),
-                        borderRadius:
-                            BorderRadius.circular(AppEspaciado.radioSm),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.history,
-                              size: 18, color: AppColores.azul),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(nota,
-                                style: const TextStyle(
-                                    color: AppColores.azul,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppEspaciado.md),
-                  ],
-                  ...campos.map((c) => Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: AppEspaciado.md),
-                        child: TextField(
-                          controller: c.controlador,
-                          keyboardType: c.numerico
-                              ? TextInputType.number
-                              : TextInputType.text,
-                          textCapitalization: c.capitalizar
-                              ? TextCapitalization.sentences
-                              : TextCapitalization.none,
-                          decoration: InputDecoration(labelText: c.etiqueta),
-                        ),
-                      )),
-                  if (error != null)
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: AppEspaciado.sm),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        // Validación = alerta (amarillo), no error de sistema.
-                        color: AppColores.advertencia.withValues(alpha: 0.12),
-                        borderRadius:
-                            BorderRadius.circular(AppEspaciado.radioSm),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning_amber_rounded,
-                              size: 18, color: AppColores.advertencia),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(error!,
-                                style: const TextStyle(
-                                    color: AppColores.advertencia,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: AppEspaciado.sm),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        final err = validar();
-                        if (err != null) {
-                          setSheet(() => error = err);
-                          return;
-                        }
-                        Navigator.of(ctx).pop(true);
-                      },
-                      child: const Text('Guardar'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _Campo {
-  final TextEditingController controlador;
-  final String etiqueta;
-  final bool numerico;
-  final bool capitalizar;
-  _Campo(this.controlador, this.etiqueta,
-      {this.numerico = false, this.capitalizar = false});
 }

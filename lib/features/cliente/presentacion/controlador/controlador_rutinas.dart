@@ -52,9 +52,13 @@ class ControladorRutinas {
     int series,
     int repeticiones, {
     String? observaciones,
+    int? catalogoId,
+    String? imagenUrl,
   }) =>
       _almacen.agregarEjercicio(diaId, nombre, series, repeticiones,
-          observaciones: observaciones);
+          observaciones: observaciones,
+          catalogoId: catalogoId,
+          imagenUrl: imagenUrl);
 
   Future<void> eliminarEjercicio(int ejercicioId) =>
       _almacen.eliminarEjercicio(ejercicioId);

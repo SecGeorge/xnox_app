@@ -11,7 +11,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 9;
+  static const _version = 10;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -39,11 +39,23 @@ class BaseDatosLocal {
       'codigo_backend': 'OXYGEENFIT',
     },
     {
+      'codigo': 'VICTORGYM',
+      'nombre': 'Victor Gym',
+      'ruta_global': 'https://victorgym.xnoxsoft.es/api/',
+      'codigo_backend': 'VICTORGYM',
+    },
+    {
       'codigo': 'XNONX',
       'nombre': 'Xnonx',
       'ruta_global': 'https://xnonx.xnoxsoft.es/api/',
       'codigo_backend': 'XNONX',
     },
+    {
+      'codigo': 'LOCAL',
+      'nombre': 'Sistema Gimnasio VF',
+      'ruta_global': 'http://192.168.1.193/sistema_gimnasio_vf/api/',
+      'codigo_backend': 'LOCAL',
+    }
   ];
 
   Database? _db;
@@ -148,6 +160,17 @@ class BaseDatosLocal {
         );
       }
     }
+    if (desde < 10) {
+      // v10: el ejercicio puede venir del catálogo del gimnasio, que trae
+      // imágenes de referencia. Se guarda el id del catálogo y la URL de la
+      // portada para verla sin conexión a la lista de sugerencias.
+      if (!await _existeColumna(db, 'ejercicio', 'catalogo_id')) {
+        await db.execute('ALTER TABLE ejercicio ADD COLUMN catalogo_id INTEGER');
+      }
+      if (!await _existeColumna(db, 'ejercicio', 'imagen_url')) {
+        await db.execute('ALTER TABLE ejercicio ADD COLUMN imagen_url TEXT');
+      }
+    }
   }
 
   /// Valor de partida para las filas que ya existían: mientras un gimnasio no
@@ -248,6 +271,8 @@ class BaseDatosLocal {
       CREATE TABLE ejercicio (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         dia_id INTEGER NOT NULL,
+        catalogo_id INTEGER,
+        imagen_url TEXT,
         nombre TEXT NOT NULL,
         series INTEGER NOT NULL DEFAULT 0,
         repeticiones INTEGER NOT NULL DEFAULT 0,

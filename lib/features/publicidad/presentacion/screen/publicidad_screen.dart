@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:xnox_app/core/permisos/permisos.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/campana_avisos.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
@@ -18,10 +20,22 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
   List<Publicidad> _publicidades = [];
   bool _isLoading = true;
 
+  /// Crear/editar/eliminar publicidad requiere el permiso de gestión. Sin él la
+  /// pantalla es de solo lectura (se ocultan el botón "Nueva" y el menú ⋮).
+  bool _puedeGestionar = false;
+
   @override
   void initState() {
     super.initState();
     _cargarPublicidades();
+    _cargarPermisos();
+  }
+
+  Future<void> _cargarPermisos() async {
+    final permisos = await Permisos.cargar();
+    if (!mounted) return;
+    setState(() =>
+        _puedeGestionar = permisos.tiene(PermisosMovil.publicidadGestion));
   }
 
   Future<void> _cargarPublicidades() async {
@@ -97,7 +111,10 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Publicidad')),
+      appBar: AppBar(
+        title: const Text('Publicidad'),
+        actions: const [CampanaAvisos()],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _publicidades.isEmpty
@@ -116,21 +133,23 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
                     itemBuilder: (_, i) => _tarjetaPublicidad(_publicidades[i]),
                   ),
                 ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final result = await Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (context) => const FormularioPublicidadScreen()),
-          );
-          if (result == true) {
-            _cargarPublicidades();
-          }
-        },
-        backgroundColor: AppColores.primario,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva'),
-      ),
+      floatingActionButton: _puedeGestionar
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                final result = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => const FormularioPublicidadScreen()),
+                );
+                if (result == true) {
+                  _cargarPublicidades();
+                }
+              },
+              backgroundColor: AppColores.primario,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva'),
+            )
+          : null,
     );
   }
 
@@ -179,6 +198,7 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
                       texto: vigente ? 'Vigente' : 'Inactiva',
                       color: vigente ? AppColores.activo : AppColores.vencido,
                     ),
+                    if (_puedeGestionar)
                     PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert,
                           color: AppColores.textoSecundario),

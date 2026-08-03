@@ -9,12 +9,21 @@ class Ejercicio {
   final String? observaciones;
   final List<Marca> marcas;
 
+  /// Id del ejercicio en el catálogo del gimnasio, si se eligió de ahí.
+  /// Null cuando el nombre se escribió a mano y no se pudo catalogar.
+  final int? catalogoId;
+
+  /// URL absoluta de la imagen de referencia (la portada del catálogo).
+  final String? imagenUrl;
+
   Ejercicio({
     required this.id,
     required this.nombre,
     required this.series,
     required this.repeticiones,
     this.observaciones,
+    this.catalogoId,
+    this.imagenUrl,
     List<Marca>? marcas,
   }) : marcas = marcas ?? [];
 

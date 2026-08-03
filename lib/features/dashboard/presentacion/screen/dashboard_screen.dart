@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:xnox_app/core/permisos/permisos.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/campana_avisos.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/ajustes/presentacion/screen/config_yape_screen.dart';
 import 'package:xnox_app/features/ajustes/presentacion/screen/datos_negocio_screen.dart';
@@ -14,10 +16,9 @@ import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 import 'package:xnox_app/features/marketing/presentacion/screen/campanas_screen.dart';
 import 'package:xnox_app/features/marketing/presentacion/screen/plantillas_screen.dart';
 import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
-import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
-import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
 import 'package:xnox_app/features/pagos/presentacion/screen/pagos_screen.dart';
 import 'package:xnox_app/features/publicidad/presentacion/screen/publicidad_screen.dart';
+import 'package:xnox_app/features/rutinas_admin/presentacion/screen/rutinas_admin_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -29,16 +30,55 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final _dashboardController = ControladorDashboard();
-  final _notificacionesController = ControladorNotificaciones();
   EstadisticasDashboard? _stats;
   bool _isLoading = true;
-  int _notificacionesPendientes = 0;
+
+  // Permisos del usuario y las secciones del menú que le corresponden. La barra
+  // inferior se arma con `_secciones`, no con una lista fija, para que cada rol
+  // vea solo lo que su permiso `mobile_*` habilita (el Administrador ve todo).
+  Permisos _permisos = Permisos.desde('', 0);
+  List<_SeccionAdmin> _secciones = const [];
+  bool _permisosCargados = false;
 
   @override
   void initState() {
     super.initState();
+    _cargarPermisos();
     _cargarDatos();
-    _cargarNotificaciones();
+  }
+
+  Future<void> _cargarPermisos() async {
+    final permisos = await Permisos.cargar();
+    if (!mounted) return;
+    setState(() {
+      _permisos = permisos;
+      _secciones = _construirSecciones(permisos);
+      _permisosCargados = true;
+    });
+  }
+
+  /// Secciones visibles en la barra inferior según los permisos del rol.
+  /// "Ajustes" siempre está (perfil y seguridad son de la propia cuenta).
+  List<_SeccionAdmin> _construirSecciones(Permisos p) {
+    return [
+      if (p.tiene(PermisosMovil.inicio))
+        _SeccionAdmin(Icons.dashboard_outlined, Icons.dashboard, 'Inicio',
+            () => Scaffold(backgroundColor: AppColores.fondo, body: _buildHomeView())),
+      if (p.tiene(PermisosMovil.miembros))
+        _SeccionAdmin(Icons.people_outline, Icons.people, 'Miembros',
+            () => const MiembrosScreen()),
+      if (p.tiene(PermisosMovil.pagos))
+        _SeccionAdmin(Icons.payments_outlined, Icons.payments, 'Pagos',
+            () => const PagosScreen()),
+      if (p.tiene(PermisosMovil.publicidad))
+        _SeccionAdmin(Icons.campaign_outlined, Icons.campaign, 'Publicidad',
+            () => const PublicidadScreen()),
+      if (p.tiene(PermisosMovil.rutinas))
+        _SeccionAdmin(Icons.fitness_center_outlined, Icons.fitness_center,
+            'Rutinas', () => const RutinasAdminScreen()),
+      _SeccionAdmin(Icons.settings_outlined, Icons.settings, 'Ajustes',
+          () => Scaffold(backgroundColor: AppColores.fondo, body: _buildSettingsView())),
+    ];
   }
 
   Future<void> _cargarDatos() async {
@@ -58,48 +98,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  /// Carga el conteo de notificaciones pendientes para el badge de la campanita.
-  Future<void> _cargarNotificaciones() async {
-    try {
-      final lista = await _notificacionesController.obtener();
-      if (!mounted) return;
-      setState(() => _notificacionesPendientes = lista.length);
-    } catch (_) {
-      // El badge es secundario: si falla, no interrumpimos el dashboard.
-    }
-  }
-
-  /// Abre la pantalla de notificaciones y refresca el contador al volver.
-  Future<void> _abrirNotificaciones() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const NotificacionesScreen()),
-    );
-    if (!mounted) return;
-    _cargarNotificaciones();
-  }
-
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Las pantallas con Scaffold propio se muestran directamente.
-    switch (_selectedIndex) {
-      case 1:
-        return _conNav(const MiembrosScreen());
-      case 2:
-        return _conNav(const PagosScreen());
-      case 3:
-        return _conNav(const PublicidadScreen());
+    // Mientras se cargan los permisos, evitamos parpadeos armando una barra
+    // incorrecta: mostramos un loader breve.
+    if (!_permisosCargados) {
+      return const Scaffold(
+        backgroundColor: AppColores.fondo,
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    return _conNav(
-      Scaffold(
-        backgroundColor: AppColores.fondo,
-        body: _selectedIndex == 4 ? _buildSettingsView() : _buildHomeView(),
-      ),
-    );
+    // Salvaguarda: si el índice quedó fuera de rango (p. ej. tras recargar
+    // permisos con menos secciones), lo acotamos.
+    final indice = _selectedIndex.clamp(0, _secciones.length - 1);
+    return _conNav(_secciones[indice].builder());
   }
 
   /// Envuelve cualquier pantalla con la barra de navegación inferior común.
@@ -112,6 +129,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildBottomNav() {
+    final indice = _selectedIndex.clamp(0, _secciones.length - 1);
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
       backgroundColor: Colors.white,
@@ -119,14 +137,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       unselectedItemColor: AppColores.textoSecundario,
       selectedFontSize: 11,
       unselectedFontSize: 11,
-      currentIndex: _selectedIndex,
+      currentIndex: indice,
       onTap: _onItemTapped,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Inicio'),
-        BottomNavigationBarItem(icon: Icon(Icons.people_outline), activeIcon: Icon(Icons.people), label: 'Miembros'),
-        BottomNavigationBarItem(icon: Icon(Icons.payments_outlined), activeIcon: Icon(Icons.payments), label: 'Pagos'),
-        BottomNavigationBarItem(icon: Icon(Icons.campaign_outlined), activeIcon: Icon(Icons.campaign), label: 'Publicidad'),
-        BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Ajustes'),
+      items: [
+        for (final s in _secciones)
+          BottomNavigationBarItem(
+            icon: Icon(s.icono),
+            activeIcon: Icon(s.iconoActivo),
+            label: s.label,
+          ),
       ],
     );
   }
@@ -151,8 +170,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildGridEstadisticas(),
               const SizedBox(height: AppEspaciado.md),
               _buildDistribucionMiembros(),
-              const SizedBox(height: AppEspaciado.lg),
-              _buildMarketing(),
+              if (_permisos.tiene(PermisosMovil.marketing)) ...[
+                const SizedBox(height: AppEspaciado.lg),
+                _buildMarketing(),
+              ],
             ],
           ],
         ),
@@ -190,61 +211,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        _buildCampanita(),
+        const CampanaAvisos(color: AppColores.primario),
       ],
-    );
-  }
-
-  /// Campanita de notificaciones con badge de pendientes.
-  Widget _buildCampanita() {
-    return InkWell(
-      onTap: _abrirNotificaciones,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColores.superficie,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColores.borde),
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Icon(
-              _notificacionesPendientes > 0
-                  ? Icons.notifications
-                  : Icons.notifications_none,
-              color: AppColores.primario,
-            ),
-            if (_notificacionesPendientes > 0)
-              Positioned(
-                right: -4,
-                top: -4,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  constraints:
-                      const BoxConstraints(minWidth: 16, minHeight: 16),
-                  decoration: const BoxDecoration(
-                    color: AppColores.moroso,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    _notificacionesPendientes > 9
-                        ? '9+'
-                        : '$_notificacionesPendientes',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.bold,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -501,13 +469,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
         padding: const EdgeInsets.all(AppEspaciado.md),
         children: [
           const SizedBox(height: AppEspaciado.sm),
-          const Text(
-            'Ajustes',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColores.textoPrincipal,
-            ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Ajustes',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
+              ),
+              const CampanaAvisos(color: AppColores.primario),
+            ],
           ),
           const SizedBox(height: AppEspaciado.lg),
           _ajusteTile(
@@ -518,33 +493,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
               MaterialPageRoute(builder: (_) => const PerfilScreen()),
             ),
           ),
-          const SizedBox(height: AppEspaciado.sm + 4),
-          _ajusteTile(
-            Icons.business_outlined,
-            'Datos del negocio',
-            'Nombre, logo y dirección',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const DatosNegocioScreen()),
+          if (_permisos.tiene(PermisosMovil.ajustesNegocio)) ...[
+            const SizedBox(height: AppEspaciado.sm + 4),
+            _ajusteTile(
+              Icons.business_outlined,
+              'Datos del negocio',
+              'Nombre, logo y dirección',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DatosNegocioScreen()),
+              ),
             ),
-          ),
-          const SizedBox(height: AppEspaciado.sm + 4),
-          _ajusteTile(
-            Icons.qr_code_2,
-            'Pago por Yape',
-            'Número y QR para que tus clientes paguen',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ConfigYapeScreen()),
+          ],
+          if (_permisos.tiene(PermisosMovil.ajustesYape)) ...[
+            const SizedBox(height: AppEspaciado.sm + 4),
+            _ajusteTile(
+              Icons.qr_code_2,
+              'Pago por Yape',
+              'Número y QR para que tus clientes paguen',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ConfigYapeScreen()),
+              ),
             ),
-          ),
-          const SizedBox(height: AppEspaciado.sm + 4),
-          _ajusteTile(
-            Icons.qr_code_scanner,
-            'Lector de pagos',
-            'Registrar Yape/Plin automáticamente',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LectorPagosScreen()),
+          ],
+          if (_permisos.tiene(PermisosMovil.lectorPagos)) ...[
+            const SizedBox(height: AppEspaciado.sm + 4),
+            _ajusteTile(
+              Icons.qr_code_scanner,
+              'Lector de pagos',
+              'Registrar Yape/Plin automáticamente',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const LectorPagosScreen()),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: AppEspaciado.sm + 4),
           _ajusteTile(
             Icons.lock_outline,
@@ -627,4 +608,15 @@ class _StatData {
   final IconData icono;
   final Color color;
   _StatData(this.titulo, this.valor, this.icono, this.color);
+}
+
+/// Sección navegable de la barra inferior del admin. `builder` produce el
+/// contenido (una pantalla con Scaffold propio, o el body ya envuelto).
+class _SeccionAdmin {
+  final IconData icono;
+  final IconData iconoActivo;
+  final String label;
+  final Widget Function() builder;
+
+  const _SeccionAdmin(this.icono, this.iconoActivo, this.label, this.builder);
 }

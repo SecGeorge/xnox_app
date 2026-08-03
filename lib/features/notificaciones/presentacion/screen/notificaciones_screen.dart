@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xnox_app/core/permisos/permisos.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
-import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
 import 'package:xnox_app/features/notificaciones/dominio/entidades/notificacion.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/screen/crear_notificacion_screen.dart';
@@ -26,21 +25,22 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
   bool _isLoading = true;
   bool _huboCambios = false;
 
-  /// Si la sesión es de administrador se ofrece el botón de enviar avisos.
-  bool _esAdministrador = false;
+  /// Si el rol tiene el permiso `mobile_notif_enviar` (o es Administrador) se
+  /// ofrece el botón de enviar avisos. Los clientes nunca lo tienen.
+  bool _puedeEnviarAvisos = false;
 
   @override
   void initState() {
     super.initState();
     _cargar();
-    _cargarRol();
+    _cargarPermisos();
   }
 
-  Future<void> _cargarRol() async {
-    final prefs = await SharedPreferences.getInstance();
-    final tipo = TipoUsuario.desdeTexto(prefs.getString('tipoUsuario'));
+  Future<void> _cargarPermisos() async {
+    final permisos = await Permisos.cargar();
     if (!mounted) return;
-    setState(() => _esAdministrador = tipo == TipoUsuario.administrador);
+    setState(() =>
+        _puedeEnviarAvisos = permisos.tiene(PermisosMovil.notifEnviar));
   }
 
   Future<void> _cargar() async {
@@ -93,10 +93,9 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
           child: _buildContenido(),
         ),
       ),
-      // Solo el administrador puede enviar avisos. El backend lo verifica
-      // igualmente por rol; esto es únicamente para no mostrar un botón que
-      // acabaría en un error de permisos.
-      floatingActionButton: _esAdministrador
+      // Solo quien tiene el permiso de enviar avisos ve el botón. Los clientes
+      // nunca lo tienen, así que para ellos la pantalla es de solo lectura.
+      floatingActionButton: _puedeEnviarAvisos
           ? FloatingActionButton.extended(
               onPressed: _abrirCrear,
               icon: const Icon(Icons.campaign_outlined),

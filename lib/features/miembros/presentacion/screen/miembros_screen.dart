@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/campana_avisos.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/miembros/dominio/entidades/miembro.dart';
 import 'package:xnox_app/features/miembros/presentacion/controlador/controlador_miembros.dart';
@@ -74,6 +75,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Miembros'),
+        actions: const [CampanaAvisos()],
       ),
       body: Column(
         children: [

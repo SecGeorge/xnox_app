@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/network/http_service.dart';
+import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/firebase_options.dart';
 
 /// Atiende los mensajes que llegan con la app en segundo plano o cerrada.
@@ -103,7 +104,10 @@ class ServicioNotificaciones {
   Future<void> _prepararCanal() async {
     await _local.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // Silueta blanca sobre transparente, no el icono del lanzador: del
+        // icono pequeño Android solo usa el canal alfa, así que uno opaco se
+        // dibuja como un cuadrado blanco macizo.
+        android: AndroidInitializationSettings('@drawable/ic_notification'),
       ),
     );
 
@@ -202,7 +206,8 @@ class ServicioNotificaciones {
           channelDescription: canal.description,
           importance: Importance.high,
           priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
+          icon: '@drawable/ic_notification',
+          color: AppColores.primario,
           playSound: true,
           enableVibration: true,
         ),

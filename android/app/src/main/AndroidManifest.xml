@@ -48,6 +48,18 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="xnox_avisos_v2" />
+        <!-- Icono de la barra de estado para los avisos que llegan con la app
+             cerrada (ahí los pinta FCM, no nuestro código, y sin esto usa el
+             icono del lanzador). Android descarta el color del icono pequeño y
+             se queda solo con su transparencia, así que tiene que ser la
+             silueta blanca de `drawable-*/ic_notification`: un PNG opaco como
+             el del lanzador se ve como un cuadrado blanco. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/color_notificacion" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

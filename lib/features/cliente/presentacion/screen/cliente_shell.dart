@@ -7,10 +7,13 @@ import 'package:xnox_app/features/cliente/presentacion/screen/membresia_screen.d
 import 'package:xnox_app/features/cliente/presentacion/screen/qr_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/reporte_ejercicios_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/rutinas_screen.dart';
+import 'package:xnox_app/features/ajustes/presentacion/screen/seguridad_screen.dart';
 import 'package:xnox_app/features/tienda/presentacion/screen/comprar_screen.dart';
 import 'package:xnox_app/features/login/datos/repositorios/repositorio_auth_impl.dart';
 import 'package:xnox_app/features/login/dominio/casos_de_uso/caso_uso_logout.dart';
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
+import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
+import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
 
 /// Definición de una sección navegable del cliente.
 class _SeccionNav {
@@ -41,6 +44,79 @@ class ClienteShell extends StatefulWidget {
 class _ClienteShellState extends State<ClienteShell> {
   int _selectedIndex = 0;
   final _logout = CasoUsoLogout(RepositorioAuthImpl(HttpService()));
+
+  final _notificaciones = ControladorNotificaciones();
+
+  /// Avisos sin leer del socio. La campana es la red de seguridad para cuando
+  /// el push no llega (teléfono apagado, sin red, permiso denegado): el aviso
+  /// sigue estando aquí. El backend solo devuelve los de los últimos 7 días.
+  int _avisosPendientes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarAvisos();
+  }
+
+  Future<void> _cargarAvisos() async {
+    try {
+      final lista = await _notificaciones.obtener();
+      if (!mounted) return;
+      setState(() => _avisosPendientes = lista.length);
+    } catch (_) {
+      // Silencioso: que falle el contador no debe estorbar al resto de la app.
+    }
+  }
+
+  /// Abre la lista de avisos y refresca el contador al volver, porque el socio
+  /// pudo descartar alguno deslizándolo.
+  Future<void> _abrirAvisos() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NotificacionesScreen()),
+    );
+    await _cargarAvisos();
+  }
+
+  /// Campanita con el número de avisos sin leer. Mismo tratamiento visual que
+  /// la del dashboard del administrador.
+  Widget _campanaAvisos() {
+    return IconButton(
+      onPressed: _abrirAvisos,
+      tooltip: 'Avisos',
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(_avisosPendientes > 0
+              ? Icons.notifications
+              : Icons.notifications_none),
+          if (_avisosPendientes > 0)
+            Positioned(
+              right: -4,
+              top: -4,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                constraints:
+                    const BoxConstraints(minWidth: 16, minHeight: 16),
+                decoration: const BoxDecoration(
+                  color: AppColores.moroso,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  _avisosPendientes > 9 ? '9+' : '$_avisosPendientes',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   // Secciones visibles directamente en la barra inferior.
   static const _principales = <_SeccionNav>[
@@ -83,6 +159,15 @@ class _ClienteShellState extends State<ClienteShell> {
   static const List<_SeccionNav> _secciones = [..._principales, ..._secundarias];
 
   bool get _enSeccionSecundaria => _selectedIndex >= _principales.length;
+
+  /// Abre la pantalla de Seguridad para que el socio cambie su contraseña.
+  /// Reutiliza la misma pantalla del administrador: opera sobre el usuario
+  /// logueado, así que no requiere lógica extra en el backend.
+  Future<void> _abrirSeguridad() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SeguridadScreen()),
+    );
+  }
 
   Future<void> _cerrarSesion() async {
     final confirmar = await confirmarDialog(
@@ -146,6 +231,29 @@ class _ClienteShellState extends State<ClienteShell> {
             ),
             for (var i = 0; i < _secundarias.length; i++)
               _opcionMas(ctx, _principales.length + i, _secundarias[i]),
+            // Seguridad no es una sección de la barra: se abre en su propia
+            // pantalla (con Scaffold propio), por eso navega con push en vez
+            // de cambiar el índice del IndexedStack.
+            ListTile(
+              leading: const Icon(Icons.lock_outline,
+                  color: AppColores.textoSecundario),
+              title: const Text(
+                'Seguridad',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
+              subtitle: const Text(
+                'Cambiar contraseña',
+                style:
+                    TextStyle(fontSize: 12, color: AppColores.textoSecundario),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _abrirSeguridad();
+              },
+            ),
             const SizedBox(height: AppEspaciado.sm),
           ],
         ),
@@ -186,6 +294,7 @@ class _ClienteShellState extends State<ClienteShell> {
       appBar: AppBar(
         title: Text(_secciones[_selectedIndex].label),
         actions: [
+          _campanaAvisos(),
           IconButton(
             onPressed: _cerrarSesion,
             icon: const Icon(Icons.logout),

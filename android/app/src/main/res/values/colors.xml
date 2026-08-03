@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Color con el que Android tiñe el icono y el título de la notificación. -->
+    <color name="color_notificacion">#1A2B4C</color>
+</resources>

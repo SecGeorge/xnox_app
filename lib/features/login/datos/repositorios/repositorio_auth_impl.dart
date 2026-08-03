@@ -30,11 +30,35 @@ class RepositorioAuthImpl implements RepositorioAuth {
       };
       final response = await _httpService.obtenerConDatos(payload,'usuarios.php');
       if (response != null && response['resultado'] == true) {
-        final prefs = await SharedPreferences.getInstance();
         final userData = response['datos'];
+
+        // Control de acceso al móvil para el PERSONAL interno (no clientes):
+        // el rol debe tener el permiso maestro 'mobile_acceso'. El rol
+        // Administrador (id_rol 1) siempre entra. Los permisos llegan como CSV.
+        if (tipo != TipoUsuario.cliente) {
+          final idRol = int.tryParse(userData?['id_rol']?.toString() ?? '') ?? 0;
+          final permisos = (userData?['permisos']?.toString() ?? '')
+              .split(',')
+              .map((p) => p.trim())
+              .toSet();
+          final tieneAccesoMovil = idRol == 1 || permisos.contains('mobile_acceso');
+          if (!tieneAccesoMovil) {
+            return RespuestaLogin(
+              success: false,
+              message:
+                  'Tu rol no tiene acceso a la app móvil. Contacta al administrador.',
+            );
+          }
+        }
+
+        final prefs = await SharedPreferences.getInstance();
         await prefs.setString('tipoUsuario', tipo.codigo);
         if (userData != null) {
           await prefs.setString('idUsuario', userData['idUsuario'].toString());
+          // Rol y permisos (CSV) para gobernar qué ve el usuario en el móvil.
+          await prefs.setString('idRol', userData['id_rol']?.toString() ?? '');
+          await prefs.setString(
+              'permisos', userData['permisos']?.toString() ?? '');
           // Para el cliente, el nombre de usuario es su DNI/código (sirve de QR).
           await prefs.setString(
               'usuarioNombre', userData['nombreUsuario']?.toString() ?? '');

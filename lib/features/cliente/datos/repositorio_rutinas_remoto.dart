@@ -64,12 +64,15 @@ class RepositorioRutinasRemoto {
       final ejsJson = (dm['ejercicios'] is List) ? dm['ejercicios'] as List : const [];
       final ejercicios = ejsJson.whereType<Map>().map((e) {
         final em = Map<String, dynamic>.from(e);
+        final catalogoId = _entero(em['ejercicio_catalogo_id']);
         return Ejercicio(
           id: 0,
           nombre: em['nombre']?.toString() ?? '',
           series: _entero(em['series']),
           repeticiones: _entero(em['repeticiones']),
           observaciones: _textoNullable(em['observaciones']),
+          catalogoId: catalogoId == 0 ? null : catalogoId,
+          imagenUrl: _urlImagen(em['imagen']),
         );
       }).toList();
       return DiaRutina(
@@ -89,6 +92,16 @@ class RepositorioRutinasRemoto {
       personalizada: _entero(j['miembro_id']) > 0,
       dias: dias,
     );
+  }
+
+  /// URL absoluta de la imagen del catálogo a partir de la ruta relativa del
+  /// backend. Usa `rutaActual` porque cada empresa vive en su propio servidor.
+  String? _urlImagen(dynamic ruta) {
+    final r = ruta?.toString().trim() ?? '';
+    if (r.isEmpty) return null;
+    if (r.startsWith('http')) return r;
+    final limpia = r.replaceFirst(RegExp(r'^(\.{1,2}/)+'), '');
+    return '${_http.rutaActual}$limpia';
   }
 
   int _entero(dynamic v) =>

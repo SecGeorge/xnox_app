@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/campana_avisos.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/pagos/dominio/entidades/resumen_pagos.dart';
 import 'package:xnox_app/features/pagos/presentacion/controlador/controlador_pagos.dart';
@@ -50,7 +51,10 @@ class _PagosScreenState extends State<PagosScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Pagos')),
+      appBar: AppBar(
+        title: const Text('Pagos'),
+        actions: const [CampanaAvisos()],
+      ),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
