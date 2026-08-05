@@ -14,6 +14,7 @@ import 'package:xnox_app/features/login/dominio/casos_de_uso/caso_uso_logout.dar
 import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
+import 'package:xnox_app/features/recomendaciones/presentacion/screen/enviar_recomendacion_screen.dart';
 
 /// Definición de una sección navegable del cliente.
 class _SeccionNav {
@@ -160,6 +161,15 @@ class _ClienteShellState extends State<ClienteShell> {
 
   bool get _enSeccionSecundaria => _selectedIndex >= _principales.length;
 
+  /// Abre el formulario de recomendaciones. Está en el AppBar, visible desde
+  /// cualquier sección: si se escondiera en el menú "Más" casi nadie lo
+  /// encontraría, y la idea es que el socio opine sin buscar.
+  Future<void> _abrirRecomendacion() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const EnviarRecomendacionScreen()),
+    );
+  }
+
   /// Abre la pantalla de Seguridad para que el socio cambie su contraseña.
   /// Reutiliza la misma pantalla del administrador: opera sobre el usuario
   /// logueado, así que no requiere lógica extra en el backend.
@@ -231,6 +241,28 @@ class _ClienteShellState extends State<ClienteShell> {
             ),
             for (var i = 0; i < _secundarias.length; i++)
               _opcionMas(ctx, _principales.length + i, _secundarias[i]),
+            // Duplicado a propósito del botón del AppBar: quien no repare en
+            // el ícono lo encuentra igual buscando en "Más".
+            ListTile(
+              leading: const Icon(Icons.rate_review_outlined,
+                  color: AppColores.textoSecundario),
+              title: const Text(
+                'Recomendaciones',
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
+              subtitle: const Text(
+                'Sugerencias para el gimnasio o la app',
+                style:
+                    TextStyle(fontSize: 12, color: AppColores.textoSecundario),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _abrirRecomendacion();
+              },
+            ),
             // Seguridad no es una sección de la barra: se abre en su propia
             // pantalla (con Scaffold propio), por eso navega con push en vez
             // de cambiar el índice del IndexedStack.
@@ -294,6 +326,11 @@ class _ClienteShellState extends State<ClienteShell> {
       appBar: AppBar(
         title: Text(_secciones[_selectedIndex].label),
         actions: [
+          IconButton(
+            onPressed: _abrirRecomendacion,
+            icon: const Icon(Icons.rate_review_outlined),
+            tooltip: 'Dejar una recomendación',
+          ),
           _campanaAvisos(),
           IconButton(
             onPressed: _cerrarSesion,

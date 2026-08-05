@@ -53,7 +53,7 @@ class BaseDatosLocal {
     {
       'codigo': 'LOCAL',
       'nombre': 'Sistema Gimnasio VF',
-      'ruta_global': 'http://192.168.1.193/sistema_gimnasio_vf/api/',
+      'ruta_global': 'http://192.168.1.24/sistema_gimnasio_vf/api/',
       'codigo_backend': 'LOCAL',
     }
   ];

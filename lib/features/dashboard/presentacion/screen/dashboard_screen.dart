@@ -18,6 +18,9 @@ import 'package:xnox_app/features/marketing/presentacion/screen/plantillas_scree
 import 'package:xnox_app/features/miembros/presentacion/screen/miembros_screen.dart';
 import 'package:xnox_app/features/pagos/presentacion/screen/pagos_screen.dart';
 import 'package:xnox_app/features/publicidad/presentacion/screen/publicidad_screen.dart';
+import 'package:xnox_app/features/recomendaciones/presentacion/screen/enviar_recomendacion_screen.dart';
+import 'package:xnox_app/features/recomendaciones/presentacion/screen/recomendaciones_screen.dart';
+import 'package:xnox_app/features/recomendaciones/presentacion/widget/buzon_recomendaciones.dart';
 import 'package:xnox_app/features/rutinas_admin/presentacion/screen/rutinas_admin_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -211,6 +214,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
+        if (_permisos.tiene(PermisosMovil.recomendaciones))
+          const BuzonRecomendaciones(color: AppColores.primario),
         const CampanaAvisos(color: AppColores.primario),
       ],
     );
@@ -526,6 +531,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
           ],
+          // El buzón también vive en el encabezado de Inicio, pero un rol sin
+          // `mobile_inicio` nunca ve esa pantalla: aquí siempre lo encuentra.
+          if (_permisos.tiene(PermisosMovil.recomendaciones)) ...[
+            const SizedBox(height: AppEspaciado.sm + 4),
+            _ajusteTile(
+              Icons.rate_review_outlined,
+              'Recomendaciones recibidas',
+              'Sugerencias de tus socios sobre el gimnasio y la app',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const RecomendacionesScreen()),
+              ),
+            ),
+          ],
+          // Sin permiso: cualquier perfil de la app puede dejar la suya.
+          const SizedBox(height: AppEspaciado.sm + 4),
+          _ajusteTile(
+            Icons.lightbulb_outline,
+            'Dejar una recomendación',
+            'Envía tu sugerencia al administrador',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => const EnviarRecomendacionScreen()),
+            ),
+          ),
           const SizedBox(height: AppEspaciado.sm + 4),
           _ajusteTile(
             Icons.lock_outline,

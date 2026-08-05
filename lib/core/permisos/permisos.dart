@@ -19,6 +19,10 @@ abstract class PermisosMovil {
   static const notifEnviar = 'mobile_notif_enviar';
   static const ajustesNegocio = 'mobile_ajustes_negocio';
   static const ajustesYape = 'mobile_ajustes_yape';
+
+  /// Leer el buzón de recomendaciones. DEJAR una recomendación no requiere
+  /// permiso: está abierto a cualquier perfil de la app.
+  static const recomendaciones = 'mobile_recomendaciones';
 }
 
 /// Permisos del usuario en sesión, usados para mostrar/ocultar secciones y
