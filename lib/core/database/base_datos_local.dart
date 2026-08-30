@@ -11,7 +11,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 10;
+  static const _version = 11;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -53,7 +53,7 @@ class BaseDatosLocal {
     {
       'codigo': 'LOCAL',
       'nombre': 'Sistema Gimnasio VF',
-      'ruta_global': 'http://192.168.1.24/sistema_gimnasio_vf/api/',
+      'ruta_global': 'http://192.168.1.113/sistema_gimnasio_vf/api/',
       'codigo_backend': 'LOCAL',
     }
   ];
@@ -171,6 +171,14 @@ class BaseDatosLocal {
         await db.execute('ALTER TABLE ejercicio ADD COLUMN imagen_url TEXT');
       }
     }
+    if (desde < 11) {
+      // v11: el ejercicio del catálogo puede traer un video de ejecución que el
+      // gimnasio subió desde el web. Se guarda la URL (no el archivo): el video
+      // se reproduce en streaming, así la base local no engorda.
+      if (!await _existeColumna(db, 'ejercicio', 'video_url')) {
+        await db.execute('ALTER TABLE ejercicio ADD COLUMN video_url TEXT');
+      }
+    }
   }
 
   /// Valor de partida para las filas que ya existían: mientras un gimnasio no
@@ -273,6 +281,7 @@ class BaseDatosLocal {
         dia_id INTEGER NOT NULL,
         catalogo_id INTEGER,
         imagen_url TEXT,
+        video_url TEXT,
         nombre TEXT NOT NULL,
         series INTEGER NOT NULL DEFAULT 0,
         repeticiones INTEGER NOT NULL DEFAULT 0,

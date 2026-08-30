@@ -73,6 +73,7 @@ class RepositorioRutinasRemoto {
           observaciones: _textoNullable(em['observaciones']),
           catalogoId: catalogoId == 0 ? null : catalogoId,
           imagenUrl: _urlImagen(em['imagen']),
+          videoUrl: _urlImagen(em['video']),
         );
       }).toList();
       return DiaRutina(

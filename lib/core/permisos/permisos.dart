@@ -10,6 +10,17 @@ abstract class PermisosMovil {
   static const miembrosGestion = 'mobile_miembros_gestion';
   static const pagos = 'mobile_pagos';
   static const pagosRegistrar = 'mobile_pagos_registrar';
+
+  /// Punto de venta: vender productos de la tienda desde el móvil.
+  static const ventas = 'mobile_ventas';
+
+  /// Bandeja de pedidos que los clientes hacen desde la app (cobrar, entregar
+  /// canjes y cancelar).
+  static const pedidos = 'mobile_pedidos';
+
+  /// Historial de ventas ya registradas (montos cobrados del negocio).
+  static const ventasHistorial = 'mobile_ventas_historial';
+
   static const publicidad = 'mobile_publicidad';
   static const publicidadGestion = 'mobile_publicidad_gestion';
   static const marketing = 'mobile_marketing';

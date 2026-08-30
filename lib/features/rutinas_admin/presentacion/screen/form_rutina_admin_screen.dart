@@ -93,6 +93,9 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
     final elegido = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColores.superficie,
+      // Con los 7 días la lista no entra en el alto por defecto (9/16 de la
+      // pantalla); así la hoja crece con el contenido y la lista scrollea.
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -108,12 +111,21 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
                       fontWeight: FontWeight.w700,
                       color: AppColores.textoPrincipal)),
             ),
-            for (final d in disponibles)
-              ListTile(
-                leading: const Icon(Icons.event, color: AppColores.primario),
-                title: Text(d),
-                onTap: () => Navigator.pop(ctx, d),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                children: [
+                  for (final d in disponibles)
+                    ListTile(
+                      leading:
+                          const Icon(Icons.event, color: AppColores.primario),
+                      title: Text(d),
+                      onTap: () => Navigator.pop(ctx, d),
+                    ),
+                ],
               ),
+            ),
             const SizedBox(height: AppEspaciado.sm),
           ],
         ),

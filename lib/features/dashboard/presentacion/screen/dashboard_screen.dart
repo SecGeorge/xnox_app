@@ -22,6 +22,7 @@ import 'package:xnox_app/features/recomendaciones/presentacion/screen/enviar_rec
 import 'package:xnox_app/features/recomendaciones/presentacion/screen/recomendaciones_screen.dart';
 import 'package:xnox_app/features/recomendaciones/presentacion/widget/buzon_recomendaciones.dart';
 import 'package:xnox_app/features/rutinas_admin/presentacion/screen/rutinas_admin_screen.dart';
+import 'package:xnox_app/features/ventas/presentacion/screen/ventas_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -73,6 +74,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (p.tiene(PermisosMovil.pagos))
         _SeccionAdmin(Icons.payments_outlined, Icons.payments, 'Pagos',
             () => const PagosScreen()),
+      // Un solo acceso "Ventas" para el punto de venta y los pedidos de la app:
+      // dentro se muestra lo que cada permiso habilite.
+      if (p.tieneAlguno([
+        PermisosMovil.ventas,
+        PermisosMovil.pedidos,
+        PermisosMovil.ventasHistorial,
+      ]))
+        _SeccionAdmin(Icons.point_of_sale_outlined, Icons.point_of_sale,
+            'Ventas', () => const VentasScreen()),
       if (p.tiene(PermisosMovil.publicidad))
         _SeccionAdmin(Icons.campaign_outlined, Icons.campaign, 'Publicidad',
             () => const PublicidadScreen()),

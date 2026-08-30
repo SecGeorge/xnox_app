@@ -98,6 +98,7 @@ class AlmacenRutinas {
             observaciones: e['observaciones'] as String?,
             catalogoId: e['catalogo_id'] as int?,
             imagenUrl: e['imagen_url'] as String?,
+            videoUrl: e['video_url'] as String?,
             marcas: marcasPorEj[id] ?? [],
           ));
     }
@@ -188,8 +189,9 @@ class AlmacenRutinas {
     await cargar();
   }
 
-  /// [catalogoId] y [imagenUrl] llegan cuando el ejercicio se eligió (o se
-  /// acaba de crear) en el catálogo del gimnasio; a mano quedan en null.
+  /// [catalogoId], [imagenUrl] y [videoUrl] llegan cuando el ejercicio se
+  /// eligió (o se acaba de crear) en el catálogo del gimnasio; a mano quedan
+  /// en null.
   Future<void> agregarEjercicio(
     int diaId,
     String nombre,
@@ -198,6 +200,7 @@ class AlmacenRutinas {
     String? observaciones,
     int? catalogoId,
     String? imagenUrl,
+    String? videoUrl,
   }) async {
     final db = await BaseDatosLocal.instancia.db;
     final orden = Sqflite.firstIntValue(await db.rawQuery(
@@ -211,6 +214,7 @@ class AlmacenRutinas {
       'observaciones': observaciones,
       'catalogo_id': catalogoId,
       'imagen_url': imagenUrl,
+      'video_url': videoUrl,
       'orden': orden,
     });
     await cargar();
@@ -509,6 +513,7 @@ class AlmacenRutinas {
         // El admin puede haber enlazado el ejercicio al catálogo (con imagen).
         'catalogo_id': ej.catalogoId,
         'imagen_url': ej.imagenUrl,
+        'video_url': ej.videoUrl,
         'orden': orden,
       };
       if (porNombre.containsKey(ej.nombre)) {

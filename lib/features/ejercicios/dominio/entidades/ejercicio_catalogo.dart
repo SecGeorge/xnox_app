@@ -17,6 +17,15 @@ class EjercicioCatalogo {
   /// URL absoluta de la portada, ya resuelta contra el servidor de la empresa.
   final String? imagenUrl;
 
+  /// URL absoluta del video de ejecución que subió el gimnasio (opcional).
+  final String? videoUrl;
+
+  /// Galería completa (URLs absolutas, en el orden que fijó el gimnasio).
+  ///
+  /// Solo viene llena al pedir el ejercicio con `obtener`: la búsqueda y el
+  /// listado devuelven únicamente la portada, así que ahí queda vacía.
+  final List<String> imagenes;
+
   const EjercicioCatalogo({
     required this.id,
     required this.nombre,
@@ -24,7 +33,11 @@ class EjercicioCatalogo {
     this.grupoMuscular,
     this.miembroId,
     this.imagenUrl,
+    this.videoUrl,
+    this.imagenes = const [],
   });
 
   bool get esPropio => miembroId != null && miembroId != 0;
+
+  bool get tieneVideo => (videoUrl ?? '').isNotEmpty;
 }

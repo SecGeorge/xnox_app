@@ -4,7 +4,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/ejercicios/datos/repositorio_ejercicios.dart';
 import 'package:xnox_app/features/ejercicios/dominio/entidades/ejercicio_catalogo.dart';
 
@@ -19,6 +21,7 @@ class EjercicioElegido {
   /// acaba de crear. Sin conexión quedan en null y el ejercicio es solo texto.
   final int? catalogoId;
   final String? imagenUrl;
+  final String? videoUrl;
 
   const EjercicioElegido({
     required this.nombre,
@@ -27,6 +30,7 @@ class EjercicioElegido {
     this.observaciones,
     this.catalogoId,
     this.imagenUrl,
+    this.videoUrl,
   });
 }
 
@@ -75,6 +79,14 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
   /// Fotos para el ejercicio nuevo (solo cuando no existe en el catálogo).
   final List<File> _fotos = [];
   bool _pidiendoFotos = false;
+
+  /// Video de ejecución del ejercicio nuevo (opcional, uno solo).
+  /// Estos topes deben coincidir con EjerciciosDominio (MAX_VIDEO_*).
+  static const int _maxSegundosVideo = 30;
+  static const int _maxMbVideo = 25;
+  File? _video;
+  String? _errorVideo;
+  bool _eligiendoVideo = false;
 
   bool get _nombreEsNuevo {
     final texto = _nombreCtrl.text.trim();
@@ -127,6 +139,8 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
       _elegido = ejercicio;
       _nombreCtrl.text = ejercicio.nombre;
       _fotos.clear();
+      _video = null;
+      _errorVideo = null;
       _pidiendoFotos = false;
       _error = null;
     });
@@ -142,6 +156,101 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
     );
     if (imagenes.isEmpty) return;
     setState(() => _fotos.addAll(imagenes.map((x) => File(x.path))));
+  }
+
+  /// Elige el video de ejecución y lo valida ANTES de subirlo: peso por el
+  /// propio archivo y duración abriéndolo con el reproductor. Así el cliente se
+  /// entera al instante en vez de esperar a que suban 25 MB para nada.
+  ///
+  /// `maxDuration` del selector solo recorta al grabar con la cámara; un video
+  /// elegido de la galería llega entero, por eso hay que medirlo aquí.
+  Future<void> _elegirVideo(ImageSource origen) async {
+    setState(() {
+      _eligiendoVideo = true;
+      _errorVideo = null;
+    });
+    try {
+      final elegido = await ImagePicker().pickVideo(
+        source: origen,
+        maxDuration: const Duration(seconds: _maxSegundosVideo),
+      );
+      if (elegido == null) return;
+
+      final archivo = File(elegido.path);
+      final bytes = await archivo.length();
+      if (bytes > _maxMbVideo * 1024 * 1024) {
+        final mb = (bytes / 1048576).toStringAsFixed(1);
+        _rechazarVideo('El video pesa $mb MB y el máximo son $_maxMbVideo MB');
+        return;
+      }
+
+      final duracion = await _duracionVideo(archivo);
+      if (duracion != null && duracion.inSeconds > _maxSegundosVideo + 1) {
+        _rechazarVideo(
+            'El video dura ${duracion.inSeconds} s y el máximo son $_maxSegundosVideo s');
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() => _video = archivo);
+    } finally {
+      if (mounted) setState(() => _eligiendoVideo = false);
+    }
+  }
+
+  /// Duración real del archivo, o null si no se pudo leer (formato raro): en
+  /// ese caso no se bloquea, el backend vuelve a validarlo.
+  Future<Duration?> _duracionVideo(File archivo) async {
+    final controlador = VideoPlayerController.file(archivo);
+    try {
+      await controlador.initialize();
+      return controlador.value.duration;
+    } catch (_) {
+      return null;
+    } finally {
+      await controlador.dispose();
+    }
+  }
+
+  void _rechazarVideo(String mensaje) {
+    if (!mounted) return;
+    setState(() {
+      _video = null;
+      _errorVideo = mensaje;
+    });
+  }
+
+  /// Menú para grabar el video en el momento o tomarlo de la galería.
+  Future<void> _menuVideo() async {
+    final origen = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.videocam_outlined,
+                  color: AppColores.primario),
+              title: const Text('Grabar video'),
+              subtitle: const Text('Máximo $_maxSegundosVideo segundos'),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.video_library_outlined,
+                  color: AppColores.primario),
+              title: const Text('Elegir de la galería'),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (origen == null) return;
+    await _elegirVideo(origen);
   }
 
   String? _validar() {
@@ -179,6 +288,7 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
 
     var catalogoId = _elegido?.id;
     var imagenUrl = _elegido?.imagenUrl;
+    var videoUrl = _elegido?.videoUrl;
 
     if (_elegido == null) {
       // Se crea en el catálogo (privado del cliente). Si falla —sin conexión,
@@ -189,6 +299,25 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
       );
       catalogoId = creado?.id;
       imagenUrl = creado?.imagenUrl;
+
+      // El video va aparte y después: necesita el id del ejercicio y viaja por
+      // multipart. Si falla, el ejercicio ya quedó creado y solo se avisa.
+      final video = _video;
+      if (creado != null && video != null) {
+        final error = await _repositorio.subirVideo(creado.id, video);
+        if (!mounted) return;
+        if (error != null) {
+          mostrarMensaje(context, error, tipo: TipoMensaje.advertencia);
+        } else {
+          // El backend devuelve el ejercicio actualizado, pero basta con
+          // recargarlo para quedarnos con la URL definitiva del video.
+          final actualizado = await _repositorio.buscar(nombre);
+          videoUrl = actualizado
+              .where((e) => e.id == creado.id)
+              .map((e) => e.videoUrl)
+              .firstOrNull;
+        }
+      }
     }
 
     if (!mounted) return;
@@ -199,6 +328,7 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
       observaciones: _obsCtrl.text.trim().isEmpty ? null : _obsCtrl.text.trim(),
       catalogoId: catalogoId,
       imagenUrl: imagenUrl,
+      videoUrl: videoUrl,
     ));
   }
 
@@ -356,6 +486,7 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
             subtitle: Text(
               [
                 if (e.grupoMuscular != null) e.grupoMuscular!,
+                if (e.tieneVideo) '▶ Con video',
                 if (e.esPropio) 'Tuyo',
               ].join(' · '),
               style: const TextStyle(fontSize: 12),
@@ -460,6 +591,77 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
           icon: const Icon(Icons.add_a_photo_outlined, size: 18),
           label: Text(_fotos.isEmpty ? 'Agregar fotos' : 'Agregar más fotos'),
         ),
+        const SizedBox(height: AppEspaciado.md),
+        _bloqueVideo(),
+      ],
+    );
+  }
+
+  Widget _bloqueVideo() {
+    final video = _video;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'VIDEO DE EJECUCIÓN (OPCIONAL)',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+            color: AppColores.textoSecundario,
+          ),
+        ),
+        const SizedBox(height: AppEspaciado.sm),
+        if (video != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColores.exito.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.videocam, size: 20, color: AppColores.exito),
+                const SizedBox(width: AppEspaciado.sm),
+                Expanded(
+                  child: Text(
+                    video.path.split('/').last,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Quitar video',
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => setState(() => _video = null),
+                ),
+              ],
+            ),
+          )
+        else
+          OutlinedButton.icon(
+            onPressed: _eligiendoVideo ? null : _menuVideo,
+            icon: _eligiendoVideo
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.videocam_outlined, size: 18),
+            label: Text(_eligiendoVideo ? 'Revisando...' : 'Agregar video'),
+          ),
+        if (_errorVideo != null) ...[
+          const SizedBox(height: AppEspaciado.sm),
+          _aviso(_errorVideo!, AppColores.error, Icons.error_outline),
+        ] else ...[
+          const SizedBox(height: 6),
+          const Text(
+            'Un clip corto de máximo $_maxSegundosVideo segundos con la técnica.',
+            style: TextStyle(fontSize: 12, color: AppColores.textoSecundario),
+          ),
+        ],
       ],
     );
   }

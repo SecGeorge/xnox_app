@@ -8,6 +8,7 @@ import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/grafico_linea.dart';
+import 'package:xnox_app/features/ejercicios/presentacion/screen/detalle_ejercicio_screen.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/widget/hoja_agregar_ejercicio.dart';
 
 /// Detalle de una rutina: días de entrenamiento con sus ejercicios. Permite,
@@ -171,16 +172,53 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
           children: [
             Row(
               children: [
-                // Imagen de referencia del catálogo, si el ejercicio la tiene.
-                if (e.imagenUrl != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                    child: Image.network(
-                      e.imagenUrl!,
-                      width: 52,
-                      height: 52,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                // Referencia del catálogo. La miniatura es el acceso a la
+                // galería completa y al video: la rutina solo guarda la
+                // portada, las demás fotos se piden al abrir el detalle.
+                if (e.imagenUrl != null || e.catalogoId != null) ...[
+                  GestureDetector(
+                    onTap: () => _verEjercicio(e),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ClipRRect(
+                          borderRadius:
+                              BorderRadius.circular(AppEspaciado.radioSm),
+                          child: e.imagenUrl == null
+                              ? _sinImagen()
+                              : Image.network(
+                                  e.imagenUrl!,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, _, _) => _sinImagen(),
+                                ),
+                        ),
+                        if (e.tieneVideo)
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.play_arrow,
+                                size: 20, color: Colors.white),
+                          )
+                        else
+                          Positioned(
+                            right: 3,
+                            bottom: 3,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.zoom_out_map,
+                                  size: 13, color: Colors.white),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: AppEspaciado.sm),
@@ -207,6 +245,35 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                                 fontSize: 12.5,
                                 fontStyle: FontStyle.italic,
                                 color: AppColores.textoSecundario)),
+                      ],
+                      // Acceso explícito: la miniatura sola no deja claro que
+                      // hay más fotos detrás (la rutina solo muestra una).
+                      if (e.catalogoId != null || e.tieneVideo) ...[
+                        const SizedBox(height: 4),
+                        InkWell(
+                          onTap: () => _verEjercicio(e),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                e.tieneVideo
+                                    ? Icons.play_circle_outline
+                                    : Icons.photo_library_outlined,
+                                size: 16,
+                                color: AppColores.acento,
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'Ver cómo se hace',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColores.acento,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -476,6 +543,34 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
     setState(() {});
   }
 
+  /// Abre la referencia del ejercicio: todas las fotos del catálogo a pantalla
+  /// grande y, si lo tiene, el video de ejecución.
+  void _verEjercicio(Ejercicio e) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DetalleEjercicioScreen(
+          nombre: e.nombre,
+          catalogoId: e.catalogoId,
+          imagenUrl: e.imagenUrl,
+          videoUrl: e.videoUrl,
+        ),
+      ),
+    );
+  }
+
+  /// Marco de la miniatura cuando la foto falta o no carga: sin esto el Row se
+  /// descuadraba, porque el hueco desaparecía en vez de reservar su lugar.
+  Widget _sinImagen() {
+    return Container(
+      width: 72,
+      height: 72,
+      color: AppColores.fondo,
+      alignment: Alignment.center,
+      child: const Icon(Icons.fitness_center,
+          size: 24, color: AppColores.textoSecundario),
+    );
+  }
+
   /// Alta con autocompletado contra el catálogo del gimnasio. Si el ejercicio
   /// no existe se crea ahí mismo (pidiendo fotos) sin frenar la rutina.
   Future<void> _agregarEjercicio(int diaId) async {
@@ -490,6 +585,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
       observaciones: elegido.observaciones,
       catalogoId: elegido.catalogoId,
       imagenUrl: elegido.imagenUrl,
+      videoUrl: elegido.videoUrl,
     );
     if (!mounted) return;
     setState(() {});

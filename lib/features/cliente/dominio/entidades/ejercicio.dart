@@ -16,6 +16,9 @@ class Ejercicio {
   /// URL absoluta de la imagen de referencia (la portada del catálogo).
   final String? imagenUrl;
 
+  /// URL absoluta del video de ejecución que subió el gimnasio, si lo tiene.
+  final String? videoUrl;
+
   Ejercicio({
     required this.id,
     required this.nombre,
@@ -24,8 +27,11 @@ class Ejercicio {
     this.observaciones,
     this.catalogoId,
     this.imagenUrl,
+    this.videoUrl,
     List<Marca>? marcas,
   }) : marcas = marcas ?? [];
+
+  bool get tieneVideo => (videoUrl ?? '').isNotEmpty;
 
   /// Mejor marca histórica (mayor peso) = récord personal.
   Marca? get mejorMarca {
