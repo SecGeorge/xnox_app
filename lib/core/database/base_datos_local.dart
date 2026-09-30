@@ -51,6 +51,24 @@ class BaseDatosLocal {
       'codigo_backend': 'XNONX',
     },
     {
+      'codigo': 'PEGASOFIT',
+      'nombre': 'Pegaso Fit',
+      'ruta_global': 'https://pegasofit.xnoxsoft.es/api/',
+      'codigo_backend': 'PEGASOFIT',
+    },
+    {
+      'codigo': 'OLYMPOGYM',
+      'nombre': 'Olympo Gym',
+      'ruta_global': 'https://olympogym.xnoxsoft.es/api/',
+      'codigo_backend': 'OLYMPOGYM',
+    },
+    {
+      'codigo': 'ENERGYLIFE',
+      'nombre': 'Energy Life',
+      'ruta_global': 'https://energylife.xnoxsoft.es/api/',
+      'codigo_backend': 'ENERGYLIFE',
+    },
+    {
       'codigo': 'LOCAL',
       'nombre': 'Sistema Gimnasio VF',
       'ruta_global': 'http://192.168.1.113/sistema_gimnasio_vf/api/',
