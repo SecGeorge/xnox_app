@@ -44,7 +44,7 @@ class GraficoDona extends StatelessWidget {
             children: [
               Text(
                 centroValor,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                   color: AppColores.textoPrincipal,
@@ -80,14 +80,14 @@ class _DonaPainter extends CustomPainter {
 
     // Pista de fondo.
     final fondo = Paint()
-      ..color = AppColores.borde
+      ..color = AppColores.textoSecundario.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = grosor;
     canvas.drawCircle(centro, radio, fondo);
 
     if (total == 0) return;
 
-    const espacio = 0.04; // separación entre segmentos (radianes)
+    const espacio = 0.10; // separación entre segmentos (radianes)
     double inicio = -math.pi / 2; // arrancar arriba
 
     for (final seg in segmentos) {

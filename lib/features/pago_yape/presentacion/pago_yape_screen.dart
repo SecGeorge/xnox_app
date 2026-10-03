@@ -134,7 +134,7 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Confirma tu pago',
             style: TextStyle(
               fontSize: 15,
@@ -173,11 +173,11 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
           ElevatedButton.icon(
             onPressed: _validando ? null : _validarPago,
             icon: _validando
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2, color: AppColores.sobreRelleno),
                   )
                 : const Icon(Icons.verified_outlined),
             label: Text(_validando ? 'Verificando...' : 'Validar y confirmar'),
@@ -191,11 +191,8 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
     return Container(
       padding: const EdgeInsets.all(AppEspaciado.lg),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColores.primario, AppColores.primarioClaro],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppColores.degradadoRelleno,
+        border: AppColores.bordeCabecera,
         borderRadius: BorderRadius.circular(AppEspaciado.radio),
         boxShadow: AppSombras.tarjeta,
       ),
@@ -204,13 +201,13 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
           Text(
             widget.concepto,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+            style: TextStyle(color: AppColores.sobreRellenoSuave, fontSize: 14),
           ),
           const SizedBox(height: 6),
           Text(
             _soles(widget.monto),
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppColores.sobreRelleno,
               fontSize: 34,
               fontWeight: FontWeight.w800,
             ),
@@ -224,7 +221,7 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
     return TarjetaApp(
       child: Column(
         children: [
-          const Text(
+          Text(
             'Escanea este QR desde tu app de Yape',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -311,7 +308,7 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
               Expanded(
                 child: Text(
                   c.numero,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.5,
@@ -321,7 +318,7 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
               ),
               IconButton(
                 onPressed: () => _copiarNumero(c.numero),
-                icon: const Icon(Icons.copy, color: AppColores.acento),
+                icon: Icon(Icons.copy, color: AppColores.acento),
                 tooltip: 'Copiar número',
               ),
             ],

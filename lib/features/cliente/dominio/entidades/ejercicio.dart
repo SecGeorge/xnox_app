@@ -19,6 +19,11 @@ class Ejercicio {
   /// URL absoluta del video de ejecución que subió el gimnasio, si lo tiene.
   final String? videoUrl;
 
+  /// Descanso entre series que fijó el gimnasio desde el web (segundos), o
+  /// null si no lo definió. Es solo el valor de partida: el socio puede
+  /// cambiarlo en su teléfono.
+  final int? descansoSeg;
+
   Ejercicio({
     required this.id,
     required this.nombre,
@@ -28,6 +33,7 @@ class Ejercicio {
     this.catalogoId,
     this.imagenUrl,
     this.videoUrl,
+    this.descansoSeg,
     List<Marca>? marcas,
   }) : marcas = marcas ?? [];
 

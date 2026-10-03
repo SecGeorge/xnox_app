@@ -120,12 +120,12 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
               value: progreso,
               minHeight: 22,
               backgroundColor: AppColores.borde,
-              valueColor: const AlwaysStoppedAnimation(AppColores.primario),
+              valueColor: AlwaysStoppedAnimation(AppColores.primario),
             ),
           ),
           const SizedBox(height: 6),
           Text('${_indice + 1} de $total',
-              style: const TextStyle(
+              style: TextStyle(
                   fontWeight: FontWeight.w700, color: AppColores.primario)),
           const SizedBox(height: AppEspaciado.lg),
 
@@ -138,10 +138,9 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppEspaciado.md),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColores.primario, AppColores.primarioClaro],
-                    ),
+                  decoration: BoxDecoration(
+                    gradient: AppColores.degradadoRelleno,
+                    border: AppColores.bordeCabecera,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(AppEspaciado.radio),
                       topRight: Radius.circular(AppEspaciado.radio),
@@ -151,10 +150,10 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
                     children: [
                       CircleAvatar(
                         radius: 22,
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppColores.sobreRelleno,
                         child: Text(_actual.iniciales,
-                            style: const TextStyle(
-                                color: AppColores.primario,
+                            style: TextStyle(
+                                color: AppColores.relleno,
                                 fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(width: AppEspaciado.sm + 4),
@@ -163,19 +162,19 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(_actual.nombre,
-                                style: const TextStyle(
-                                    color: Colors.white,
+                                style: TextStyle(
+                                    color: AppColores.sobreRelleno,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700)),
                             const SizedBox(height: 2),
                             Row(
                               children: [
-                                const Icon(Icons.phone,
-                                    color: Colors.white70, size: 14),
+                                Icon(Icons.phone,
+                                    color: AppColores.sobreRellenoSuave, size: 14),
                                 const SizedBox(width: 4),
                                 Text(_actual.telefono,
-                                    style: const TextStyle(
-                                        color: Colors.white70, fontSize: 13)),
+                                    style: TextStyle(
+                                        color: AppColores.sobreRellenoSuave, fontSize: 13)),
                               ],
                             ),
                           ],
@@ -274,7 +273,7 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
           children: [
             const Icon(Icons.check_circle, color: AppColores.exito, size: 84),
             const SizedBox(height: AppEspaciado.md),
-            const Text('¡Envío finalizado!',
+            Text('¡Envío finalizado!',
                 style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,

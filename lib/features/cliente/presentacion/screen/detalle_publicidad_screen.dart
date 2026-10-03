@@ -48,7 +48,7 @@ class DetallePublicidadScreen extends StatelessWidget {
               children: [
                 Text(
                   p.titulo,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: AppColores.textoPrincipal,
@@ -70,7 +70,7 @@ class DetallePublicidadScreen extends StatelessWidget {
                 const SizedBox(height: AppEspaciado.lg),
                 Text(
                   p.descripcion,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15.5,
                     height: 1.45,
                     color: AppColores.textoPrincipal,
@@ -86,15 +86,12 @@ class DetallePublicidadScreen extends StatelessWidget {
 
   Widget _banner() {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColores.primario, AppColores.primarioClaro],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      decoration: BoxDecoration(
+        gradient: AppColores.degradadoRelleno,
+        border: AppColores.bordeCabecera,
       ),
-      child: const Center(
-        child: Icon(Icons.campaign, color: Colors.white70, size: 72),
+      child: Center(
+        child: Icon(Icons.campaign, color: AppColores.sobreRellenoSuave, size: 72),
       ),
     );
   }

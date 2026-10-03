@@ -58,7 +58,7 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
                       padding: const EdgeInsets.all(AppEspaciado.md),
                       children: [
                         const SizedBox(height: AppEspaciado.sm),
-                        const Text(
+                        Text(
                           'Mi Membresía',
                           style: TextStyle(
                               fontSize: 24,
@@ -85,11 +85,8 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
     return Container(
       padding: const EdgeInsets.all(AppEspaciado.lg),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColores.primario, AppColores.primarioClaro],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppColores.degradadoRelleno,
+        border: AppColores.bordeCabecera,
         borderRadius: BorderRadius.circular(AppEspaciado.radio),
         boxShadow: AppSombras.tarjeta,
       ),
@@ -99,8 +96,8 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Plan actual',
-                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+              Text('Plan actual',
+                  style: TextStyle(color: AppColores.sobreRellenoSuave, fontSize: 13)),
               EtiquetaEstado(
                   texto: m.estado.etiqueta, color: m.estado.color),
             ],
@@ -108,25 +105,25 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
           const SizedBox(height: 8),
           Text(
             m.plan,
-            style: const TextStyle(
-                color: Colors.white,
+            style: TextStyle(
+                color: AppColores.sobreRelleno,
                 fontSize: 26,
                 fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
           Text(m.nombre,
-              style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              style: TextStyle(color: AppColores.sobreRellenoSuave, fontSize: 14)),
           const SizedBox(height: AppEspaciado.lg),
           Row(
             children: [
-              const Icon(Icons.timer_outlined, color: Colors.white, size: 18),
+              Icon(Icons.timer_outlined, color: AppColores.sobreRelleno, size: 18),
               const SizedBox(width: 8),
               Text(
                 m.diasRestantes >= 0
                     ? 'Vence en ${m.diasRestantes} días'
                     : 'Venció hace ${m.diasRestantes.abs()} días',
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    color: AppColores.sobreRelleno, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -186,10 +183,10 @@ class _MembresiaScreenState extends State<MembresiaScreen> {
         children: [
           _fila(Icons.event_available_outlined, 'Inicio',
               f.format(m.fechaInicio)),
-          const Divider(height: AppEspaciado.lg, color: AppColores.borde),
+          Divider(height: AppEspaciado.lg, color: AppColores.borde),
           _fila(Icons.event_busy_outlined, 'Vencimiento',
               f.format(m.fechaVencimiento)),
-          const Divider(height: AppEspaciado.lg, color: AppColores.borde),
+          Divider(height: AppEspaciado.lg, color: AppColores.borde),
           _fila(
             Icons.account_balance_wallet_outlined,
             'Saldo pendiente',

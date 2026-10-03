@@ -74,6 +74,9 @@ class RepositorioRutinasRemoto {
           catalogoId: catalogoId == 0 ? null : catalogoId,
           imagenUrl: _urlImagen(em['imagen']),
           videoUrl: _urlImagen(em['video']),
+          descansoSeg: _entero(em['descanso_seg']) > 0
+              ? _entero(em['descanso_seg'])
+              : null,
         );
       }).toList();
       return DiaRutina(

@@ -82,7 +82,7 @@ class _HistorialCampanasScreenState extends State<HistorialCampanasScreen> {
             children: [
               Expanded(
                 child: Text(c.plantillaNombre,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: AppColores.textoPrincipal)),
@@ -119,7 +119,7 @@ class _HistorialCampanasScreenState extends State<HistorialCampanasScreen> {
                   size: 16, color: AppColores.textoSecundario),
               const SizedBox(width: 4),
               Text('${c.totalClientes} clientes',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColores.textoPrincipal)),

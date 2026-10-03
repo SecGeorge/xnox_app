@@ -146,11 +146,8 @@ class _VentasRealizadasViewState extends State<VentasRealizadasView> {
     return Container(
       padding: const EdgeInsets.all(AppEspaciado.md),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColores.primario, AppColores.primarioClaro],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        gradient: AppColores.degradadoRelleno,
+        border: AppColores.bordeCabecera,
         borderRadius: BorderRadius.circular(AppEspaciado.radio),
         boxShadow: AppSombras.tarjeta,
       ),
@@ -159,20 +156,20 @@ class _VentasRealizadasViewState extends State<VentasRealizadasView> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
+              color: AppColores.sobreRelleno.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
             ),
-            child: const Icon(Icons.receipt_long, color: Colors.white, size: 22),
+            child: Icon(Icons.receipt_long, color: AppColores.sobreRelleno, size: 22),
           ),
           const SizedBox(width: AppEspaciado.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Ventas realizadas',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColores.sobreRelleno,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
@@ -180,20 +177,20 @@ class _VentasRealizadasViewState extends State<VentasRealizadasView> {
                 const SizedBox(height: 2),
                 Text(
                   'Historial · $_etiquetaPeriodo',
-                  style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+                  style: TextStyle(color: AppColores.sobreRellenoSuave, fontSize: 12.5),
                 ),
               ],
             ),
           ),
           IconButton(
             onPressed: _elegirPeriodo,
-            icon: const Icon(Icons.date_range, color: Colors.white),
+            icon: Icon(Icons.date_range, color: AppColores.sobreRelleno),
             tooltip: 'Elegir periodo',
           ),
           if (_periodo != null)
             IconButton(
               onPressed: _verHoy,
-              icon: const Icon(Icons.close, color: Colors.white70),
+              icon: Icon(Icons.close, color: AppColores.sobreRellenoSuave),
               tooltip: 'Ver hoy',
             ),
         ],
@@ -242,7 +239,7 @@ class _VentasRealizadasViewState extends State<VentasRealizadasView> {
             alignment: Alignment.centerLeft,
             child: Text(
               valor,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: AppColores.textoPrincipal,
@@ -289,7 +286,7 @@ class _VentasRealizadasViewState extends State<VentasRealizadasView> {
                 backgroundColor: AppColores.primario.withValues(alpha: 0.10),
                 child: Text(
                   v.inicial,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColores.primario,
                     fontWeight: FontWeight.w800,
                   ),
@@ -304,7 +301,7 @@ class _VentasRealizadasViewState extends State<VentasRealizadasView> {
                       v.cliente.isEmpty ? 'Sin nombre' : v.cliente,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColores.textoPrincipal,
@@ -433,7 +430,7 @@ class _VentasRealizadasViewState extends State<VentasRealizadasView> {
                         ),
                         Text(
                           _soles(d.total),
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: AppColores.textoPrincipal),
                         ),
@@ -451,7 +448,7 @@ class _VentasRealizadasViewState extends State<VentasRealizadasView> {
                 const Spacer(),
                 Text(
                   _soles(v.montoTotal),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: AppColores.primario,

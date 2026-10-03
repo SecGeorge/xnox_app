@@ -233,14 +233,14 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.videocam_outlined,
+              leading: Icon(Icons.videocam_outlined,
                   color: AppColores.primario),
               title: const Text('Grabar video'),
               subtitle: const Text('Máximo $_maxSegundosVideo segundos'),
               onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.video_library_outlined,
+              leading: Icon(Icons.video_library_outlined,
                   color: AppColores.primario),
               title: const Text('Elegir de la galería'),
               onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
@@ -355,7 +355,7 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Agregar ejercicio',
+            Text('Agregar ejercicio',
                 style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -440,11 +440,11 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
               child: ElevatedButton(
                 onPressed: _guardando ? null : _guardar,
                 child: _guardando
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2, color: AppColores.sobreRelleno),
                       )
                     : Text(_textoBotonGuardar()),
               ),
@@ -480,7 +480,7 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
             dense: true,
             leading: _miniatura(e.imagenUrl),
             title: Text(e.nombre,
-                style: const TextStyle(
+                style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppColores.textoPrincipal)),
             subtitle: Text(
@@ -514,7 +514,7 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(e.nombre,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: AppColores.textoPrincipal)),
                 Text(

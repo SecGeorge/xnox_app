@@ -46,7 +46,7 @@ class _QrScreenState extends State<QrScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'Mi QR de Ingreso',
                     style: TextStyle(
                         fontSize: 22,
@@ -78,11 +78,11 @@ class _QrScreenState extends State<QrScreen> {
                             data: m.codigoQr,
                             version: QrVersions.auto,
                             size: 220,
-                            eyeStyle: const QrEyeStyle(
+                            eyeStyle: QrEyeStyle(
                               eyeShape: QrEyeShape.square,
                               color: AppColores.primario,
                             ),
-                            dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleStyle: QrDataModuleStyle(
                               dataModuleShape: QrDataModuleShape.square,
                               color: AppColores.primario,
                             ),
@@ -90,7 +90,7 @@ class _QrScreenState extends State<QrScreen> {
                           const SizedBox(height: AppEspaciado.md),
                           Text(
                             m.nombre,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: AppColores.textoPrincipal),
@@ -112,11 +112,11 @@ class _QrScreenState extends State<QrScreen> {
                     child: ElevatedButton.icon(
                       onPressed: _descargando ? null : _descargarQr,
                       icon: _descargando
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white))
+                                  strokeWidth: 2, color: AppColores.sobreRelleno))
                           : const Icon(Icons.download),
                       label: Text(
                           _descargando ? 'Guardando...' : 'Descargar QR'),

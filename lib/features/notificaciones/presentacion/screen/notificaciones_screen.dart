@@ -175,7 +175,7 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
                 children: [
                   Text(
                     n.titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: AppColores.textoPrincipal,

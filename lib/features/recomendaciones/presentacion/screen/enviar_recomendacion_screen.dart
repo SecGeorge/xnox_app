@@ -128,7 +128,7 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
                   color: AppColores.advertencia, size: 34),
             ),
             const SizedBox(height: AppEspaciado.md),
-            const Text(
+            Text(
               'Membresía no vigente',
               style: TextStyle(
                 fontSize: 18,
@@ -153,7 +153,7 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
               onPressed: () => Navigator.of(context).pop(),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColores.primario,
-                side: const BorderSide(color: AppColores.primario),
+                side: BorderSide(color: AppColores.primario),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
                 ),
@@ -183,17 +183,18 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
           child: ElevatedButton.icon(
             onPressed: _enviando ? null : _enviar,
             icon: _enviando
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2, color: AppColores.sobreRelleno),
                   )
                 : const Icon(Icons.send),
             label: Text(_enviando ? 'Enviando…' : 'Enviar recomendación'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColores.primario,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColores.relleno,
+              foregroundColor: AppColores.sobreRelleno,
+              side: AppColores.ladoBoton,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
               ),
@@ -215,7 +216,7 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
               color: AppColores.acento.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
             ),
-            child: const Icon(Icons.lightbulb_outline,
+            child: Icon(Icons.lightbulb_outline,
                 color: AppColores.acento, size: 22),
           ),
           const SizedBox(width: AppEspaciado.md),
@@ -241,7 +242,7 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '¿Sobre qué es tu recomendación?',
             style: TextStyle(
               fontSize: 14.5,
@@ -329,7 +330,7 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Tu recomendación',
             style: TextStyle(
               fontSize: 14.5,
@@ -360,15 +361,15 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
               fillColor: AppColores.fondo,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                borderSide: const BorderSide(color: AppColores.borde),
+                borderSide: BorderSide(color: AppColores.borde),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                borderSide: const BorderSide(color: AppColores.borde),
+                borderSide: BorderSide(color: AppColores.borde),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                borderSide: const BorderSide(color: AppColores.primario),
+                borderSide: BorderSide(color: AppColores.primario),
               ),
             ),
           ),
@@ -383,7 +384,7 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
           AppEspaciado.md, AppEspaciado.sm, AppEspaciado.sm, AppEspaciado.sm),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

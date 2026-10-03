@@ -144,7 +144,7 @@ class _RutinasAdminScreenState extends State<RutinasAdminScreen> {
           CircleAvatar(
             radius: 22,
             backgroundColor: AppColores.primario.withValues(alpha: 0.08),
-            child: const Icon(Icons.fitness_center,
+            child: Icon(Icons.fitness_center,
                 color: AppColores.primario, size: 22),
           ),
           const SizedBox(width: AppEspaciado.md),
@@ -154,7 +154,7 @@ class _RutinasAdminScreenState extends State<RutinasAdminScreen> {
               children: [
                 Text(
                   m.nombre,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppColores.textoPrincipal,

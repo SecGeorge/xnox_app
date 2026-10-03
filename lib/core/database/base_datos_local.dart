@@ -11,7 +11,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 11;
+  static const _version = 13;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -197,6 +197,23 @@ class BaseDatosLocal {
         await db.execute('ALTER TABLE ejercicio ADD COLUMN video_url TEXT');
       }
     }
+    if (desde < 12) {
+      // v12: marca del gimnasio. `paleta` es la plantilla de colores que eligió
+      // (o `personalizada:RRGGBB`); `logo_url` y `nombre_comercial` son una
+      // copia de sus ajustes del backend para pintarlos al abrir, sin red.
+      for (final columna in ['paleta', 'logo_url', 'nombre_comercial']) {
+        if (!await _existeColumna(db, 'empresa', columna)) {
+          await db.execute('ALTER TABLE empresa ADD COLUMN $columna TEXT');
+        }
+      }
+    }
+    if (desde < 13) {
+      // v13: descanso entre series que fija el gimnasio desde el web para cada
+      // ejercicio de sus rutinas (el socio lo puede cambiar en su teléfono).
+      if (!await _existeColumna(db, 'ejercicio', 'descanso_seg')) {
+        await db.execute('ALTER TABLE ejercicio ADD COLUMN descanso_seg INTEGER');
+      }
+    }
   }
 
   /// Valor de partida para las filas que ya existían: mientras un gimnasio no
@@ -237,6 +254,9 @@ class BaseDatosLocal {
         nombre TEXT NOT NULL,
         ruta_global TEXT NOT NULL,
         codigo_backend TEXT,
+        paleta TEXT,
+        logo_url TEXT,
+        nombre_comercial TEXT,
         activa INTEGER NOT NULL DEFAULT 0
       )
     ''');
@@ -300,6 +320,7 @@ class BaseDatosLocal {
         catalogo_id INTEGER,
         imagen_url TEXT,
         video_url TEXT,
+        descanso_seg INTEGER,
         nombre TEXT NOT NULL,
         series INTEGER NOT NULL DEFAULT 0,
         repeticiones INTEGER NOT NULL DEFAULT 0,

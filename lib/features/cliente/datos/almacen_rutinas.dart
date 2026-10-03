@@ -99,6 +99,7 @@ class AlmacenRutinas {
             catalogoId: e['catalogo_id'] as int?,
             imagenUrl: e['imagen_url'] as String?,
             videoUrl: e['video_url'] as String?,
+            descansoSeg: e['descanso_seg'] as int?,
             marcas: marcasPorEj[id] ?? [],
           ));
     }
@@ -514,6 +515,7 @@ class AlmacenRutinas {
         'catalogo_id': ej.catalogoId,
         'imagen_url': ej.imagenUrl,
         'video_url': ej.videoUrl,
+        'descanso_seg': ej.descansoSeg,
         'orden': orden,
       };
       if (porNombre.containsKey(ej.nombre)) {

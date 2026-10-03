@@ -111,7 +111,7 @@ class _TarjetaQrYapeState extends State<TarjetaQrYape> {
       ),
       child: Column(
         children: [
-          const Text(
+          Text(
             'Muestra este QR al cliente para que pague con Yape',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -189,7 +189,7 @@ class _TarjetaQrYapeState extends State<TarjetaQrYape> {
             children: [
               Text(
                 c.numero,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.2,
@@ -209,7 +209,7 @@ class _TarjetaQrYapeState extends State<TarjetaQrYape> {
         ),
         IconButton(
           onPressed: () => _copiarNumero(c.numero),
-          icon: const Icon(Icons.copy, size: 18, color: AppColores.acento),
+          icon: Icon(Icons.copy, size: 18, color: AppColores.acento),
           tooltip: 'Copiar número',
           visualDensity: VisualDensity.compact,
         ),

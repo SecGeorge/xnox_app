@@ -7,17 +7,32 @@ import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_promociones.dart';
 
-/// Pantalla de inicio del cliente: muestra la publicidad del gimnasio
-/// (solo lectura). Si el backend no devuelve campañas, usa una lista demo.
+/// Publicidad del gimnasio y productos con puntos (solo lectura).
+///
+/// Con [incrustada] se dibuja como una sección más del inicio del cliente
+/// (sin saludo, sin scroll propio); el inicio la recarga con
+/// [ClientePublicidadScreenState.recargar] al deslizar para actualizar. En
+/// ese modo las novedades no van en la lista: salen en un modal al abrir la
+/// app (una vez por sesión) y se vuelven a abrir con
+/// [ClientePublicidadScreenState.mostrarNovedades].
 class ClientePublicidadScreen extends StatefulWidget {
-  const ClientePublicidadScreen({super.key});
+  final bool incrustada;
+
+  /// Avisa cuántas novedades vigentes hay (para el botón del inicio).
+  final ValueChanged<int>? onNovedades;
+
+  const ClientePublicidadScreen({
+    super.key,
+    this.incrustada = false,
+    this.onNovedades,
+  });
 
   @override
   State<ClientePublicidadScreen> createState() =>
-      _ClientePublicidadScreenState();
+      ClientePublicidadScreenState();
 }
 
-class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
+class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
   final _controlador = ControladorPublicidad();
   final _promo = ControladorPromociones();
   List<Publicidad> _publicidades = [];
@@ -40,6 +55,26 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
     if (!mounted) return;
     // Mostramos solo el primer nombre para un saludo más limpio.
     setState(() => _nombre = nombre.trim().split(' ').first);
+  }
+
+  Future<void> recargar() => _cargar();
+
+  /// El modal sale solo una vez por sesión de la app: volver al inicio o
+  /// recargar no lo repite.
+  static bool _modalMostrado = false;
+
+  /// Abre el modal con las novedades vigentes.
+  Future<void> mostrarNovedades() async {
+    if (_publicidades.isEmpty || !mounted) return;
+    _modalMostrado = true;
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (_) => _ModalNovedades(
+        publicidades: _publicidades,
+        onVerImagen: _mostrarImagen,
+      ),
+    );
   }
 
   Future<void> _cargar() async {
@@ -65,6 +100,11 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
         _productosCanje = canje;
         _isLoading = false;
       });
+      widget.onNovedades?.call(_publicidades.length);
+      if (widget.incrustada && !_modalMostrado && _publicidades.isNotEmpty) {
+        // Tras el primer frame, para no abrir el modal en mitad del build.
+        WidgetsBinding.instance.addPostFrameCallback((_) => mostrarNovedades());
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -94,8 +134,11 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                 child: Image.network(
                   url,
                   fit: BoxFit.contain,
-                  errorBuilder: (c, e, s) => const Icon(Icons.broken_image,
-                      color: Colors.white54, size: 64),
+                  errorBuilder: (c, e, s) => const Icon(
+                    Icons.broken_image,
+                    color: Colors.white54,
+                    size: 64,
+                  ),
                 ),
               ),
             ),
@@ -115,18 +158,25 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.incrustada) return _buildIncrustada();
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _cargar,
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
-                    AppEspaciado.lg, AppEspaciado.md, AppEspaciado.lg),
+                padding: const EdgeInsets.fromLTRB(
+                  AppEspaciado.md,
+                  AppEspaciado.lg,
+                  AppEspaciado.md,
+                  AppEspaciado.lg,
+                ),
                 children: [
                   Text(
-                    _nombre.isEmpty ? 'Bienvenido 👋' : 'Bienvenido, $_nombre 👋',
-                    style: const TextStyle(
+                    _nombre.isEmpty
+                        ? 'Bienvenido 👋'
+                        : 'Bienvenido, $_nombre 👋',
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: AppColores.textoPrincipal,
@@ -136,7 +186,9 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                   const Text(
                     'Novedades y promociones del gimnasio',
                     style: TextStyle(
-                        fontSize: 13.5, color: AppColores.textoSecundario),
+                      fontSize: 13.5,
+                      color: AppColores.textoSecundario,
+                    ),
                   ),
                   const SizedBox(height: AppEspaciado.lg),
                   if (_productosPuntos.isNotEmpty) ...[
@@ -160,6 +212,24 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                 ],
               ),
       ),
+    );
+  }
+
+  /// Puntos y novedades como secciones del inicio del cliente.
+  Widget _buildIncrustada() {
+    if (_isLoading) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_productosPuntos.isNotEmpty) ...[
+          _buildProductosPuntos(),
+          const SizedBox(height: AppEspaciado.lg),
+        ],
+        if (_productosCanje.isNotEmpty) ...[
+          _buildProductosCanje(),
+          const SizedBox(height: AppEspaciado.lg),
+        ],
+      ],
     );
   }
 
@@ -190,11 +260,14 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                   color: AppColores.naranja.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
                 ),
-                child: const Icon(Icons.stars_rounded,
-                    color: AppColores.naranja, size: 20),
+                child: const Icon(
+                  Icons.stars_rounded,
+                  color: AppColores.naranja,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: AppEspaciado.sm + 2),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -209,7 +282,9 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                     Text(
                       'Cómpralos y acumula para canjear',
                       style: TextStyle(
-                          fontSize: 12, color: AppColores.textoSecundario),
+                        fontSize: 12,
+                        color: AppColores.textoSecundario,
+                      ),
                     ),
                   ],
                 ),
@@ -231,8 +306,10 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
 
   Widget _chipProductoPuntos(LineaGana g) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: AppEspaciado.sm + 2, vertical: 7),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppEspaciado.sm + 2,
+        vertical: 7,
+      ),
       decoration: BoxDecoration(
         color: AppColores.superficie,
         borderRadius: BorderRadius.circular(20),
@@ -245,7 +322,7 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
             child: Text(
               g.nombre,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: AppColores.textoPrincipal,
@@ -300,11 +377,14 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                   color: AppColores.acento.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
                 ),
-                child: const Icon(Icons.card_giftcard_rounded,
-                    color: AppColores.acento, size: 20),
+                child: Icon(
+                  Icons.card_giftcard_rounded,
+                  color: AppColores.acento,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: AppEspaciado.sm + 2),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -319,7 +399,9 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                     Text(
                       'Cuánto cuesta cada premio en puntos',
                       style: TextStyle(
-                          fontSize: 12, color: AppColores.textoSecundario),
+                        fontSize: 12,
+                        color: AppColores.textoSecundario,
+                      ),
                     ),
                   ],
                 ),
@@ -330,9 +412,7 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
           Wrap(
             spacing: AppEspaciado.sm,
             runSpacing: AppEspaciado.sm,
-            children: [
-              for (final c in _productosCanje) _chipProductoCanje(c),
-            ],
+            children: [for (final c in _productosCanje) _chipProductoCanje(c)],
           ),
         ],
       ),
@@ -341,8 +421,10 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
 
   Widget _chipProductoCanje(LineaCanje c) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: AppEspaciado.sm + 2, vertical: 7),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppEspaciado.sm + 2,
+        vertical: 7,
+      ),
       decoration: BoxDecoration(
         color: AppColores.superficie,
         borderRadius: BorderRadius.circular(20),
@@ -352,7 +434,9 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            c.esMembresia ? Icons.card_membership_rounded : Icons.redeem_rounded,
+            c.esMembresia
+                ? Icons.card_membership_rounded
+                : Icons.redeem_rounded,
             size: 14,
             color: AppColores.acento.withValues(alpha: 0.7),
           ),
@@ -361,7 +445,7 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
             child: Text(
               c.nombre,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w600,
                 color: AppColores.textoPrincipal,
@@ -377,7 +461,7 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
             ),
             child: Text(
               '${c.puntos} pts',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w800,
                 color: AppColores.acento,
@@ -404,7 +488,8 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
             // Imagen o banner de marca. Al tocar la imagen se ve en grande.
             ClipRRect(
               borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppEspaciado.radio)),
+                top: Radius.circular(AppEspaciado.radio),
+              ),
               child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
                   ? GestureDetector(
                       onTap: () => _mostrarImagen(p.imagenUrl!),
@@ -414,15 +499,17 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                       // dar clic.
                       child: AspectRatio(
                         aspectRatio: AppEspaciado.publicidadRatio,
-                        child: Image.network(p.imagenUrl!,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            alignment: p.alineacion,
-                            // Decodifica a menor resolución (más rápido y menos memoria).
-                            cacheWidth: 1000,
-                            loadingBuilder: (context, child, progress) =>
-                                progress == null ? child : _cargando(),
-                            errorBuilder: (context, error, stack) => _banner()),
+                        child: Image.network(
+                          p.imagenUrl!,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          alignment: p.alineacion,
+                          // Decodifica a menor resolución (más rápido y menos memoria).
+                          cacheWidth: 1000,
+                          loadingBuilder: (context, child, progress) =>
+                              progress == null ? child : _cargando(),
+                          errorBuilder: (context, error, stack) => _banner(),
+                        ),
                       ),
                     )
                   : _banner(),
@@ -434,7 +521,7 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                 children: [
                   Text(
                     p.titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColores.textoPrincipal,
@@ -444,20 +531,26 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                   Text(
                     p.descripcion,
                     style: const TextStyle(
-                        fontSize: 13.5,
-                        height: 1.35,
-                        color: AppColores.textoSecundario),
+                      fontSize: 13.5,
+                      height: 1.35,
+                      color: AppColores.textoSecundario,
+                    ),
                   ),
                   const SizedBox(height: AppEspaciado.sm + 4),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined,
-                          size: 14, color: AppColores.textoSecundario),
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 14,
+                        color: AppColores.textoSecundario,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         vigencia,
                         style: const TextStyle(
-                            fontSize: 12, color: AppColores.textoSecundario),
+                          fontSize: 12,
+                          color: AppColores.textoSecundario,
+                        ),
                       ),
                     ],
                   ),
@@ -489,15 +582,345 @@ class _ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
     return Container(
       height: 140,
       width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColores.primario, AppColores.primarioClaro],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+      decoration: BoxDecoration(
+        gradient: AppColores.degradadoRelleno,
+        border: AppColores.bordeCabecera,
+      ),
+      child: Center(
+        child: Icon(
+          Icons.campaign,
+          color: AppColores.sobreRellenoSuave,
+          size: 48,
         ),
       ),
-      child: const Center(
-        child: Icon(Icons.campaign, color: Colors.white70, size: 48),
+    );
+  }
+}
+
+/// Novedades del gimnasio en un modal: una tarjeta por novedad y, si hay
+/// varias, se deslizan de lado a lado.
+class _ModalNovedades extends StatefulWidget {
+  final List<Publicidad> publicidades;
+  final void Function(String url) onVerImagen;
+
+  const _ModalNovedades({
+    required this.publicidades,
+    required this.onVerImagen,
+  });
+
+  @override
+  State<_ModalNovedades> createState() => _ModalNovedadesState();
+}
+
+class _ModalNovedadesState extends State<_ModalNovedades> {
+  final _paginas = PageController();
+  int _actual = 0;
+
+  int get _total => widget.publicidades.length;
+
+  @override
+  void dispose() {
+    _paginas.dispose();
+    super.dispose();
+  }
+
+  void _siguiente() {
+    if (_actual < _total - 1) {
+      _paginas.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final alto = MediaQuery.of(context).size.height;
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: alto * 0.82),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Cabecera: título, contador y cerrar.
+            Row(
+              children: [
+                const Icon(Icons.campaign_rounded, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text(
+                  'Novedades',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                if (_total > 1) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_actual + 1} de $_total',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                Material(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.pop(context),
+                    child: const SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Alto según la imagen (proporción fija) más el texto y el botón;
+            // si una descripción es larga, se desplaza dentro de su tarjeta.
+            LayoutBuilder(
+              builder: (context, restr) {
+                final ancho = restr.maxWidth - 4;
+                final altoTarjeta = (ancho / AppEspaciado.publicidadRatio + 300)
+                    .clamp(0.0, alto * 0.82 - 100);
+                return SizedBox(
+                  height: altoTarjeta,
+                  child: PageView.builder(
+                    controller: _paginas,
+                    itemCount: _total,
+                    onPageChanged: (i) => setState(() => _actual = i),
+                    itemBuilder: (_, i) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _tarjeta(widget.publicidades[i]),
+                    ),
+                  ),
+                );
+              },
+            ),
+            if (_total > 1) ...[
+              const SizedBox(height: 14),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < _total; i++)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: i == _actual ? 22 : 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: i == _actual
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Días que le quedan a la campaña (0 = termina hoy).
+  int _diasRestantes(Publicidad p) {
+    final hoy = DateTime.now();
+    final fin = DateTime(p.fechaFin.year, p.fechaFin.month, p.fechaFin.day);
+    return fin.difference(DateTime(hoy.year, hoy.month, hoy.day)).inDays;
+  }
+
+  Widget _chipVigencia(Publicidad p) {
+    final dias = _diasRestantes(p);
+    final pronto = dias <= 3;
+    final texto = dias <= 0
+        ? 'Termina hoy'
+        : pronto
+        ? 'Quedan $dias ${dias == 1 ? 'día' : 'días'}'
+        : 'Hasta el ${DateFormat("d 'de' MMMM", 'es').format(p.fechaFin)}';
+    final tinta = pronto ? Colors.white : AppColores.primario;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: pronto
+            ? AppColores.naranja
+            : AppColores.primario.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            pronto ? Icons.timer_outlined : Icons.event_available_outlined,
+            size: 14,
+            color: tinta,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            texto,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: tinta,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _imagen(Publicidad p) {
+    final url = p.imagenUrl;
+    final respaldo = Container(
+      decoration: BoxDecoration(gradient: AppColores.degradadoRelleno),
+      child: Center(
+        child: Icon(
+          Icons.campaign_rounded,
+          size: 48,
+          color: AppColores.sobreRellenoSuave,
+        ),
+      ),
+    );
+    if (url == null || url.isEmpty) return respaldo;
+    return GestureDetector(
+      onTap: () => widget.onVerImagen(url),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            url,
+            fit: BoxFit.cover,
+            alignment: p.alineacion,
+            cacheWidth: 1000,
+            loadingBuilder: (_, hijo, progreso) => progreso == null
+                ? hijo
+                : Container(
+                    color: AppColores.primario.withValues(alpha: 0.06),
+                    child: const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+            errorBuilder: (_, _, _) => respaldo,
+          ),
+          Positioned(
+            right: 10,
+            bottom: 10,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.55),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.zoom_out_map_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tarjeta(Publicidad p) {
+    final formato = DateFormat("d 'de' MMMM", 'es');
+    final ultima = _actual == _total - 1;
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColores.superficie,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio + 6),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: AppEspaciado.publicidadRatio,
+            child: _imagen(p),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _chipVigencia(p),
+                  const SizedBox(height: 12),
+                  Text(
+                    p.titulo,
+                    style: TextStyle(
+                      fontSize: 21,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                      color: AppColores.textoPrincipal,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    p.descripcion,
+                    style: TextStyle(
+                      fontSize: 14.5,
+                      height: 1.5,
+                      color: AppColores.textoPrincipal.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 14,
+                        color: AppColores.textoSecundario,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Del ${formato.format(p.fechaInicio)} al '
+                          '${formato.format(p.fechaFin)}',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: AppColores.textoSecundario,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _siguiente,
+                child: Text(ultima ? 'Entendido' : 'Siguiente'),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

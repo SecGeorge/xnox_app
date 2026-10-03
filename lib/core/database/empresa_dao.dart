@@ -89,4 +89,23 @@ class EmpresaDao {
       whereArgs: [id],
     );
   }
+
+  /// Guarda la plantilla de colores que eligió el gimnasio [id].
+  Future<void> guardarPaleta(int id, String paleta) async {
+    final db = await _bd.db;
+    await db.update('empresa', {'paleta': paleta},
+        where: 'id = ?', whereArgs: [id]);
+  }
+
+  /// Guarda la copia local del logo y el nombre comercial del gimnasio [id].
+  Future<void> guardarMarca(int id,
+      {required String? logoUrl, required String? nombreComercial}) async {
+    final db = await _bd.db;
+    await db.update(
+      'empresa',
+      {'logo_url': logoUrl, 'nombre_comercial': nombreComercial},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

@@ -60,7 +60,32 @@ class RepositorioAjustesImpl {
       yapeTitular: json['yape_titular']?.toString() ?? '',
       yapeQr: json['yape_qr']?.toString() ?? '',
       yapeQrUrl: _urlLogo(json['yape_qr']),
+      paletaApp: (json['paleta_app']?.toString().trim() ?? '').isEmpty
+          ? null
+          : json['paleta_app'].toString().trim(),
     );
+  }
+
+  /// Guarda en el servidor la plantilla de colores de la app, para que la vean
+  /// todos los dispositivos del gimnasio. Devuelve `null` si todo salió bien o
+  /// un mensaje de error legible.
+  Future<String?> guardarPaleta(String paleta) async {
+    final resp = await _httpService.registrar(
+      {'metodo': 'guardar_paleta', 'paleta': paleta},
+      'ajustes.php',
+    );
+
+    if (resp is Map && resp['error'] != null) {
+      return resp['error'].toString();
+    }
+
+    final fila = resp is List && resp.isNotEmpty ? resp.first : resp;
+    // Un servidor que aún no tiene `guardar_paleta` no responde nada.
+    if (fila is! Map || fila['voit_exito']?.toString() != '1') {
+      return (fila is Map ? fila['voit_message']?.toString() : null) ??
+          'El servidor del gimnasio aún no permite guardar los colores';
+    }
+    return null;
   }
 
   /// Guarda la configuración de pago por Yape del negocio. [qrBase64] es la

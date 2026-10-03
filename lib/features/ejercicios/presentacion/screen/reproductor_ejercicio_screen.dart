@@ -170,7 +170,7 @@ class _ReproductorEjercicioScreenState
         VideoProgressIndicator(
           c,
           allowScrubbing: true,
-          colors: const VideoProgressColors(playedColor: AppColores.acento),
+          colors: VideoProgressColors(playedColor: AppColores.acento),
           padding: const EdgeInsets.symmetric(
               horizontal: AppEspaciado.md, vertical: AppEspaciado.sm),
         ),

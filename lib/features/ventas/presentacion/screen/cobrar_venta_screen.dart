@@ -259,11 +259,11 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _procesando ? null : _registrarVenta,
                     icon: _procesando
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
+                                strokeWidth: 2, color: AppColores.sobreRelleno),
                           )
                         : const Icon(Icons.check_circle_outline),
                     label: Text(_procesando
@@ -356,7 +356,7 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
                 Expanded(
                   child: Text(
                     _cliente!.nombreCompleto,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: AppColores.textoPrincipal,
@@ -453,7 +453,7 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
                   ),
                   Text(
                     _soles(item.subtotal),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: AppColores.textoPrincipal),
                   ),
@@ -468,7 +468,7 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
               const Spacer(),
               Text(
                 _soles(_total),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: AppColores.primario,

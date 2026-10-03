@@ -103,7 +103,7 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(AppEspaciado.md),
               child: Text('Elegir día',
                   style: TextStyle(
@@ -119,7 +119,7 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
                   for (final d in disponibles)
                     ListTile(
                       leading:
-                          const Icon(Icons.event, color: AppColores.primario),
+                          Icon(Icons.event, color: AppColores.primario),
                       title: Text(d),
                       onTap: () => Navigator.pop(ctx, d),
                     ),
@@ -239,11 +239,11 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
                 ? const SizedBox.shrink()
                 : const Icon(Icons.save_outlined),
             label: _guardando
-                ? const SizedBox(
+                ? SizedBox(
                     height: 22,
                     width: 22,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2.5),
+                        color: AppColores.sobreRelleno, strokeWidth: 2.5),
                   )
                 : const Text('Guardar rutina'),
           ),
@@ -261,12 +261,12 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.event, size: 20, color: AppColores.primario),
+              Icon(Icons.event, size: 20, color: AppColores.primario),
               const SizedBox(width: AppEspaciado.sm),
               Expanded(
                 child: Text(
                   dia.diaSemana,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColores.textoPrincipal,
@@ -316,7 +316,7 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(ej.nombre,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppColores.textoPrincipal)),

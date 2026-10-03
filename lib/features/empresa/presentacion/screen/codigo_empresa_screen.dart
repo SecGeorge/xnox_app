@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:xnox_app/core/database/empresa_dao.dart';
 import 'package:xnox_app/core/network/http_service.dart';
+import 'package:xnox_app/core/tema/controlador_marca.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/empresa/datos/verificador_empresa.dart';
 import 'package:xnox_app/features/empresa/dominio/codigo_empresa.dart';
@@ -103,6 +104,9 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
     }
 
     HttpService().aplicarRuta(ruta);
+    // Colores y logo del gimnasio recién elegido (el logo llega en segundo
+    // plano desde su servidor).
+    await ControladorMarca.instancia.cargar();
     if (!mounted) return;
     Navigator.pushReplacement(
       context,

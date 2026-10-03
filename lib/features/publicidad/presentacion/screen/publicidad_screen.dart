@@ -42,17 +42,17 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await _controlador.fetchPublicidades();
+      if (!mounted) return;
       setState(() {
         _publicidades = data;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar publicidades: $e')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al cargar publicidades: $e')),
+      );
     }
   }
 
@@ -144,8 +144,6 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
                   _cargarPublicidades();
                 }
               },
-              backgroundColor: AppColores.primario,
-              foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('Nueva'),
             )
@@ -187,7 +185,7 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
                     Expanded(
                       child: Text(
                         pub.titulo,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AppColores.textoPrincipal,

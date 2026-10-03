@@ -286,7 +286,7 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(texto,
-          style: const TextStyle(
+          style: TextStyle(
               fontSize: 12.5,
               fontWeight: FontWeight.w700,
               color: AppColores.primario)),

@@ -210,7 +210,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
               children: [
                 Text(
                   m.nombre,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColores.textoPrincipal,

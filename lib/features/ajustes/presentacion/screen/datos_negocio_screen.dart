@@ -141,11 +141,11 @@ class _DatosNegocioScreenState extends State<DatosNegocioScreen> {
                           ? const SizedBox.shrink()
                           : const Icon(Icons.save_outlined),
                       label: _isSaving
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 22,
                               width: 22,
                               child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2.5),
+                                  color: AppColores.sobreRelleno, strokeWidth: 2.5),
                             )
                           : const Text('Guardar Cambios'),
                     ),
@@ -190,7 +190,7 @@ class _DatosNegocioScreenState extends State<DatosNegocioScreen> {
       padding: const EdgeInsets.only(bottom: AppEspaciado.sm),
       child: Text(
         texto,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13.5,
           fontWeight: FontWeight.w600,
           color: AppColores.textoPrincipal,

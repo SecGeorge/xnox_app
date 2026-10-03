@@ -7,6 +7,7 @@ import 'package:xnox_app/core/database/empresa_dao.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/core/servicios/servicio_notificaciones.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/tema/controlador_marca.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/empresa/dominio/codigo_empresa.dart';
 import 'package:xnox_app/features/empresa/dominio/entidades/empresa.dart';
@@ -28,6 +29,9 @@ void main() async {
       CodigoEmpresa.rutaEnUso(empresaActiva.codigo, empresaActiva.rutaGlobal),
     );
   }
+  // Colores y logo del gimnasio activo, antes del primer frame para que la
+  // app no arranque con otra paleta y luego cambie.
+  await ControladorMarca.instancia.cargar();
   if (kDebugMode) {
     // Qué hay guardado en la tabla `empresa` del SQLite del dispositivo.
     final filas = await EmpresaDao.instancia.volcado();

@@ -50,10 +50,8 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
       floatingActionButton: editable
           ? FloatingActionButton.extended(
               onPressed: _agregarDia,
-              backgroundColor: AppColores.primario,
-              icon: const Icon(Icons.calendar_today, color: Colors.white),
-              label: const Text('Agregar día',
-                  style: TextStyle(color: Colors.white)),
+              icon: const Icon(Icons.calendar_today),
+              label: const Text('Agregar día'),
             )
           : null,
       body: rutina == null
@@ -228,7 +226,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(e.nombre,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: AppColores.textoPrincipal)),
@@ -263,7 +261,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                                 color: AppColores.acento,
                               ),
                               const SizedBox(width: 4),
-                              const Text(
+                              Text(
                                 'Ver cómo se hace',
                                 style: TextStyle(
                                   fontSize: 12.5,
@@ -282,13 +280,13 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      const Text('PR',
+                      Text('PR',
                           style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: AppColores.acento)),
                       Text('${_num(pr.peso)} kg',
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
                               color: AppColores.textoPrincipal)),
@@ -389,7 +387,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                 ),
               ),
               Text('Historial · ${e.nombre}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: AppColores.textoPrincipal)),
@@ -402,7 +400,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                   controller: scroll,
                   itemCount: total,
                   separatorBuilder: (_, _) =>
-                      const Divider(height: 1, color: AppColores.borde),
+                      Divider(height: 1, color: AppColores.borde),
                   itemBuilder: (_, i) {
                     // i=0 -> más reciente; numeración cronológica.
                     final m = ordenadas[total - 1 - i];
@@ -435,7 +433,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text('$numeroSesion',
-                style: const TextStyle(
+                style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: AppColores.acento,
                     fontSize: 14)),
@@ -448,13 +446,13 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                 Row(
                   children: [
                     Text('${_num(m.peso)} kg',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: AppColores.textoPrincipal)),
                     if (esPr) ...[
                       const SizedBox(width: 6),
-                      const EtiquetaEstado(texto: 'PR', color: AppColores.acento),
+                      EtiquetaEstado(texto: 'PR', color: AppColores.acento),
                     ],
                   ],
                 ),
@@ -499,7 +497,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(AppEspaciado.md),
               child: Text('Elige el día',
                   style: TextStyle(
@@ -508,7 +506,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                       color: AppColores.textoPrincipal)),
             ),
             ...disponibles.map((d) => ListTile(
-                  leading: const Icon(Icons.calendar_today,
+                  leading: Icon(Icons.calendar_today,
                       color: AppColores.primario),
                   title: Text(d),
                   onTap: () => Navigator.of(ctx).pop(d),
@@ -703,7 +701,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                       ),
                     ),
                     Text('Sesión de hoy · ${e.nombre}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w700,
                             color: AppColores.textoPrincipal)),
@@ -749,7 +747,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                       onSubmitted: (_) => guardarPeso(),
                     ),
                     const SizedBox(height: AppEspaciado.md),
-                    const Text('Series de hoy',
+                    Text('Series de hoy',
                         style: TextStyle(
                             fontWeight: FontWeight.w700,
                             color: AppColores.textoPrincipal)),
@@ -838,7 +836,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
             radius: 14,
             backgroundColor: AppColores.acento.withValues(alpha: 0.12),
             child: Text('${i + 1}',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                     color: AppColores.acento)),
@@ -846,7 +844,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
           const SizedBox(width: AppEspaciado.sm),
           Expanded(
             child: Text('$reps reps',
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColores.textoPrincipal)),

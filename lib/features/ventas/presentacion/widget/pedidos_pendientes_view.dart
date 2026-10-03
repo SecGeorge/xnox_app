@@ -123,11 +123,8 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
     return Container(
       padding: const EdgeInsets.all(AppEspaciado.md),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColores.primario, AppColores.primarioClaro],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        gradient: AppColores.degradadoRelleno,
+        border: AppColores.bordeCabecera,
         borderRadius: BorderRadius.circular(AppEspaciado.radio),
         boxShadow: AppSombras.tarjeta,
       ),
@@ -136,21 +133,21 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
+              color: AppColores.sobreRelleno.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
             ),
-            child: const Icon(Icons.shopping_basket_outlined,
-                color: Colors.white, size: 22),
+            child: Icon(Icons.shopping_basket_outlined,
+                color: AppColores.sobreRelleno, size: 22),
           ),
           const SizedBox(width: AppEspaciado.md),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Pedidos de clientes',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColores.sobreRelleno,
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
@@ -158,7 +155,7 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
                 SizedBox(height: 2),
                 Text(
                   'Revisa y cobra los pedidos hechos desde la app',
-                  style: TextStyle(color: Colors.white70, fontSize: 12.5),
+                  style: TextStyle(color: AppColores.sobreRellenoSuave, fontSize: 12.5),
                 ),
               ],
             ),
@@ -208,7 +205,7 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
             alignment: Alignment.centerLeft,
             child: Text(
               valor,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: AppColores.textoPrincipal,
@@ -254,7 +251,7 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
                 backgroundColor: AppColores.primario.withValues(alpha: 0.10),
                 child: Text(
                   p.inicial,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColores.primario,
                     fontWeight: FontWeight.w800,
                   ),
@@ -271,7 +268,7 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
                           : p.cliente,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColores.textoPrincipal,
@@ -414,7 +411,7 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
                         ),
                         Text(
                           _soles(d.subtotal),
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontWeight: FontWeight.w700,
                               color: AppColores.textoPrincipal),
                         ),
@@ -432,7 +429,7 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
                 const Spacer(),
                 Text(
                   _soles(total),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: AppColores.primario,

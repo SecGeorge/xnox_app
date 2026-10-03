@@ -126,7 +126,7 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Regístrate como cliente',
                 style: TextStyle(
                     fontSize: 22,
@@ -237,14 +237,15 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _registrar,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColores.primario,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColores.relleno,
+                    foregroundColor: AppColores.sobreRelleno,
+                    side: AppColores.ladoBoton,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8)),
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? CircularProgressIndicator(color: AppColores.sobreRelleno)
                       : const Text('CREAR CUENTA',
                           style: TextStyle(
                               fontWeight: FontWeight.bold, letterSpacing: 1.2)),
@@ -254,7 +255,7 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Ya tengo cuenta · Iniciar sesión',
+                  child: Text('Ya tengo cuenta · Iniciar sesión',
                       style: TextStyle(color: AppColores.acento)),
                 ),
               ),

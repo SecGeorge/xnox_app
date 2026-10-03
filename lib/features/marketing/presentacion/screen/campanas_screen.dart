@@ -283,7 +283,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
           Row(
             children: [
               Text('${_destinatarios.length} seleccionados de $totalFiltrados',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: AppColores.textoPrincipal)),
               const Spacer(),
@@ -339,7 +339,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
         ),
         const SizedBox(width: AppEspaciado.sm),
         Text(titulo,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: AppColores.primario)),
@@ -368,7 +368,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
           label: Text(etiqueta),
           selectedColor: AppColores.primario,
           backgroundColor: AppColores.superficie,
-          side: const BorderSide(color: AppColores.borde),
+          side: BorderSide(color: AppColores.borde),
           labelStyle: TextStyle(
             color: sel ? Colors.white : AppColores.primario,
             fontWeight: FontWeight.w600,
@@ -396,7 +396,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
           }),
           selectedColor: AppColores.primario,
           backgroundColor: AppColores.superficie,
-          side: const BorderSide(color: AppColores.borde),
+          side: BorderSide(color: AppColores.borde),
           labelStyle: TextStyle(
             color: sel ? Colors.white : AppColores.primario,
             fontWeight: FontWeight.w600,
@@ -517,7 +517,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
                   radius: 16,
                   backgroundColor: AppColores.fondo,
                   child: Text(c.iniciales,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: AppColores.primario)),
@@ -608,7 +608,7 @@ class _CampanasScreenState extends State<CampanasScreen> {
   Widget _buildBarraInferior() {
     return Container(
       padding: const EdgeInsets.all(AppEspaciado.md),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColores.superficie,
         border: Border(top: BorderSide(color: AppColores.borde)),
       ),

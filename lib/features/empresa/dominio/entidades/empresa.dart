@@ -10,6 +10,14 @@ class Empresa {
   /// `CODIGO_GIMNASIO`). No tiene por qué ser igual a [codigo], que es el que
   /// escribe el usuario: hoy todos los despliegues comparten el mismo valor.
   final String? codigoBackend;
+
+  /// Plantilla de colores elegida (id de `PaletasApp`), o `null` si aún no
+  /// eligió ninguna.
+  final String? paleta;
+
+  /// Logo y nombre del gimnasio según sus ajustes del backend (copia local).
+  final String? logoUrl;
+  final String? nombreComercial;
   final bool activa;
 
   const Empresa({
@@ -18,6 +26,9 @@ class Empresa {
     required this.nombre,
     required this.rutaGlobal,
     required this.codigoBackend,
+    this.paleta,
+    this.logoUrl,
+    this.nombreComercial,
     required this.activa,
   });
 
@@ -31,6 +42,9 @@ class Empresa {
         nombre: m['nombre'] as String,
         rutaGlobal: m['ruta_global'] as String,
         codigoBackend: m['codigo_backend'] as String?,
+        paleta: m['paleta'] as String?,
+        logoUrl: m['logo_url'] as String?,
+        nombreComercial: m['nombre_comercial'] as String?,
         activa: (m['activa'] as int? ?? 0) == 1,
       );
 }

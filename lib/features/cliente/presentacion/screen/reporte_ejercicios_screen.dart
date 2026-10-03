@@ -42,7 +42,7 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
           padding: const EdgeInsets.all(AppEspaciado.md),
           children: [
             const SizedBox(height: AppEspaciado.sm),
-            const Text(
+            Text(
               'Reporte de Ejercicios',
               style: TextStyle(
                   fontSize: 24,
@@ -97,7 +97,7 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
             ),
             const SizedBox(height: AppEspaciado.sm),
             Text(valor,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     color: AppColores.textoPrincipal)),
@@ -127,7 +127,7 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
               children: [
                 Expanded(
                   child: Text(e.nombre,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 15.5,
                           fontWeight: FontWeight.w700,
                           color: AppColores.textoPrincipal)),

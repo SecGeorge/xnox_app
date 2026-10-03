@@ -78,7 +78,6 @@ class _PlantillasScreenState extends State<PlantillasScreen> {
       appBar: AppBar(title: const Text('Plantillas de WhatsApp')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _abrirFormulario(),
-        backgroundColor: AppColores.primario,
         icon: const Icon(Icons.add),
         label: const Text('Nueva'),
       ),
@@ -133,7 +132,7 @@ class _PlantillasScreenState extends State<PlantillasScreen> {
               fontSize: 13,
             ),
             backgroundColor: AppColores.superficie,
-            side: const BorderSide(color: AppColores.borde),
+            side: BorderSide(color: AppColores.borde),
           );
         },
       ),
@@ -151,7 +150,7 @@ class _PlantillasScreenState extends State<PlantillasScreen> {
               Expanded(
                 child: Text(
                   p.nombre,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: AppColores.textoPrincipal,
@@ -305,12 +304,12 @@ class _FormPlantillaScreenState extends State<_FormPlantillaScreen> {
             runSpacing: 4,
             children: kVariablesPlantilla
                 .map((v) => ActionChip(
-                      avatar: const Icon(Icons.add, size: 16, color: AppColores.primario),
+                      avatar: Icon(Icons.add, size: 16, color: AppColores.primario),
                       label: Text(v.etiqueta),
                       onPressed: () => _insertarVariable(v.valor),
                       backgroundColor: AppColores.superficie,
-                      side: const BorderSide(color: AppColores.borde),
-                      labelStyle: const TextStyle(
+                      side: BorderSide(color: AppColores.borde),
+                      labelStyle: TextStyle(
                           color: AppColores.primario, fontSize: 12.5),
                     ))
                 .toList(),
@@ -319,8 +318,8 @@ class _FormPlantillaScreenState extends State<_FormPlantillaScreen> {
           ElevatedButton.icon(
             onPressed: _guardando ? null : _guardar,
             icon: _guardando
-                ? const SizedBox(
-                    width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? SizedBox(
+                    width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AppColores.sobreRelleno))
                 : const Icon(Icons.save_outlined),
             label: Text(_guardando ? 'Guardando...' : 'Guardar'),
           ),

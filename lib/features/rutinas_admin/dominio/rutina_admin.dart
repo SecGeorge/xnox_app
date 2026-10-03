@@ -119,6 +119,10 @@ class EjercicioAdmin {
   String nombre;
   int series;
   int repeticiones;
+
+  /// Descanso entre series por defecto (segundos). Se conserva al editar desde
+  /// el móvil para no borrar lo que se fijó en el web.
+  int? descansoSeg;
   String? observaciones;
   int? catalogoId;
   String? imagenUrl;
@@ -127,6 +131,7 @@ class EjercicioAdmin {
     required this.nombre,
     this.series = 0,
     this.repeticiones = 0,
+    this.descansoSeg,
     this.observaciones,
     this.catalogoId,
     this.imagenUrl,
@@ -136,6 +141,8 @@ class EjercicioAdmin {
         nombre: j['nombre']?.toString() ?? '',
         series: _int(j['series']),
         repeticiones: _int(j['repeticiones']),
+        descansoSeg:
+            _int(j['descanso_seg']) > 0 ? _int(j['descanso_seg']) : null,
         observaciones: (j['observaciones']?.toString().trim().isEmpty ?? true)
             ? null
             : j['observaciones'].toString(),
@@ -152,6 +159,7 @@ class EjercicioAdmin {
         'nombre': nombre,
         'series': series,
         'repeticiones': repeticiones,
+        if (descansoSeg != null) 'descanso_seg': descansoSeg,
         if (observaciones != null && observaciones!.isNotEmpty)
           'observaciones': observaciones,
         'orden': orden,

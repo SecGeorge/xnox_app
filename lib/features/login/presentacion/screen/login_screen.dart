@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/tema/controlador_marca.dart';
+import 'package:xnox_app/core/widgets/logo_gimnasio.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/cliente_shell.dart';
 import 'package:xnox_app/features/login/presentacion/controlador/controlador_login.dart';
 import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
@@ -88,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: seleccionado ? const Color(0xFF1A2B4C) : Colors.transparent,
+                  color: seleccionado ? AppColores.primario : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -129,12 +131,19 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                'XNOX-SOFT',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A2B4C),
+              // Logo y nombre del gimnasio al que apunta la app.
+              const LogoGimnasio(tamano: 88),
+              const SizedBox(height: AppEspaciado.md),
+              ValueListenableBuilder<MarcaGimnasio>(
+                valueListenable: ControladorMarca.instancia.marca,
+                builder: (context, marca, _) => Text(
+                  (marca.nombre ?? '').isEmpty ? 'XNOX-SOFT' : marca.nombre!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: AppColores.primario,
+                  ),
                 ),
               ),
               const Text(
@@ -229,10 +238,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1A2B4C),
-                            foregroundColor: Colors.white,
-                            disabledBackgroundColor: const Color(0xFF1A2B4C),
-                            disabledForegroundColor: Colors.white,
+                            backgroundColor: AppColores.relleno,
+                            foregroundColor: AppColores.sobreRelleno,
+                            disabledBackgroundColor: AppColores.relleno,
+                            disabledForegroundColor: AppColores.sobreRelleno,
+                            side: AppColores.ladoBoton,
                             padding: EdgeInsets.zero,
                             shape: RoundedRectangleBorder(
                               borderRadius:
@@ -243,15 +253,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             surfaceTintColor: Colors.transparent,
                           ).copyWith(
                             overlayColor: WidgetStateProperty.all(
-                              Colors.white.withValues(alpha: 0.08),
+                              AppColores.sobreRelleno.withValues(alpha: 0.08),
                             ),
                           ),
                           child: _isLoading
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 22,
                                 height: 22,
                                 child: CircularProgressIndicator(
-                                  color: Colors.white,
+                                  color: AppColores.sobreRelleno,
                                   strokeWidth: 2.4,
                                 ),
                               )
@@ -279,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   fontSize: 13, color: Colors.black54)),
                           TextButton(
                             onPressed: _irARegistro,
-                            child: const Text(
+                            child: Text(
                               'Regístrate',
                               style: TextStyle(
                                   fontSize: 13,

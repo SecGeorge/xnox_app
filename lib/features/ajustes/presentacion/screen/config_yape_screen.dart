@@ -265,7 +265,7 @@ class _ConfigYapeScreenState extends State<ConfigYapeScreen> {
       padding: const EdgeInsets.only(bottom: AppEspaciado.sm),
       child: Text(
         texto,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 13.5,
           fontWeight: FontWeight.w600,
           color: AppColores.textoPrincipal,

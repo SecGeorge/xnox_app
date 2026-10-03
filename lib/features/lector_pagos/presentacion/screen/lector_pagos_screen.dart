@@ -116,7 +116,7 @@ class _LectorPagosScreenState extends State<LectorPagosScreen>
               children: [
                 Text(
                   _activo ? 'Lector activo' : 'Lector inactivo',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: AppColores.textoPrincipal,
@@ -144,7 +144,7 @@ class _LectorPagosScreenState extends State<LectorPagosScreen>
     return TarjetaApp(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
             '¿Cómo funciona?',
             style: TextStyle(
@@ -193,7 +193,7 @@ class _Paso extends StatelessWidget {
             backgroundColor: AppColores.acento.withValues(alpha: 0.15),
             child: Text(
               numero,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 color: AppColores.acento,

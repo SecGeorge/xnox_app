@@ -63,7 +63,7 @@ class EncabezadoSeccion extends StatelessWidget {
             children: [
               Text(
                 titulo,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppColores.textoPrincipal,
@@ -401,7 +401,7 @@ Future<bool> confirmarDialog(
             Text(
               titulo,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: AppColores.textoPrincipal,
@@ -424,7 +424,7 @@ Future<bool> confirmarDialog(
                     onPressed: () => Navigator.pop(ctx, false),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColores.textoSecundario,
-                      side: const BorderSide(color: AppColores.borde),
+                      side: BorderSide(color: AppColores.borde),
                       padding:
                           const EdgeInsets.symmetric(vertical: 12),
                     ),

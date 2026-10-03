@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/hoja_moderna.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_promociones.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/hoja_canje.dart';
@@ -11,13 +12,8 @@ Future<void> mostrarHojaMisPuntos(
   BuildContext context, {
   required ResumenPuntos resumen,
 }) async {
-  await showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColores.superficie,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
+  await mostrarHojaModerna<void>(
+    context,
     builder: (_) => _HojaMisPuntos(resumenInicial: resumen),
   );
 }
@@ -46,7 +42,9 @@ class _HojaMisPuntosState extends State<_HojaMisPuntos> {
       final r = await _controlador.obtenerResumen();
       if (!mounted) return;
       setState(() => _resumen = r);
-    } catch (_) {/* silencioso */}
+    } catch (_) {
+      /* silencioso */
+    }
   }
 
   Future<void> _abrirCanje() async {
@@ -57,83 +55,65 @@ class _HojaMisPuntosState extends State<_HojaMisPuntos> {
   @override
   Widget build(BuildContext context) {
     final movimientos = _resumen.movimientos;
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.82,
+    return HojaModerna(
+      icono: Icons.stars_rounded,
+      titulo: 'Mis puntos',
+      subtitulo: 'Gana con cada compra y canjéalos por premios',
+      accion: IconButton(
+        onPressed: () => Navigator.pop(context),
+        icon: const Icon(
+          Icons.close_rounded,
+          color: AppColores.textoSecundario,
+        ),
       ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: AppEspaciado.md,
-          right: AppEspaciado.md,
-          top: AppEspaciado.sm,
-          bottom: MediaQuery.of(context).viewInsets.bottom + AppEspaciado.md,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Asa de la hoja.
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: AppEspaciado.md),
-                decoration: BoxDecoration(
-                  color: AppColores.borde,
-                  borderRadius: BorderRadius.circular(4),
-                ),
+      pie: _resumen.canje.isEmpty
+          ? null
+          : BotonHoja(
+              texto: 'Canjear mis puntos',
+              icono: Icons.card_giftcard_rounded,
+              onPressed: _abrirCanje,
+            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _tarjetaSaldo(_resumen.saldo),
+          const SizedBox(height: AppEspaciado.lg),
+          Text(
+            'HISTORIAL',
+            style: const TextStyle(
+              fontSize: 11.5,
+              letterSpacing: 1.3,
+              fontWeight: FontWeight.w700,
+              color: AppColores.textoSecundario,
+            ),
+          ),
+          const SizedBox(height: AppEspaciado.sm),
+          if (movimientos.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: EstadoVacio(
+                icono: Icons.history,
+                mensaje: 'Aún no tienes movimientos de puntos',
+              ),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: AppColores.fondo,
+                borderRadius: BorderRadius.circular(AppEspaciado.radio),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                children: [
+                  for (var i = 0; i < movimientos.length; i++) ...[
+                    if (i > 0) Divider(color: AppColores.borde, height: 1),
+                    _filaMovimiento(movimientos[i]),
+                  ],
+                ],
               ),
             ),
-
-            _tarjetaSaldo(_resumen.saldo),
-
-            if (_resumen.canje.isNotEmpty) ...[
-              const SizedBox(height: AppEspaciado.sm + 4),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _abrirCanje,
-                  icon: const Icon(Icons.card_giftcard_rounded, size: 18),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColores.acento,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  label: const Text('Canjear mis puntos'),
-                ),
-              ),
-            ],
-
-            const SizedBox(height: AppEspaciado.lg),
-            const Text(
-              'Historial',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColores.textoPrincipal,
-              ),
-            ),
-            const SizedBox(height: AppEspaciado.sm),
-
-            if (movimientos.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: EstadoVacio(
-                  icono: Icons.history,
-                  mensaje: 'Aún no tienes movimientos de puntos',
-                ),
-              )
-            else
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: movimientos.length,
-                  separatorBuilder: (_, _) =>
-                      const Divider(color: AppColores.borde, height: 1),
-                  itemBuilder: (_, i) => _filaMovimiento(movimientos[i]),
-                ),
-              ),
-          ],
-        ),
+          const SizedBox(height: AppEspaciado.sm),
+        ],
       ),
     );
   }
@@ -141,13 +121,12 @@ class _HojaMisPuntosState extends State<_HojaMisPuntos> {
   Widget _tarjetaSaldo(int saldo) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppEspaciado.md, vertical: AppEspaciado.md),
+        horizontal: AppEspaciado.md,
+        vertical: AppEspaciado.md,
+      ),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColores.primario, AppColores.acento],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        gradient: AppColores.degradadoRelleno,
+        border: AppColores.bordeCabecera,
         borderRadius: BorderRadius.circular(AppEspaciado.radio),
         boxShadow: AppSombras.tarjeta,
       ),
@@ -156,18 +135,21 @@ class _HojaMisPuntosState extends State<_HojaMisPuntos> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
+              color: AppColores.sobreRelleno.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
             ),
-            child:
-                const Icon(Icons.stars_rounded, color: Colors.white, size: 24),
+            child: Icon(
+              Icons.stars_rounded,
+              color: AppColores.sobreRelleno,
+              size: 24,
+            ),
           ),
           const SizedBox(width: AppEspaciado.md),
-          const Expanded(
+          Expanded(
             child: Text(
               'Saldo disponible',
               style: TextStyle(
-                color: Colors.white70,
+                color: AppColores.sobreRellenoSuave,
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -179,16 +161,21 @@ class _HojaMisPuntosState extends State<_HojaMisPuntos> {
             children: [
               Text(
                 '$saldo',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: AppColores.sobreRelleno,
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   height: 1,
                 ),
               ),
               const SizedBox(width: 5),
-              const Text('pts',
-                  style: TextStyle(color: Colors.white70, fontSize: 13)),
+              Text(
+                'pts',
+                style: TextStyle(
+                  color: AppColores.sobreRellenoSuave,
+                  fontSize: 13,
+                ),
+              ),
             ],
           ),
         ],
@@ -222,17 +209,20 @@ class _HojaMisPuntosState extends State<_HojaMisPuntos> {
               children: [
                 Text(
                   m.concepto,
-                  style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColores.textoPrincipal),
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColores.textoPrincipal,
+                  ),
                 ),
                 if (m.fecha.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     _formatearFecha(m.fecha),
                     style: const TextStyle(
-                        fontSize: 12, color: AppColores.textoSecundario),
+                      fontSize: 12,
+                      color: AppColores.textoSecundario,
+                    ),
                   ),
                 ],
               ],
@@ -241,7 +231,10 @@ class _HojaMisPuntosState extends State<_HojaMisPuntos> {
           Text(
             '$signo${m.puntos} pts',
             style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w700, color: color),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
         ],
       ),

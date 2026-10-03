@@ -6,13 +6,15 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 /// Pensado para mostrar la progresión de marcas (peso) de un ejercicio.
 class GraficoLinea extends StatelessWidget {
   final List<double> valores;
-  final Color color;
+
+  /// Color de la línea; si no se pasa, el acento de la paleta activa.
+  final Color? color;
   final double altura;
 
   const GraficoLinea({
     super.key,
     required this.valores,
-    this.color = AppColores.acento,
+    this.color,
     this.altura = 70,
   });
 
@@ -38,7 +40,10 @@ class GraficoLinea extends StatelessWidget {
       height: altura,
       width: double.infinity,
       child: CustomPaint(
-        painter: _LineaPainter(valores: valores, color: color),
+        painter: _LineaPainter(
+          valores: valores,
+          color: color ?? AppColores.acento,
+        ),
       ),
     );
   }
@@ -76,10 +81,7 @@ class _LineaPainter extends CustomPainter {
     area
       ..lineTo(size.width, size.height)
       ..close();
-    canvas.drawPath(
-      area,
-      Paint()..color = color.withValues(alpha: 0.10),
-    );
+    canvas.drawPath(area, Paint()..color = color.withValues(alpha: 0.10));
 
     // Línea.
     final linea = Path()..moveTo(puntoEn(0).dx, puntoEn(0).dy);

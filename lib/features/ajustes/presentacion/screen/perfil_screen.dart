@@ -61,7 +61,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
             backgroundColor: AppColores.primario.withValues(alpha: 0.10),
             child: Text(
               inicial,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,
                 color: AppColores.primario,
@@ -75,7 +75,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
               children: [
                 Text(
                   _nombre.isEmpty ? 'Usuario' : _nombre,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: AppColores.textoPrincipal,

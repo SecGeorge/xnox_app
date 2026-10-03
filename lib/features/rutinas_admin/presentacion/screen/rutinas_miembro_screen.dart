@@ -98,7 +98,7 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(AppEspaciado.md),
               child: Text('Asignar una plantilla',
                   style: TextStyle(
@@ -114,7 +114,7 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
                 itemBuilder: (_, i) {
                   final p = plantillas[i];
                   return ListTile(
-                    leading: const Icon(Icons.fitness_center,
+                    leading: Icon(Icons.fitness_center,
                         color: AppColores.primario),
                     title: Text(p.nombre),
                     subtitle: Text(
@@ -190,8 +190,6 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
       floatingActionButton: _puedeGestionar
           ? FloatingActionButton.extended(
               onPressed: _nueva,
-              backgroundColor: AppColores.primario,
-              foregroundColor: Colors.white,
               icon: const Icon(Icons.add),
               label: const Text('Nueva'),
             )
@@ -222,7 +220,7 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
                     Expanded(
                       child: Text(
                         r.nombre,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: AppColores.textoPrincipal,

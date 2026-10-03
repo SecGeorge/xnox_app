@@ -51,6 +51,8 @@ dependencies:
   firebase_messaging: ^16.4.3
   flutter_local_notifications: ^22.2.0
   video_player: ^2.13.0
+  # Aviso sonoro del temporizador de descanso entre series.
+  audioplayers: ^6.5.1
 
 dev_dependencies:
   flutter_test:
@@ -102,6 +104,15 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Fotos del inicio del cliente (Unsplash, licencia libre). Se empaquetan
+  # para que el inicio se vea completo aunque no haya conexión.
+  assets:
+    - assets/imagenes/inicio/
+    # Foto de cada tipo de sesión (piernas, pecho, espalda...) y del descanso.
+    - assets/imagenes/sesiones/
+    # Sonidos del temporizador de descanso (generados, sin licencia de terceros).
+    - assets/sonidos/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

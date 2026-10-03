@@ -25,6 +25,10 @@ class DatosNegocio {
   /// URL absoluta del QR de Yape lista para `Image.network`, o null si no hay.
   final String? yapeQrUrl;
 
+  /// Plantilla de colores de la app que eligió el administrador (id de
+  /// `PaletasApp` o `personalizada:RRGGBB`), o null si aún no eligió.
+  final String? paletaApp;
+
   const DatosNegocio({
     this.id,
     required this.nombre,
@@ -36,6 +40,7 @@ class DatosNegocio {
     this.yapeTitular = '',
     this.yapeQr = '',
     this.yapeQrUrl,
+    this.paletaApp,
   });
 
   factory DatosNegocio.vacio() => const DatosNegocio(
@@ -64,6 +69,7 @@ class DatosNegocio {
       yapeTitular: yapeTitular,
       yapeQr: yapeQr,
       yapeQrUrl: yapeQrUrl,
+      paletaApp: paletaApp,
     );
   }
 }

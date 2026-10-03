@@ -2,16 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/hoja_moderna.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_promociones.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/foto_tarjeta.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_pedidos.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_puntos.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/item_carrito.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/producto_tienda.dart';
 import 'package:xnox_app/features/tienda/presentacion/controlador/controlador_tienda.dart';
-import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_promociones.dart';
-import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_puntos.dart';
-import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_pedidos.dart';
 
-/// Catálogo de la tienda para el cliente: ve productos, arma su carrito y
-/// envía el pedido (queda pendiente hasta que el admin lo cobra).
+/// Tienda del socio: catálogo en cuadrícula con categorías, ficha de cada
+/// producto, carrito y pedido (queda pendiente hasta que se paga por Yape o
+/// se cobra en recepción). Sigue el formato de Inicio y Rutinas: cabecera
+/// propia, tarjeta con foto teñida de la marca y secciones con ícono.
 class ComprarScreen extends StatefulWidget {
   const ComprarScreen({super.key});
 
@@ -27,15 +31,15 @@ class _ComprarScreenState extends State<ComprarScreen> {
   bool _cargando = true;
   bool _enviando = false;
   String _busqueda = '';
+  String? _categoria; // null = todas
 
-  /// Cantidad de pedidos del cliente aún pendientes de pago. Mientras haya al
-  /// menos uno, mostramos un banner que abre "Mis pedidos" para elegir cuál
-  /// pagar (evita rearmar el carrito y duplicar pedidos).
+  /// Pedidos del socio aún pendientes de pago (abre "Mis pedidos").
   int _pedidosPendientes = 0;
 
-  /// Mapa producto_id -> puntos que otorga (para el distintivo "+X pts").
-  Map<int, int> get _puntosPorProducto =>
-      {for (final g in _resumen.gana) g.productoId: g.puntos};
+  /// Producto -> puntos que otorga (para el distintivo "+X pts").
+  Map<int, int> get _puntosPorProducto => {
+    for (final g in _resumen.gana) g.productoId: g.puntos,
+  };
 
   /// Carrito indexado por clave (producto + unidad).
   final Map<String, ItemCarrito> _carrito = {};
@@ -50,14 +54,14 @@ class _ComprarScreenState extends State<ComprarScreen> {
     setState(() => _cargando = true);
     try {
       final catalogo = await _controlador.obtenerCatalogo();
-      // Los puntos son secundarios: si fallan, no rompen la tienda.
+      // Los puntos y los pedidos son secundarios: si fallan, no rompen la
+      // tienda.
       ResumenPuntos resumen;
       try {
         resumen = await _promo.obtenerResumen();
       } catch (_) {
         resumen = ResumenPuntos.vacio;
       }
-      // Los pedidos pendientes también son secundarios.
       final pendientes = await _contarPendientes();
       if (!mounted) return;
       setState(() {
@@ -69,18 +73,22 @@ class _ComprarScreenState extends State<ComprarScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _cargando = false);
-      mostrarMensaje(context, 'No se pudo cargar la tienda',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudo cargar la tienda',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
-  /// Recarga solo el saldo de puntos (tras un canje, sin recargar la tienda).
   Future<void> _recargarPuntos() async {
     try {
       final resumen = await _promo.obtenerResumen();
       if (!mounted) return;
       setState(() => _resumen = resumen);
-    } catch (_) {/* silencioso */}
+    } catch (_) {
+      /* silencioso */
+    }
   }
 
   Future<void> _abrirMisPuntos() async {
@@ -88,8 +96,6 @@ class _ComprarScreenState extends State<ComprarScreen> {
     await _recargarPuntos();
   }
 
-  /// Cuenta cuántos pedidos del cliente siguen pendientes de pago (silencioso:
-  /// si falla, asumimos 0 para no romper la tienda).
   Future<int> _contarPendientes() async {
     try {
       final pedidos = await _controlador.obtenerMisPedidos();
@@ -99,15 +105,12 @@ class _ComprarScreenState extends State<ComprarScreen> {
     }
   }
 
-  /// Refresca solo el conteo de pedidos pendientes (sin recargar la tienda).
   Future<void> _recargarPedidos() async {
     final pendientes = await _contarPendientes();
     if (!mounted) return;
     setState(() => _pedidosPendientes = pendientes);
   }
 
-  /// Abre "Mis pedidos" para que el cliente elija cuál pagar; al volver
-  /// refrescamos el conteo (un pedido pagado deja de estar pendiente).
   Future<void> _abrirMisPedidos() async {
     await mostrarHojaMisPedidos(context);
     await _recargarPedidos();
@@ -119,8 +122,7 @@ class _ComprarScreenState extends State<ComprarScreen> {
     if (img.isEmpty) return '';
     final limpio = img.startsWith('./') ? img.substring(2) : img;
     // Ruta de la empresa activa, no la constante: cada empresa tiene su
-    // servidor y con la constante las fotos de los productos se pedían
-    // siempre al de desarrollo.
+    // servidor y con la constante las fotos se pedían al de desarrollo.
     return '${HttpService().rutaActual}$limpio';
   }
 
@@ -130,175 +132,318 @@ class _ComprarScreenState extends State<ComprarScreen> {
   double get _totalCarrito =>
       _carrito.values.fold(0.0, (acc, it) => acc + it.subtotal);
 
+  /// Puntos que ganará con el carrito actual.
+  int get _puntosCarrito => _carrito.values.fold(
+    0,
+    (acc, it) => acc + (_puntosPorProducto[it.productoId] ?? 0) * it.cantidad,
+  );
+
+  List<String> get _categorias {
+    final set = <String>{};
+    for (final p in _catalogo?.productos ?? const <ProductoTienda>[]) {
+      if (p.nombreCategoria.trim().isNotEmpty) {
+        set.add(p.nombreCategoria.trim());
+      }
+    }
+    return set.toList()..sort();
+  }
+
   List<ProductoTienda> get _productosFiltrados {
-    final productos = _catalogo?.productos ?? const [];
+    var productos = _catalogo?.productos ?? const <ProductoTienda>[];
+    if (_categoria != null) {
+      productos = productos
+          .where((p) => p.nombreCategoria.trim() == _categoria)
+          .toList();
+    }
     if (_busqueda.trim().isEmpty) return productos;
     final t = _busqueda.toLowerCase();
     return productos
-        .where((p) =>
-            p.nombre.toLowerCase().contains(t) ||
-            p.codigo.toLowerCase().contains(t) ||
-            p.nombreMarca.toLowerCase().contains(t) ||
-            p.nombreCategoria.toLowerCase().contains(t))
+        .where(
+          (p) =>
+              p.nombre.toLowerCase().contains(t) ||
+              p.codigo.toLowerCase().contains(t) ||
+              p.nombreMarca.toLowerCase().contains(t) ||
+              p.nombreCategoria.toLowerCase().contains(t),
+        )
         .toList();
   }
 
-  void _agregar(ProductoTienda producto) {
-    final item = ItemCarrito.desdeProducto(producto);
-    final existente = _carrito[item.clave];
-    if (existente != null) {
-      if (existente.cantidad < existente.stock) {
-        setState(() => existente.cantidad++);
+  ItemCarrito? _enCarrito(ProductoTienda p) {
+    if (p.unidadPrincipal == null) return null;
+    return _carrito[ItemCarrito.desdeProducto(p).clave];
+  }
+
+  /// Suma [cantidad] del producto al carrito respetando el stock.
+  bool _agregar(ProductoTienda producto, {int cantidad = 1}) {
+    if (!producto.disponible) {
+      mostrarMensaje(
+        context,
+        '${producto.nombre} está agotado',
+        tipo: TipoMensaje.advertencia,
+      );
+      return false;
+    }
+    final nuevo = ItemCarrito.desdeProducto(producto);
+    final existente = _carrito[nuevo.clave];
+    final base = existente?.cantidad ?? 0;
+    if (base + cantidad > producto.stock) {
+      mostrarMensaje(
+        context,
+        'No hay más stock de ${producto.nombre}',
+        tipo: TipoMensaje.advertencia,
+      );
+      return false;
+    }
+    setState(() {
+      if (existente != null) {
+        existente.cantidad = base + cantidad;
       } else {
-        mostrarMensaje(context, 'No hay más stock de ${producto.nombre}',
-            tipo: TipoMensaje.advertencia);
-        return;
+        nuevo.cantidad = cantidad;
+        _carrito[nuevo.clave] = nuevo;
       }
-    } else {
-      setState(() => _carrito[item.clave] = item);
-    }
-    mostrarMensaje(context, 'Agregado: ${producto.nombre}',
-        tipo: TipoMensaje.exito);
+    });
+    return true;
   }
 
-  Future<void> _enviarPedido(StateSetter setSheet) async {
-    if (_carrito.isEmpty || _catalogo == null) return;
-    setSheet(() => _enviando = true);
-    setState(() {});
-
-    final resultado = await _controlador.crearPedido(
-      _catalogo!.organizadorId,
-      _carrito.values.toList(),
-    );
-
-    if (!mounted) return;
-    _enviando = false;
-
-    if (resultado.exito) {
-      setState(() => _carrito.clear());
-      Navigator.of(context).pop(); // cierra el bottom sheet
-      mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.exito);
-      // El nuevo pedido cuenta como pendiente hasta que se pague o cobre.
-      await _recargarPedidos();
-      if (!mounted) return;
-      // Preguntamos si quiere pagar ahora por la app o dejarlo pendiente.
-      final pagarAhora = await _preguntarPago(resultado.total);
-      if (pagarAhora != true || !mounted) return;
-      // Abrimos "Mis pedidos" para que elija cuál pagar (el recién creado
-      // aparece de primero como pendiente).
-      await _abrirMisPedidos();
-    } else {
-      setSheet(() {});
-      mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.error);
-    }
+  void _quitarUno(ProductoTienda p) {
+    final item = _enCarrito(p);
+    if (item == null) return;
+    setState(() {
+      if (item.cantidad > 1) {
+        item.cantidad--;
+      } else {
+        _carrito.remove(item.clave);
+      }
+    });
   }
 
-  /// Pregunta al cliente cómo desea pagar su pedido: en recepción o por la app.
-  Future<bool?> _preguntarPago(double total) {
-    return showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('¿Cómo deseas pagar?'),
-        content: Text(
-          'Tu pedido quedó registrado (${_soles(total)}). Puedes pagarlo en '
-          'recepción o pagarlo por la app con Yape.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Pagar en recepción'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Pagar por la app'),
-          ),
-        ],
+  // ------------------------------------------------------------------ Vista
+
+  @override
+  Widget build(BuildContext context) {
+    final productos = _productosFiltrados;
+    return Scaffold(
+      backgroundColor: AppColores.fondo,
+      body: SafeArea(
+        bottom: false,
+        child: _cargando
+            ? const Center(child: CircularProgressIndicator())
+            : Stack(
+                children: [
+                  RefreshIndicator(
+                    onRefresh: _cargar,
+                    child: CustomScrollView(
+                      slivers: [
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppEspaciado.md,
+                            AppEspaciado.md,
+                            AppEspaciado.md,
+                            0,
+                          ),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              _cabecera(),
+                              const SizedBox(height: AppEspaciado.md + 4),
+                              _portada(),
+                              if (_pedidosPendientes > 0) ...[
+                                const SizedBox(height: AppEspaciado.sm + 4),
+                                _avisoPedidos(),
+                              ],
+                              const SizedBox(height: AppEspaciado.md + 4),
+                              _buscador(),
+                              const SizedBox(height: AppEspaciado.sm + 4),
+                              if (_categorias.length > 1) ...[
+                                _filtroCategorias(),
+                                const SizedBox(height: AppEspaciado.md),
+                              ],
+                              _tituloSeccion(productos.length),
+                              const SizedBox(height: AppEspaciado.sm + 4),
+                            ]),
+                          ),
+                        ),
+                        if (productos.isEmpty)
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.only(top: 40),
+                              child: EstadoVacio(
+                                icono: Icons.inventory_2_outlined,
+                                mensaje: 'No encontramos productos',
+                              ),
+                            ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: EdgeInsets.fromLTRB(
+                              AppEspaciado.md,
+                              0,
+                              AppEspaciado.md,
+                              _totalItems > 0 ? 175 : 110,
+                            ),
+                            sliver: SliverGrid(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: AppEspaciado.sm + 6,
+                                    crossAxisSpacing: AppEspaciado.sm + 6,
+                                    childAspectRatio: 0.64,
+                                  ),
+                              delegate: SliverChildBuilderDelegate(
+                                (_, i) => _tarjetaProducto(productos[i]),
+                                childCount: productos.length,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (_totalItems > 0)
+                    // Encima de la barra de navegación del socio.
+                    Positioned(
+                      left: AppEspaciado.md,
+                      right: AppEspaciado.md,
+                      bottom: 92,
+                      child: _barraCarrito(),
+                    ),
+                ],
+              ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColores.fondo,
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _cargar,
-              child: Column(
-                children: [
-                  _buscador(),
-                  if (_pedidosPendientes > 0) _bannerPedidosPendientes(),
-                  if (_mostrarPuntos) _bannerPuntos(),
-                  Expanded(child: _listaProductos()),
-                ],
+  Widget _cabecera() {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Tienda',
+                style: TextStyle(
+                  fontSize: 27,
+                  height: 1.15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
+              const SizedBox(height: 2),
+              const Text(
+                'Suplementos y más de tu gimnasio',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: AppColores.textoSecundario,
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Mis pedidos, con el número de pedidos por pagar.
+        Material(
+          color: AppColores.superficie,
+          shape: CircleBorder(side: BorderSide(color: AppColores.borde)),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: _abrirMisPedidos,
+            child: SizedBox(
+              width: 46,
+              height: 46,
+              child: Center(
+                child: Badge(
+                  isLabelVisible: _pedidosPendientes > 0,
+                  label: Text('$_pedidosPendientes'),
+                  backgroundColor: AppColores.naranja,
+                  child: Icon(
+                    Icons.receipt_long_rounded,
+                    color: AppColores.primario,
+                  ),
+                ),
               ),
             ),
-      floatingActionButton: _totalItems == 0 ? null : _botonCarrito(),
+          ),
+        ),
+      ],
     );
   }
 
-  /// Mostramos el banner de puntos si el cliente tiene saldo o hay algo que
-  /// canjear (evita ruido cuando el gimnasio no usa el programa de puntos).
-  bool get _mostrarPuntos =>
-      _resumen.saldo > 0 || _resumen.canje.isNotEmpty || _resumen.gana.isNotEmpty;
-
-  /// Banner que avisa cuántos pedidos siguen pendientes de pago y abre la hoja
-  /// "Mis pedidos" para elegir cuál pagar por la app.
-  Widget _bannerPedidosPendientes() {
-    final n = _pedidosPendientes;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppEspaciado.md, 0, AppEspaciado.md, AppEspaciado.sm),
-      child: InkWell(
-        onTap: _abrirMisPedidos,
-        borderRadius: BorderRadius.circular(AppEspaciado.radio),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppEspaciado.md, vertical: AppEspaciado.sm + 4),
-          decoration: BoxDecoration(
-            color: AppColores.superficie,
-            borderRadius: BorderRadius.circular(AppEspaciado.radio),
-            border:
-                Border.all(color: AppColores.primario.withValues(alpha: 0.35)),
-            boxShadow: AppSombras.tarjeta,
-          ),
-          child: Row(
+  /// Tarjeta con foto: los puntos del socio (si el gimnasio usa puntos) o una
+  /// invitación a comprar.
+  Widget _portada() {
+    final conPuntos =
+        _resumen.saldo > 0 ||
+        _resumen.canje.isNotEmpty ||
+        _resumen.gana.isNotEmpty;
+    final puedeCanjear = _resumen.canje.isNotEmpty;
+    return SizedBox(
+      height: 150,
+      child: FotoTarjeta(
+        foto: 'assets/imagenes/inicio/tienda.jpg',
+        alineacion: const Alignment(0.4, 0.2),
+        radio: AppEspaciado.radio + 6,
+        degradadoHorizontal: true,
+        onTap: conPuntos ? _abrirMisPuntos : null,
+        child: Padding(
+          padding: const EdgeInsets.all(AppEspaciado.md + 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.receipt_long_rounded,
-                  color: AppColores.primario, size: 22),
-              const SizedBox(width: AppEspaciado.sm + 2),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Text(
+                conPuntos ? 'TUS PUNTOS' : 'COMPRA EN LA APP',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  letterSpacing: 1.3,
+                  fontWeight: FontWeight.w800,
+                  color: AppColores.destacado,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                conPuntos ? '${_resumen.saldo} pts' : 'Pide y recoge',
+                style: const TextStyle(
+                  fontSize: 28,
+                  height: 1.1,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: 210,
+                child: Text(
+                  conPuntos
+                      ? (puedeCanjear
+                            ? 'Gana puntos con cada compra y canjéalos por premios.'
+                            : 'Gana puntos con cada compra.')
+                      : 'Arma tu pedido y págalo con Yape o en recepción.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.35,
+                    color: Colors.white.withValues(alpha: 0.82),
+                  ),
+                ),
+              ),
+              if (conPuntos) ...[
+                const SizedBox(height: 10),
+                Row(
                   children: [
                     Text(
-                      n == 1
-                          ? 'Tienes 1 pedido por pagar'
-                          : 'Tienes $n pedidos por pagar',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColores.textoPrincipal,
+                      puedeCanjear ? 'Ver y canjear' : 'Ver historial',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppColores.destacado,
                       ),
                     ),
-                    const Text(
-                      'Toca para ver y pagar por la app',
-                      style: TextStyle(
-                          color: AppColores.textoSecundario, fontSize: 12),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: AppColores.destacado,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: AppEspaciado.sm),
-              ElevatedButton(
-                onPressed: _abrirMisPedidos,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppEspaciado.md, vertical: 10),
-                ),
-                child: const Text('Ver'),
-              ),
+              ],
             ],
           ),
         ),
@@ -306,83 +451,55 @@ class _ComprarScreenState extends State<ComprarScreen> {
     );
   }
 
-  Widget _bannerPuntos() {
-    final puedeCanjear = _resumen.canje.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppEspaciado.md, 0, AppEspaciado.md, AppEspaciado.sm),
+  Widget _avisoPedidos() {
+    final n = _pedidosPendientes;
+    final radio = BorderRadius.circular(AppEspaciado.radio);
+    return Material(
+      color: AppColores.naranja.withValues(alpha: 0.08),
+      borderRadius: radio,
       child: InkWell(
-        onTap: _abrirMisPuntos,
-        borderRadius: BorderRadius.circular(AppEspaciado.radio),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppEspaciado.md, vertical: AppEspaciado.sm + 4),
+        borderRadius: radio,
+        onTap: _abrirMisPedidos,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppColores.primario, AppColores.acento],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
+            borderRadius: radio,
+            border: Border.all(
+              color: AppColores.naranja.withValues(alpha: 0.35),
             ),
-            borderRadius: BorderRadius.circular(AppEspaciado.radio),
-            boxShadow: AppSombras.tarjeta,
           ),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                ),
-                child: const Icon(Icons.stars_rounded,
-                    color: Colors.white, size: 22),
+              const Icon(
+                Icons.schedule_rounded,
+                color: AppColores.naranja,
+                size: 22,
               ),
-              const SizedBox(width: AppEspaciado.sm + 2),
+              const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_resumen.saldo} pts',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        height: 1.1,
-                      ),
-                    ),
-                    Text(
-                      puedeCanjear
-                          ? 'Toca para ver y canjear tus puntos'
-                          : 'Toca para ver tu historial de puntos',
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
+                child: Text(
+                  n == 1
+                      ? 'Tienes 1 pedido por pagar'
+                      : 'Tienes $n pedidos por pagar',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColores.textoPrincipal,
+                  ),
                 ),
               ),
-              if (puedeCanjear)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppEspaciado.sm + 4, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.card_giftcard_rounded,
-                          size: 15, color: AppColores.primario),
-                      SizedBox(width: 4),
-                      Text('Canjear',
-                          style: TextStyle(
-                              color: AppColores.primario,
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700)),
-                    ],
-                  ),
+              const Text(
+                'Pagar',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColores.naranja,
                 ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColores.naranja,
+              ),
             ],
           ),
         ),
@@ -391,358 +508,930 @@ class _ComprarScreenState extends State<ComprarScreen> {
   }
 
   Widget _buscador() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppEspaciado.md, AppEspaciado.md, AppEspaciado.md, AppEspaciado.sm),
-      child: TextField(
-        onChanged: (v) => setState(() => _busqueda = v),
-        decoration: const InputDecoration(
-          hintText: 'Buscar producto...',
-          prefixIcon: Icon(Icons.search),
+    return TextField(
+      onChanged: (v) => setState(() => _busqueda = v),
+      decoration: InputDecoration(
+        hintText: 'Buscar proteína, creatina, bebidas…',
+        prefixIcon: const Icon(Icons.search_rounded),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: AppColores.borde),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: AppColores.borde),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+          borderSide: BorderSide(color: AppColores.primario, width: 1.6),
         ),
       ),
     );
   }
 
-  Widget _listaProductos() {
-    final productos = _productosFiltrados;
-    if (productos.isEmpty) {
-      return ListView(
-        children: const [
-          SizedBox(height: 120),
-          EstadoVacio(
-            icono: Icons.inventory_2_outlined,
-            mensaje: 'No hay productos disponibles',
-          ),
-        ],
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(
-          AppEspaciado.md, 0, AppEspaciado.md, 96),
-      itemCount: productos.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppEspaciado.sm + 4),
-      itemBuilder: (_, i) => _tarjetaProducto(productos[i]),
-    );
-  }
-
-  Widget _tarjetaProducto(ProductoTienda p) {
-    return TarjetaApp(
-      padding: const EdgeInsets.all(AppEspaciado.sm + 4),
-      child: Row(
-        children: [
-          _imagen(p.imagen, 56),
-          const SizedBox(width: AppEspaciado.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  p.nombre,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColores.textoPrincipal,
-                  ),
-                ),
-                // Al cliente no se le muestra el stock: es información interna
-                // del negocio. Se sigue usando como tope al agregar al carrito.
-                if (p.nombreMarca.trim().isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    p.nombreMarca,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColores.textoSecundario,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      _soles(p.precio),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                        color: AppColores.primario,
-                      ),
-                    ),
-                    if (_puntosPorProducto[p.id] != null) ...[
-                      const SizedBox(width: AppEspaciado.sm),
-                      _chipPuntos(_puntosPorProducto[p.id]!),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppEspaciado.sm),
-          ElevatedButton(
-            onPressed: () => _agregar(p),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppEspaciado.md, vertical: 10),
-            ),
-            child: const Icon(Icons.add_shopping_cart, size: 18),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Distintivo que marca los productos que otorgan puntos al comprarse.
-  Widget _chipPuntos(int puntos) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-      decoration: BoxDecoration(
-        color: AppColores.primario.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColores.primario.withValues(alpha: 0.12)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.star_rounded,
-              size: 12, color: AppColores.primario.withValues(alpha: 0.55)),
-          const SizedBox(width: 3),
-          Text(
-            '+$puntos pts',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
-              color: AppColores.primario.withValues(alpha: 0.75),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _imagen(String img, double size) {
-    final url = _urlImagen(img);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-      child: Container(
-        width: size,
-        height: size,
-        color: AppColores.fondo,
-        child: url.isEmpty
-            ? const Icon(Icons.inventory_2_outlined,
-                color: AppColores.textoSecundario)
-            : Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const Icon(
-                    Icons.inventory_2_outlined,
-                    color: AppColores.textoSecundario),
+  Widget _filtroCategorias() {
+    final opciones = <String?>[null, ..._categorias];
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: opciones.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final c = opciones[i];
+          final activa = c == _categoria;
+          return GestureDetector(
+            onTap: () => setState(() => _categoria = c),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: activa ? AppColores.degradadoRelleno : null,
+                color: activa ? null : AppColores.superficie,
+                borderRadius: BorderRadius.circular(20),
+                border: activa
+                    ? AppColores.bordeCabecera
+                    : Border.all(color: AppColores.borde),
               ),
-      ),
-    );
-  }
-
-  Widget _botonCarrito() {
-    return FloatingActionButton.extended(
-      onPressed: _mostrarCarrito,
-      backgroundColor: AppColores.primario,
-      icon: Badge(
-        label: Text('$_totalItems'),
-        backgroundColor: AppColores.naranja,
-        child: const Icon(Icons.shopping_cart, color: Colors.white),
-      ),
-      label: Text(
-        _soles(_totalCarrito),
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-      ),
-    );
-  }
-
-  void _mostrarCarrito() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColores.superficie,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheet) => _contenidoCarrito(setSheet),
-        );
-      },
-    );
-  }
-
-  Widget _contenidoCarrito(StateSetter setSheet) {
-    final items = _carrito.values.toList();
-    return Padding(
-      padding: EdgeInsets.only(
-        left: AppEspaciado.md,
-        right: AppEspaciado.md,
-        top: AppEspaciado.md,
-        bottom: MediaQuery.of(context).viewInsets.bottom + AppEspaciado.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.shopping_cart_outlined,
-                  color: AppColores.primario),
-              const SizedBox(width: AppEspaciado.sm),
-              const Text(
-                'Mi pedido',
+              child: Text(
+                c == null ? 'Todo' : _bonito(c),
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: AppColores.textoPrincipal,
+                  fontSize: 13,
+                  fontWeight: activa ? FontWeight.w700 : FontWeight.w500,
+                  color: activa
+                      ? AppColores.sobreRelleno
+                      : AppColores.textoPrincipal,
                 ),
-              ),
-              const Spacer(),
-              if (items.isNotEmpty)
-                TextButton(
-                  onPressed: () {
-                    setSheet(() => _carrito.clear());
-                    setState(() {});
-                  },
-                  child: const Text('Vaciar'),
-                ),
-            ],
-          ),
-          const SizedBox(height: AppEspaciado.sm),
-          if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Text('Tu carrito está vacío',
-                  style: TextStyle(color: AppColores.textoSecundario)),
-            )
-          else
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const Divider(height: 16),
-                itemBuilder: (_, i) => _filaCarrito(items[i], setSheet),
               ),
             ),
-          const Divider(height: AppEspaciado.lg),
-          Row(
-            children: [
-              const Text('Total',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600)),
-              const Spacer(),
-              Text(
-                _soles(_totalCarrito),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppColores.primario,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppEspaciado.md),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed:
-                  (items.isEmpty || _enviando) ? null : () => _enviarPedido(setSheet),
-              icon: _enviando
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.send),
-              label: Text(_enviando ? 'Enviando...' : 'Hacer pedido'),
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  Widget _filaCarrito(ItemCarrito item, StateSetter setSheet) {
+  /// "HIGIENE PERSONAL" -> "Higiene personal" (el backend guarda en
+  /// mayúsculas).
+  static String _bonito(String t) {
+    final l = t.trim().toLowerCase();
+    return l.isEmpty ? l : l[0].toUpperCase() + l.substring(1);
+  }
+
+  Widget _tituloSeccion(int cantidad) {
     return Row(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.nombre,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 13.5, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${_soles(item.precio)} · ${item.unidadNombre}',
-                style: const TextStyle(
-                    fontSize: 12, color: AppColores.textoSecundario),
-              ),
-            ],
-          ),
-        ),
-        _botonCantidad(Icons.remove, () {
-          if (item.cantidad > 1) {
-            setSheet(() => item.cantidad--);
-          } else {
-            setSheet(() => _carrito.remove(item.clave));
-          }
-          setState(() {});
-        }),
-        SizedBox(
-          width: 28,
-          child: Text(
-            '${item.cantidad}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-        _botonCantidad(Icons.add, () {
-          if (item.cantidad < item.stock) {
-            setSheet(() => item.cantidad++);
-            setState(() {});
-          } else {
-            // Antes el botón no hacía nada al llegar al tope y el cliente lo
-            // deducía del stock en pantalla; ahora que no lo ve, hay que
-            // decírselo (mismo aviso que al agregar desde el catálogo).
-            mostrarMensaje(context, 'No hay más stock de ${item.nombre}',
-                tipo: TipoMensaje.advertencia);
-          }
-        }),
+        Icon(Icons.storefront_rounded, color: AppColores.primario),
         const SizedBox(width: AppEspaciado.sm),
-        SizedBox(
-          width: 70,
+        Expanded(
           child: Text(
-            _soles(item.subtotal),
-            textAlign: TextAlign.right,
-            style: const TextStyle(
-                fontWeight: FontWeight.w800, color: AppColores.primario),
+            _categoria == null ? 'Productos' : _bonito(_categoria!),
+            style: TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.2,
+              color: AppColores.textoPrincipal,
+            ),
+          ),
+        ),
+        Text(
+          '$cantidad ${cantidad == 1 ? 'producto' : 'productos'}',
+          style: const TextStyle(
+            fontSize: 12.5,
+            color: AppColores.textoSecundario,
           ),
         ),
       ],
     );
   }
 
-  Widget _botonCantidad(IconData icono, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColores.borde),
-          borderRadius: BorderRadius.circular(8),
+  Widget _tarjetaProducto(ProductoTienda p) {
+    final enCarrito = _enCarrito(p);
+    final puntos = _puntosPorProducto[p.id];
+    final radio = BorderRadius.circular(AppEspaciado.radio + 2);
+    return Material(
+      color: AppColores.superficie,
+      borderRadius: radio,
+      child: InkWell(
+        borderRadius: radio,
+        onTap: () => _abrirProducto(p),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: radio,
+            border: Border.all(
+              color: enCarrito != null
+                  ? AppColores.primario.withValues(alpha: 0.45)
+                  : AppColores.borde,
+              width: enCarrito != null ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Foto con los distintivos encima.
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppEspaciado.radio - 2),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _imagen(p.imagen),
+                        if (puntos != null)
+                          Positioned(
+                            left: 6,
+                            top: 6,
+                            child: _chip(
+                              '+$puntos pts',
+                              AppColores.naranja,
+                              icono: Icons.star_rounded,
+                            ),
+                          ),
+                        if (!p.disponible)
+                          Container(
+                            color: Colors.white.withValues(alpha: 0.6),
+                            alignment: Alignment.center,
+                            child: _chip('Agotado', AppColores.vencido),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 8, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (p.nombreMarca.trim().isNotEmpty)
+                      Text(
+                        p.nombreMarca.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          letterSpacing: 0.8,
+                          fontWeight: FontWeight.w700,
+                          color: AppColores.textoSecundario,
+                        ),
+                      ),
+                    Text(
+                      p.nombre,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        height: 1.25,
+                        fontWeight: FontWeight.w700,
+                        color: AppColores.textoPrincipal,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _soles(p.precio),
+                            style: TextStyle(
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppColores.primario,
+                            ),
+                          ),
+                        ),
+                        if (enCarrito == null)
+                          _botonMas(p.disponible ? () => _agregar(p) : null)
+                        else
+                          _cantidadMini(p, enCarrito.cantidad),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        child: Icon(icono, size: 16, color: AppColores.primario),
+      ),
+    );
+  }
+
+  Widget _chip(String texto, Color color, {IconData? icono}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icono != null) ...[
+            Icon(icono, size: 12, color: Colors.white),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            texto,
+            style: const TextStyle(
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _botonMas(VoidCallback? onTap) {
+    return Material(
+      color: onTap == null ? AppColores.borde : AppColores.relleno,
+      shape: CircleBorder(side: AppColores.ladoBoton ?? BorderSide.none),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 34,
+          height: 34,
+          child: Icon(
+            Icons.add_rounded,
+            size: 20,
+            color: onTap == null
+                ? AppColores.textoSecundario
+                : AppColores.sobreRelleno,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cantidadMini(ProductoTienda p, int cantidad) {
+    Widget boton(IconData icono, VoidCallback onTap) => InkWell(
+      customBorder: const CircleBorder(),
+      onTap: onTap,
+      child: SizedBox(
+        width: 28,
+        height: 28,
+        child: Icon(icono, size: 17, color: AppColores.sobreRelleno),
+      ),
+    );
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppColores.degradadoRelleno,
+        border: AppColores.bordeCabecera,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            boton(Icons.remove_rounded, () => _quitarUno(p)),
+            Text(
+              '$cantidad',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppColores.sobreRelleno,
+              ),
+            ),
+            boton(Icons.add_rounded, () => _agregar(p)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _imagen(String img, {double tamanoIcono = 36}) {
+    final url = _urlImagen(img);
+    final vacio = Container(
+      color: AppColores.primario.withValues(alpha: 0.06),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.inventory_2_outlined,
+        size: tamanoIcono,
+        color: AppColores.primario.withValues(alpha: 0.4),
+      ),
+    );
+    if (url.isEmpty) return vacio;
+    return Container(
+      color: Colors.white,
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        cacheWidth: 600,
+        errorBuilder: (_, _, _) => vacio,
+      ),
+    );
+  }
+
+  /// Barra flotante del carrito: cantidad, total y acceso al carrito.
+  Widget _barraCarrito() {
+    final radio = BorderRadius.circular(AppEspaciado.radio + 4);
+    return Material(
+      elevation: 0,
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: radio,
+        onTap: _mostrarCarrito,
+        child: Ink(
+          height: 62,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: AppColores.degradadoRelleno,
+            border: AppColores.bordeCabecera,
+            borderRadius: radio,
+            boxShadow: [
+              BoxShadow(
+                color: AppColores.primario.withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColores.sobreRelleno.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Badge(
+                  label: Text('$_totalItems'),
+                  backgroundColor: AppColores.naranja,
+                  child: Icon(
+                    Icons.shopping_bag_rounded,
+                    color: AppColores.sobreRelleno,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ver mi carrito',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColores.sobreRelleno,
+                      ),
+                    ),
+                    Text(
+                      '$_totalItems ${_totalItems == 1 ? 'producto' : 'productos'}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColores.sobreRellenoSuave,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                _soles(_totalCarrito),
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColores.sobreRelleno,
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: AppColores.sobreRelleno),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------- Modales
+
+  /// Ficha del producto: foto grande, datos, cantidad y "Agregar".
+  Future<void> _abrirProducto(ProductoTienda p) async {
+    var cantidad = 1;
+    final puntos = _puntosPorProducto[p.id];
+    await mostrarHojaModerna<void>(
+      context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setHoja) => HojaModerna(
+          titulo: p.nombre,
+          subtitulo: [
+            p.nombreMarca,
+            p.nombreCategoria,
+          ].where((t) => t.trim().isNotEmpty).join(' · '),
+          accion: IconButton(
+            onPressed: () => Navigator.pop(ctx),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: AppColores.textoSecundario,
+            ),
+          ),
+          pie: Row(
+            children: [
+              _selectorCantidad(
+                cantidad,
+                onMenos: cantidad > 1 ? () => setHoja(() => cantidad--) : null,
+                onMas: cantidad < p.stock
+                    ? () => setHoja(() => cantidad++)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: BotonHoja(
+                  texto: 'Agregar · ${_soles(p.precio * cantidad)}',
+                  icono: Icons.add_shopping_cart_rounded,
+                  onPressed: p.disponible
+                      ? () {
+                          if (_agregar(p, cantidad: cantidad)) {
+                            Navigator.pop(ctx);
+                            mostrarMensaje(
+                              context,
+                              'Agregado al carrito: ${p.nombre}',
+                              tipo: TipoMensaje.exito,
+                            );
+                          }
+                        }
+                      : null,
+                ),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppEspaciado.radio + 2),
+                child: AspectRatio(
+                  aspectRatio: 1.3,
+                  child: _imagen(p.imagen, tamanoIcono: 64),
+                ),
+              ),
+              const SizedBox(height: AppEspaciado.md),
+              Row(
+                children: [
+                  Text(
+                    _soles(p.precio),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: AppColores.primario,
+                    ),
+                  ),
+                  if ((p.unidadPrincipal?.unidadMedida ?? '').isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      '/ ${p.unidadPrincipal!.unidadMedida.toLowerCase()}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppColores.textoSecundario,
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  if (!p.disponible) _chip('Agotado', AppColores.vencido),
+                ],
+              ),
+              if (puntos != null) ...[
+                const SizedBox(height: AppEspaciado.sm + 4),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColores.naranja.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+                    border: Border.all(
+                      color: AppColores.naranja.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.stars_rounded,
+                        color: AppColores.naranja,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Ganas $puntos puntos por cada unidad que compres.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColores.textoPrincipal,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppEspaciado.md),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _selectorCantidad(
+    int cantidad, {
+    VoidCallback? onMenos,
+    VoidCallback? onMas,
+  }) {
+    Widget boton(IconData icono, VoidCallback? onTap) => InkWell(
+      customBorder: const CircleBorder(),
+      onTap: onTap,
+      child: SizedBox(
+        width: 40,
+        height: 54,
+        child: Icon(
+          icono,
+          color: onTap == null ? AppColores.borde : AppColores.primario,
+        ),
+      ),
+    );
+    return Container(
+      height: 54,
+      decoration: BoxDecoration(
+        color: AppColores.fondo,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Row(
+          children: [
+            boton(Icons.remove_rounded, onMenos),
+            SizedBox(
+              width: 26,
+              child: Text(
+                '$cantidad',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
+            ),
+            boton(Icons.add_rounded, onMas),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _mostrarCarrito() {
+    mostrarHojaModerna<void>(
+      context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setHoja) {
+          final items = _carrito.values.toList();
+          void refrescar(VoidCallback cambio) {
+            setHoja(cambio);
+            setState(() {});
+            if (_carrito.isEmpty) Navigator.pop(ctx);
+          }
+
+          return HojaModerna(
+            icono: Icons.shopping_bag_rounded,
+            titulo: 'Tu carrito',
+            subtitulo:
+                '$_totalItems ${_totalItems == 1 ? 'producto' : 'productos'}',
+            accion: TextButton(
+              onPressed: () => refrescar(() => _carrito.clear()),
+              child: const Text(
+                'Vaciar',
+                style: TextStyle(color: AppColores.moroso),
+              ),
+            ),
+            pie: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_puntosCarrito > 0) ...[
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.stars_rounded,
+                        size: 18,
+                        color: AppColores.naranja,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Ganarás $_puntosCarrito puntos',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColores.naranja,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                Row(
+                  children: [
+                    const Text(
+                      'Total',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: AppColores.textoSecundario,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _soles(_totalCarrito),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColores.textoPrincipal,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppEspaciado.sm + 4),
+                BotonHoja(
+                  texto: 'Confirmar pedido',
+                  icono: Icons.check_rounded,
+                  cargando: _enviando,
+                  onPressed: items.isEmpty
+                      ? null
+                      : () => _enviarPedido(ctx, setHoja),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                for (final item in items)
+                  _filaCarrito(item, (cambio) => refrescar(cambio)),
+                const SizedBox(height: AppEspaciado.sm),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _filaCarrito(ItemCarrito item, void Function(VoidCallback) refrescar) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppEspaciado.sm + 2),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: AppColores.fondo,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+            child: SizedBox(
+              width: 58,
+              height: 58,
+              child: _imagen(item.imagen, tamanoIcono: 24),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.nombre,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _soles(item.subtotal),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColores.primario,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColores.superficie,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColores.borde),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 18,
+                  onPressed: () => refrescar(() {
+                    if (item.cantidad > 1) {
+                      item.cantidad--;
+                    } else {
+                      _carrito.remove(item.clave);
+                    }
+                  }),
+                  icon: Icon(
+                    item.cantidad > 1
+                        ? Icons.remove_rounded
+                        : Icons.delete_outline_rounded,
+                    color: item.cantidad > 1
+                        ? AppColores.primario
+                        : AppColores.moroso,
+                  ),
+                ),
+                Text(
+                  '${item.cantidad}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 18,
+                  onPressed: () {
+                    if (item.cantidad < item.stock) {
+                      refrescar(() => item.cantidad++);
+                    } else {
+                      mostrarMensaje(
+                        context,
+                        'No hay más stock de ${item.nombre}',
+                        tipo: TipoMensaje.advertencia,
+                      );
+                    }
+                  },
+                  icon: Icon(Icons.add_rounded, color: AppColores.primario),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _enviarPedido(BuildContext hoja, StateSetter setHoja) async {
+    if (_carrito.isEmpty || _catalogo == null) return;
+    setHoja(() => _enviando = true);
+
+    final resultado = await _controlador.crearPedido(
+      _catalogo!.organizadorId,
+      _carrito.values.toList(),
+    );
+    if (!mounted) return;
+    _enviando = false;
+
+    if (resultado.exito) {
+      setState(() => _carrito.clear());
+      if (hoja.mounted) Navigator.of(hoja).pop();
+      await _recargarPedidos();
+      if (!mounted) return;
+      final pagarAhora = await _preguntarPago(resultado.total);
+      if (pagarAhora != true || !mounted) return;
+      // "Mis pedidos" muestra el recién creado de primero para pagarlo.
+      await _abrirMisPedidos();
+    } else {
+      setHoja(() {});
+      mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.error);
+    }
+  }
+
+  /// Pedido registrado: confirma y pregunta cómo pagar.
+  Future<bool?> _preguntarPago(double total) {
+    Widget opcion({
+      required IconData icono,
+      required String titulo,
+      required String detalle,
+      required bool principal,
+      required VoidCallback onTap,
+    }) {
+      final radio = BorderRadius.circular(AppEspaciado.radio + 2);
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: radio,
+          onTap: onTap,
+          child: Ink(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: principal ? AppColores.degradadoRelleno : null,
+              color: principal ? null : AppColores.fondo,
+              borderRadius: radio,
+              border: principal
+                  ? AppColores.bordeCabecera
+                  : Border.all(color: AppColores.borde),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: principal
+                        ? AppColores.sobreRelleno.withValues(alpha: 0.15)
+                        : AppColores.primario.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icono,
+                    color: principal
+                        ? AppColores.sobreRelleno
+                        : AppColores.primario,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        titulo,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: principal
+                              ? AppColores.sobreRelleno
+                              : AppColores.textoPrincipal,
+                        ),
+                      ),
+                      Text(
+                        detalle,
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: principal
+                              ? AppColores.sobreRellenoSuave
+                              : AppColores.textoSecundario,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: principal
+                      ? AppColores.sobreRelleno
+                      : AppColores.textoSecundario,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return mostrarHojaModerna<bool>(
+      context,
+      builder: (ctx) => HojaModerna(
+        titulo: '¡Pedido registrado!',
+        subtitulo: 'Total a pagar: ${_soles(total)}',
+        child: Column(
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: AppColores.exito.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                size: 52,
+                color: AppColores.exito,
+              ),
+            ),
+            const SizedBox(height: AppEspaciado.md),
+            const Text(
+              '¿Cómo quieres pagarlo?',
+              style: TextStyle(fontSize: 14, color: AppColores.textoSecundario),
+            ),
+            const SizedBox(height: AppEspaciado.md),
+            opcion(
+              icono: Icons.qr_code_2_rounded,
+              titulo: 'Pagar ahora con Yape',
+              detalle: 'Rápido, desde la app',
+              principal: true,
+              onTap: () => Navigator.pop(ctx, true),
+            ),
+            const SizedBox(height: AppEspaciado.sm + 2),
+            opcion(
+              icono: Icons.storefront_rounded,
+              titulo: 'Pagar en recepción',
+              detalle: 'Lo recoges y pagas en el gimnasio',
+              principal: false,
+              onTap: () => Navigator.pop(ctx, false),
+            ),
+            const SizedBox(height: AppEspaciado.sm),
+          ],
+        ),
       ),
     );
   }

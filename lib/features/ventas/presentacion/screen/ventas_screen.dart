@@ -60,7 +60,7 @@ class _VentasScreenState extends State<VentasScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_cargado) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColores.fondo,
         body: Center(child: CircularProgressIndicator()),
       );

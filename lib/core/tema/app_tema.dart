@@ -1,23 +1,76 @@
 import 'package:flutter/material.dart';
 
+import 'package:xnox_app/core/tema/paleta_app.dart';
+
+export 'package:xnox_app/core/tema/paleta_app.dart';
+
 /// Sistema de diseño centralizado de XNOX-SOFT.
 /// Todas las pantallas deben consumir estos tokens para mantener
 /// una apariencia estandarizada (colores, espaciado, tipografía y sombras).
+///
+/// Los colores de marca salen de la [PaletaApp] activa (la plantilla que eligió
+/// el gimnasio), por eso son getters y no constantes: no pueden ir dentro de un
+/// `const`. Los colores semánticos (estados, éxito/error) son iguales para
+/// todos los gimnasios y siguen siendo constantes.
 class AppColores {
   AppColores._();
 
-  // Marca
-  static const Color primario = Color(0xFF1A2B4C);
-  static const Color primarioClaro = Color(0xFF2E4475);
-  static const Color acento = Color(0xFF2E7CF6);
+  static PaletaApp _paleta = PaletasApp.porDefecto;
+
+  static PaletaApp get paleta => _paleta;
+
+  /// Cambia la paleta en uso. Quien la cambia se encarga de redibujar la app
+  /// (ver `ControladorPaleta`).
+  static void aplicar(PaletaApp paleta) => _paleta = paleta;
+
+  // Marca: color de "tinta" (íconos, textos destacados, selección).
+  static Color get primario => _paleta.primario;
+  static Color get primarioClaro => _paleta.primarioClaro;
+  static Color get acento => _paleta.acento;
+
+  // Relleno de marca: barra superior, cabeceras con degradado y botones
+  // principales. En la mayoría de plantillas es el mismo [primario], pero en
+  // XNOX-SOFT es blanco con borde azul.
+  static Color get relleno => _paleta.relleno;
+  static Color get rellenoClaro => _paleta.rellenoClaro;
+  static Color get sobreRelleno => _paleta.sobreRelleno;
+  static Color get sobreRellenoSuave => _paleta.sobreRellenoSuave;
+  static Color? get bordeRelleno => _paleta.bordeRelleno;
+
+  /// Degradado de las cabeceras de marca (tarjetas de resumen, membresía...).
+  static LinearGradient get degradadoRelleno => LinearGradient(
+        colors: [relleno, rellenoClaro],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  /// Borde de las cabeceras de marca: solo existe si el relleno es claro.
+  static Border? get bordeCabecera => bordeRelleno == null
+      ? null
+      : Border.all(color: bordeRelleno!, width: 1.4);
+
+  /// Borde de los botones con relleno de marca.
+  static BorderSide? get ladoBoton =>
+      bordeRelleno == null ? null : BorderSide(color: bordeRelleno!, width: 1.4);
+
+  /// Tono claro de la marca para usar sobre fotos u otros fondos oscuros
+  /// (barras de progreso, íconos destacados). Sale del [acento] de la paleta,
+  /// aclarado lo justo para que se lea en cualquier plantilla.
+  static Color get destacado {
+    final hsl = HSLColor.fromColor(_paleta.acento);
+    return hsl
+        .withLightness(hsl.lightness < 0.62 ? 0.62 : hsl.lightness)
+        .withSaturation((hsl.saturation + 0.1).clamp(0.0, 1.0))
+        .toColor();
+  }
 
   // Superficies
-  static const Color fondo = Color(0xFFF4F6FB);
-  static const Color superficie = Color(0xFFFFFFFF);
-  static const Color borde = Color(0xFFE6EAF2);
+  static Color get fondo => _paleta.fondo;
+  static Color get superficie => _paleta.superficie;
+  static Color get borde => _paleta.borde;
 
   // Texto
-  static const Color textoPrincipal = Color(0xFF1A2B4C);
+  static Color get textoPrincipal => _paleta.textoPrincipal;
   static const Color textoSecundario = Color(0xFF7A869A);
 
   // Estados de miembros / semántica
@@ -63,33 +116,40 @@ class AppSombras {
 
   static List<BoxShadow> get tarjeta => [
         BoxShadow(
-          color: const Color(0xFF1A2B4C).withValues(alpha: 0.06),
+          color: AppColores.textoPrincipal.withValues(alpha: 0.06),
           blurRadius: 16,
           offset: const Offset(0, 6),
         ),
       ];
 }
 
-/// Construye el [ThemeData] global de la aplicación.
+/// Construye el [ThemeData] global de la aplicación con la paleta activa.
 ThemeData construirTema() {
+  final lado = AppColores.ladoBoton;
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColores.primario,
       primary: AppColores.primario,
+      surface: AppColores.superficie,
     ),
     scaffoldBackgroundColor: AppColores.fondo,
     fontFamily: 'Roboto',
   );
 
   return base.copyWith(
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColores.primario,
-      foregroundColor: Colors.white,
+    appBarTheme: AppBarTheme(
+      backgroundColor: AppColores.relleno,
+      foregroundColor: AppColores.sobreRelleno,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
+      scrolledUnderElevation: 0,
       centerTitle: false,
+      shape: AppColores.bordeRelleno == null
+          ? null
+          : Border(bottom: BorderSide(color: AppColores.bordeRelleno!)),
       titleTextStyle: TextStyle(
-        color: Colors.white,
+        color: AppColores.sobreRelleno,
         fontSize: 18,
         fontWeight: FontWeight.w600,
       ),
@@ -99,13 +159,17 @@ ThemeData construirTema() {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        side: AppColores.bordeRelleno == null
+            ? BorderSide.none
+            : BorderSide(color: AppColores.borde),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColores.primario,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColores.relleno,
+        foregroundColor: AppColores.sobreRelleno,
         elevation: 0,
+        side: lado,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
@@ -113,6 +177,15 @@ ThemeData construirTema() {
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: AppColores.relleno,
+      foregroundColor: AppColores.sobreRelleno,
+      shape: lado == null
+          ? null
+          : StadiumBorder(side: lado),
+    ),
+    progressIndicatorTheme:
+        ProgressIndicatorThemeData(color: AppColores.primario),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColores.superficie,
@@ -120,15 +193,15 @@ ThemeData construirTema() {
           const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-        borderSide: const BorderSide(color: AppColores.borde),
+        borderSide: BorderSide(color: AppColores.borde),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-        borderSide: const BorderSide(color: AppColores.borde),
+        borderSide: BorderSide(color: AppColores.borde),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-        borderSide: const BorderSide(color: AppColores.acento, width: 1.6),
+        borderSide: BorderSide(color: AppColores.acento, width: 1.6),
       ),
     ),
   );

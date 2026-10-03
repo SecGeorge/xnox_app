@@ -187,7 +187,7 @@ class _PuntoVentaViewState extends State<PuntoVentaView> {
                   p.nombre,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                     color: AppColores.textoPrincipal,
@@ -206,7 +206,7 @@ class _PuntoVentaViewState extends State<PuntoVentaView> {
                   children: [
                     Text(
                       _soles(p.precio),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
                         color: AppColores.primario,
@@ -265,16 +265,15 @@ class _PuntoVentaViewState extends State<PuntoVentaView> {
   Widget _botonCarrito() {
     return FloatingActionButton.extended(
       onPressed: _mostrarCarrito,
-      backgroundColor: AppColores.primario,
       icon: Badge(
         label: Text('$_totalItems'),
         backgroundColor: AppColores.naranja,
-        child: const Icon(Icons.shopping_cart, color: Colors.white),
+        child: Icon(Icons.shopping_cart, color: AppColores.sobreRelleno),
       ),
       label: Text(
         _soles(_totalCarrito),
-        style:
-            const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        style: TextStyle(
+            color: AppColores.sobreRelleno, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -307,9 +306,9 @@ class _PuntoVentaViewState extends State<PuntoVentaView> {
         children: [
           Row(
             children: [
-              const Icon(Icons.point_of_sale, color: AppColores.primario),
+              Icon(Icons.point_of_sale, color: AppColores.primario),
               const SizedBox(width: AppEspaciado.sm),
-              const Text(
+              Text(
                 'Venta actual',
                 style: TextStyle(
                   fontSize: 18,
@@ -352,7 +351,7 @@ class _PuntoVentaViewState extends State<PuntoVentaView> {
               const Spacer(),
               Text(
                 _soles(_totalCarrito),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w800,
                   color: AppColores.primario,
@@ -433,7 +432,7 @@ class _PuntoVentaViewState extends State<PuntoVentaView> {
           child: Text(
             _soles(item.subtotal),
             textAlign: TextAlign.right,
-            style: const TextStyle(
+            style: TextStyle(
                 fontWeight: FontWeight.w800, color: AppColores.primario),
           ),
         ),

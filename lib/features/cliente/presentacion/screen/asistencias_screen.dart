@@ -118,7 +118,7 @@ class _AsistenciasScreenState extends State<AsistenciasScreen> {
                 padding: const EdgeInsets.all(AppEspaciado.md),
                 children: [
                   const SizedBox(height: AppEspaciado.sm),
-                  const Text(
+                  Text(
                     'Mis Asistencias',
                     style: TextStyle(
                         fontSize: 24,
@@ -173,7 +173,7 @@ class _AsistenciasScreenState extends State<AsistenciasScreen> {
             Icon(icono, color: color, size: 20),
             const SizedBox(height: 6),
             Text(valor,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: AppColores.textoPrincipal)),
@@ -203,7 +203,7 @@ class _AsistenciasScreenState extends State<AsistenciasScreen> {
                 value: _filtroMembresia,
                 isExpanded: true,
                 borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 14, color: AppColores.textoPrincipal),
                 items: [
                   const DropdownMenuItem(
@@ -277,7 +277,7 @@ class _AsistenciasScreenState extends State<AsistenciasScreen> {
                           DateFormat('MMMM yyyy', 'es').format(_mes)) ??
                       '',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColores.textoPrincipal),
@@ -417,13 +417,13 @@ class _AsistenciasScreenState extends State<AsistenciasScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.event_note,
+              Icon(Icons.event_note,
                   size: 18, color: AppColores.primario),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   toBeginningOfSentenceCase(f.format(dia)) ?? '',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: AppColores.textoPrincipal),
@@ -434,7 +434,7 @@ class _AsistenciasScreenState extends State<AsistenciasScreen> {
                   color: AppColores.verde),
             ],
           ),
-          const Divider(height: AppEspaciado.lg, color: AppColores.borde),
+          Divider(height: AppEspaciado.lg, color: AppColores.borde),
           ...visitas.map((v) => Padding(
                 padding: const EdgeInsets.only(bottom: AppEspaciado.sm),
                 child: Row(
@@ -443,7 +443,7 @@ class _AsistenciasScreenState extends State<AsistenciasScreen> {
                         size: 18, color: AppColores.textoSecundario),
                     const SizedBox(width: AppEspaciado.sm),
                     Text(v.hora.isEmpty ? '—' : v.hora,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: AppColores.textoPrincipal)),

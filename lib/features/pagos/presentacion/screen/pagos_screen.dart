@@ -171,7 +171,7 @@ class _PagosScreenState extends State<PagosScreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   kpi.valor,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
                     color: AppColores.textoPrincipal,
