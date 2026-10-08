@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
 
@@ -11,7 +12,10 @@ class CampanaAvisos extends StatefulWidget {
   /// Color del ícono. En un AppBar (fondo oscuro) se deja `null` para heredar
   /// el blanco; en encabezados claros (Inicio, Ajustes) se pasa el color primario.
   final Color? color;
-  const CampanaAvisos({super.key, this.color});
+
+  /// Botón redondo con borde, para las cabeceras grandes ([CabeceraApp]).
+  final bool redonda;
+  const CampanaAvisos({super.key, this.color, this.redonda = false});
 
   @override
   State<CampanaAvisos> createState() => _CampanaAvisosState();
@@ -47,6 +51,16 @@ class _CampanaAvisosState extends State<CampanaAvisos> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.redonda) {
+      return BotonRedondo(
+        icono: _pendientes > 0
+            ? Icons.notifications_rounded
+            : Icons.notifications_none_rounded,
+        onTap: _abrir,
+        tooltip: 'Avisos',
+        contador: _pendientes,
+      );
+    }
     return IconButton(
       onPressed: _abrir,
       tooltip: 'Avisos',

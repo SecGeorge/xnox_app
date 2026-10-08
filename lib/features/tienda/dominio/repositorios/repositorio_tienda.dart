@@ -27,7 +27,10 @@ abstract class RepositorioTienda {
   Future<CatalogoTienda> obtenerCatalogo();
 
   /// Registra un pedido pendiente con los items del carrito.
-  Future<ResultadoPedido> crearPedido(int organizadorId, List<ItemCarrito> items);
+  Future<ResultadoPedido> crearPedido(
+    int organizadorId,
+    List<ItemCarrito> items,
+  );
 
   /// Pedidos del cliente (pendientes y vendidos) para elegir cuál pagar.
   Future<List<PedidoCliente>> obtenerMisPedidos();

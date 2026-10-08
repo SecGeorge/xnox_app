@@ -5,7 +5,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/hoja_moderna.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_promociones.dart';
-import 'package:xnox_app/features/cliente/presentacion/widget/foto_tarjeta.dart';
+import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_pedidos.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_puntos.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/item_carrito.dart';

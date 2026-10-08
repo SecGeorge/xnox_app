@@ -15,7 +15,8 @@ class ResultadoPagoYape {
 class RepositorioPagoYape {
   final HttpService _httpService;
 
-  RepositorioPagoYape([HttpService? http]) : _httpService = http ?? HttpService();
+  RepositorioPagoYape([HttpService? http])
+    : _httpService = http ?? HttpService();
 
   /// Convierte la ruta relativa que guarda el backend (ej. "imagenes/yape/x.png")
   /// en una URL absoluta para `Image.network`.
@@ -31,10 +32,9 @@ class RepositorioPagoYape {
 
   /// Obtiene el número, titular y QR de Yape del negocio (tabla `ajustes`).
   Future<ConfigPagoYape> obtenerConfig() async {
-    final resp = await _httpService.obtenerConDatos(
-      {'metodo': 'obtener'},
-      'ajustes.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'obtener',
+    }, 'ajustes.php');
     if (resp is! Map) {
       return const ConfigPagoYape(numero: '', titular: '');
     }
@@ -49,10 +49,10 @@ class RepositorioPagoYape {
   /// El cliente reporta que ya pagó su pedido por Yape. Devuelve `null` si todo
   /// salió bien, o un mensaje de error legible.
   Future<String?> reportarPagoPedido(int pedidoId) async {
-    final resp = await _httpService.registrar(
-      {'metodo': 'reportar_pago', 'pedido_id': pedidoId},
-      'pedidos.php',
-    );
+    final resp = await _httpService.registrar({
+      'metodo': 'reportar_pago',
+      'pedido_id': pedidoId,
+    }, 'pedidos.php');
     if (resp is Map) {
       if (resp['success'] == true) return null;
       return resp['mensaje']?.toString() ??
@@ -64,18 +64,18 @@ class RepositorioPagoYape {
 
   /// Valida el código de seguridad del pago Yape de un PEDIDO. Si el pago
   /// existe y es igual o mayor al total, el pedido se confirma automáticamente.
-  Future<ResultadoPagoYape> validarPagoPedido(int pedidoId, String codigo) async {
+  Future<ResultadoPagoYape> validarPagoPedido(
+    int pedidoId,
+    String codigo,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = int.tryParse(prefs.getString('idUsuario') ?? '');
-    final resp = await _httpService.registrar(
-      {
-        'metodo': 'validar_pago_yape',
-        'pedido_id': pedidoId,
-        'codigo': codigo.trim(),
-        'usuario_creacion': usuarioId,
-      },
-      'pedidos.php',
-    );
+    final resp = await _httpService.registrar({
+      'metodo': 'validar_pago_yape',
+      'pedido_id': pedidoId,
+      'codigo': codigo.trim(),
+      'usuario_creacion': usuarioId,
+    }, 'pedidos.php');
     return _interpretar(resp);
   }
 
@@ -89,17 +89,14 @@ class RepositorioPagoYape {
     final prefs = await SharedPreferences.getInstance();
     final usuarioId = int.tryParse(prefs.getString('idUsuario') ?? '');
     final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '');
-    final resp = await _httpService.registrar(
-      {
-        'metodo': 'validar_pago_yape',
-        'contrato_id': contratoId,
-        'monto': monto,
-        'sucursal_id': sucursalId,
-        'usuario_creacion': usuarioId,
-        'codigo': codigo.trim(),
-      },
-      'pagos.php',
-    );
+    final resp = await _httpService.registrar({
+      'metodo': 'validar_pago_yape',
+      'contrato_id': contratoId,
+      'monto': monto,
+      'sucursal_id': sucursalId,
+      'usuario_creacion': usuarioId,
+      'codigo': codigo.trim(),
+    }, 'pagos.php');
     return _interpretar(resp);
   }
 
@@ -110,12 +107,14 @@ class RepositorioPagoYape {
         return ResultadoPagoYape(
           ok: true,
           mensaje:
-              resp['mensaje']?.toString() ?? '¡Pago verificado! Compra confirmada.',
+              resp['mensaje']?.toString() ??
+              '¡Pago verificado! Compra confirmada.',
         );
       }
       return ResultadoPagoYape(
         ok: false,
-        mensaje: resp['mensaje']?.toString() ??
+        mensaje:
+            resp['mensaje']?.toString() ??
             resp['error']?.toString() ??
             'No se pudo verificar el pago',
       );

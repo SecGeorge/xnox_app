@@ -16,58 +16,104 @@ class DetallePublicidadScreen extends StatelessWidget {
     final vigencia =
         '${formato.format(p.fechaInicio)} – ${formato.format(p.fechaFin)}';
 
+    final top = MediaQuery.of(context).padding.top;
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(title: const Text('Publicidad')),
+      backgroundColor: AppColores.fondo,
       body: ListView(
+        padding: EdgeInsets.zero,
         children: [
-          // Imagen grande (con zoom) o banner de marca.
-          AspectRatio(
-            aspectRatio: 16 / 10,
-            child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
-                ? InteractiveViewer(
-                    child: Image.network(
-                      p.imagenUrl!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      cacheWidth: 1280,
-                      loadingBuilder: (context, child, progress) =>
-                          progress == null
+          // Imagen grande (con zoom) o banner de marca, con atrás encima.
+          Stack(
+            children: [
+              SizedBox(
+                height: 280 + top,
+                width: double.infinity,
+                child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
+                    ? InteractiveViewer(
+                        child: Image.network(
+                          p.imagenUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          cacheWidth: 1280,
+                          loadingBuilder: (context, child, progress) =>
+                              progress == null
                               ? child
                               : const Center(
-                                  child: CircularProgressIndicator()),
-                      errorBuilder: (context, error, stack) => _banner(),
+                                  child: CircularProgressIndicator(),
+                                ),
+                          errorBuilder: (context, error, stack) => _banner(),
+                        ),
+                      )
+                    : _banner(),
+              ),
+              Positioned(
+                top: top + 8,
+                left: 12,
+                child: Material(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: const SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                      ),
                     ),
-                  )
-                : _banner(),
+                  ),
+                ),
+              ),
+            ],
           ),
           Padding(
-            padding: const EdgeInsets.all(AppEspaciado.lg),
+            padding: const EdgeInsets.all(AppEspaciado.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColores.primario.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.event_available_rounded,
+                        size: 16,
+                        color: AppColores.primario,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        vigencia,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColores.primario,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppEspaciado.md),
                 Text(
                   p.titulo,
                   style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 25,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
                     color: AppColores.textoPrincipal,
                   ),
                 ),
-                const SizedBox(height: AppEspaciado.sm),
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 15, color: AppColores.textoSecundario),
-                    const SizedBox(width: 6),
-                    Text(
-                      vigencia,
-                      style: const TextStyle(
-                          fontSize: 13, color: AppColores.textoSecundario),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppEspaciado.lg),
+                const SizedBox(height: AppEspaciado.md),
                 Text(
                   p.descripcion,
                   style: TextStyle(
@@ -91,7 +137,11 @@ class DetallePublicidadScreen extends StatelessWidget {
         border: AppColores.bordeCabecera,
       ),
       child: Center(
-        child: Icon(Icons.campaign, color: AppColores.sobreRellenoSuave, size: 72),
+        child: Icon(
+          Icons.campaign,
+          color: AppColores.sobreRellenoSuave,
+          size: 72,
+        ),
       ),
     );
   }

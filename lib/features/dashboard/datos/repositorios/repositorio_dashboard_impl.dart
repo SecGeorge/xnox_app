@@ -15,14 +15,11 @@ class RepositorioDashboardImpl implements RepositorioDashboard {
     final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
 
     // 1) Padrón de miembros -> conteos por estado y cobranza.
-    final miembrosResp = await _httpService.obtenerConDatos(
-      {
-        'metodo': 'buscar',
-        'sucursal_id': sucursalId,
-        'filtros': <String, dynamic>{},
-      },
-      'miembros.php',
-    );
+    final miembrosResp = await _httpService.obtenerConDatos({
+      'metodo': 'buscar',
+      'sucursal_id': sucursalId,
+      'filtros': <String, dynamic>{},
+    }, 'miembros.php');
 
     if (miembrosResp is! List) {
       throw Exception('No se pudieron cargar las estadísticas de miembros');
@@ -31,14 +28,16 @@ class RepositorioDashboardImpl implements RepositorioDashboard {
     // 2) Ingresos del mes (pagos) desde el dashboard de inicio.
     double ingresosMes = 0;
     try {
-      final dash = await _httpService.obtenerConDatos(
-        {'metodo': 'obtener', 'sucursal_id': sucursalId},
-        'inicio.php',
-      );
+      final dash = await _httpService.obtenerConDatos({
+        'metodo': 'obtener',
+        'sucursal_id': sucursalId,
+      }, 'inicio.php');
       if (dash is Map && dash['datosPagos'] is Map) {
         ingresosMes =
-            double.tryParse(dash['datosPagos']['pagosMes']?.toString() ?? '0') ??
-                0;
+            double.tryParse(
+              dash['datosPagos']['pagosMes']?.toString() ?? '0',
+            ) ??
+            0;
       }
     } catch (_) {
       // Si el módulo de pagos falla, mostramos el resto igual con ingresos en 0.
@@ -80,8 +79,9 @@ class RepositorioDashboardImpl implements RepositorioDashboard {
       }
 
       // Nuevos registros del mes en curso.
-      final fechaRegistro =
-          DateTime.tryParse(json['fechaRegistro']?.toString() ?? '');
+      final fechaRegistro = DateTime.tryParse(
+        json['fechaRegistro']?.toString() ?? '',
+      );
       if (fechaRegistro != null &&
           fechaRegistro.year == ahora.year &&
           fechaRegistro.month == ahora.month) {

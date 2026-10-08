@@ -14,18 +14,20 @@ class ControladorTienda {
   final CasoUsoMisPedidos _casoUsoMisPedidos;
 
   ControladorTienda()
-      : _casoUsoCatalogo =
-            CasoUsoCatalogo(RepositorioTiendaImpl(HttpService())),
-        _casoUsoCrearPedido =
-            CasoUsoCrearPedido(RepositorioTiendaImpl(HttpService())),
-        _casoUsoMisPedidos =
-            CasoUsoMisPedidos(RepositorioTiendaImpl(HttpService()));
+    : _casoUsoCatalogo = CasoUsoCatalogo(RepositorioTiendaImpl(HttpService())),
+      _casoUsoCrearPedido = CasoUsoCrearPedido(
+        RepositorioTiendaImpl(HttpService()),
+      ),
+      _casoUsoMisPedidos = CasoUsoMisPedidos(
+        RepositorioTiendaImpl(HttpService()),
+      );
 
   Future<CatalogoTienda> obtenerCatalogo() => _casoUsoCatalogo.ejecutar();
 
   Future<ResultadoPedido> crearPedido(
-          int organizadorId, List<ItemCarrito> items) =>
-      _casoUsoCrearPedido.ejecutar(organizadorId, items);
+    int organizadorId,
+    List<ItemCarrito> items,
+  ) => _casoUsoCrearPedido.ejecutar(organizadorId, items);
 
   Future<List<PedidoCliente>> obtenerMisPedidos() =>
       _casoUsoMisPedidos.ejecutar();

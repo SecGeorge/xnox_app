@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/features/recomendaciones/datos/repositorio_recomendaciones.dart';
 import 'package:xnox_app/features/recomendaciones/presentacion/screen/recomendaciones_screen.dart';
@@ -15,7 +16,10 @@ class BuzonRecomendaciones extends StatefulWidget {
   /// el blanco; en encabezados claros se pasa el color primario.
   final Color? color;
 
-  const BuzonRecomendaciones({super.key, this.color});
+  /// Botón redondo con borde, para las cabeceras grandes ([CabeceraApp]).
+  final bool redonda;
+
+  const BuzonRecomendaciones({super.key, this.color, this.redonda = false});
 
   @override
   State<BuzonRecomendaciones> createState() => _BuzonRecomendacionesState();
@@ -42,14 +46,24 @@ class _BuzonRecomendacionesState extends State<BuzonRecomendaciones> {
   }
 
   Future<void> _abrir() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const RecomendacionesScreen()),
-    );
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const RecomendacionesScreen()));
     await _cargar();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.redonda) {
+      return BotonRedondo(
+        icono: _pendientes > 0
+            ? Icons.rate_review_rounded
+            : Icons.rate_review_outlined,
+        onTap: _abrir,
+        tooltip: 'Recomendaciones',
+        contador: _pendientes,
+        colorContador: AppColores.naranja,
+      );
+    }
     return IconButton(
       onPressed: _abrir,
       tooltip: 'Recomendaciones',
@@ -57,17 +71,16 @@ class _BuzonRecomendacionesState extends State<BuzonRecomendaciones> {
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          Icon(_pendientes > 0
-              ? Icons.rate_review
-              : Icons.rate_review_outlined),
+          Icon(
+            _pendientes > 0 ? Icons.rate_review : Icons.rate_review_outlined,
+          ),
           if (_pendientes > 0)
             Positioned(
               right: -4,
               top: -4,
               child: Container(
                 padding: const EdgeInsets.all(3),
-                constraints:
-                    const BoxConstraints(minWidth: 16, minHeight: 16),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                 decoration: const BoxDecoration(
                   color: AppColores.moroso,
                   shape: BoxShape.circle,

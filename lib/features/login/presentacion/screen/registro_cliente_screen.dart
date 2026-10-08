@@ -64,8 +64,9 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
       _cargandoSucursales = false;
       _codigoGimnasio = resultado.codigo;
       _sucursales = resultado.sucursales;
-      _sucursalSeleccionada =
-          resultado.sucursales.length == 1 ? resultado.sucursales.first : null;
+      _sucursalSeleccionada = resultado.sucursales.length == 1
+          ? resultado.sucursales.first
+          : null;
 
       if (resultado.hayDatos) {
         _sucursalesError = null;
@@ -78,7 +79,8 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
       } else {
         // No se pudo consultar (red o servidor): se ofrece reintentar en vez
         // de dejar el formulario bloqueado.
-        _sucursalesError = resultado.mensaje ?? 'No se pudieron cargar las sucursales';
+        _sucursalesError =
+            resultado.mensaje ?? 'No se pudieron cargar las sucursales';
         _puedeReintentar = true;
       }
     });
@@ -129,15 +131,18 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
               Text(
                 'Regístrate como cliente',
                 style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColores.textoPrincipal),
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: AppColores.textoPrincipal,
+                ),
               ),
               const SizedBox(height: 4),
               const Text(
                 'Crea tu cuenta con tu DNI y una contraseña.',
                 style: TextStyle(
-                    fontSize: 13.5, color: AppColores.textoSecundario),
+                  fontSize: 13.5,
+                  color: AppColores.textoSecundario,
+                ),
               ),
               const SizedBox(height: AppEspaciado.xl),
               DropdownButtonFormField<Sucursal>(
@@ -158,24 +163,26 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                         )
                       : null,
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                hint: Text(_cargandoSucursales
-                    ? 'Cargando sucursales...'
-                    : 'Selecciona una sucursal'),
+                hint: Text(
+                  _cargandoSucursales
+                      ? 'Cargando sucursales...'
+                      : 'Selecciona una sucursal',
+                ),
                 items: _sucursales
-                    .map((s) => DropdownMenuItem(
-                          value: s,
-                          child: Text(s.nombre),
-                        ))
+                    .map(
+                      (s) => DropdownMenuItem(value: s, child: Text(s.nombre)),
+                    )
                     .toList(),
                 // Deshabilitado hasta que haya sucursales cargadas.
                 onChanged: _sucursales.isEmpty
                     ? null
                     : (s) => setState(() {
-                          _sucursalSeleccionada = s;
-                          _sucursalesError = null;
-                        }),
+                        _sucursalSeleccionada = s;
+                        _sucursalesError = null;
+                      }),
               ),
               // Un fallo de red dejaba el formulario bloqueado sin salida:
               // ahora se puede volver a pedir la lista sin salir de la pantalla.
@@ -187,7 +194,8 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                     icon: const Icon(Icons.refresh, size: 18),
                     label: const Text('Reintentar'),
                     style: TextButton.styleFrom(
-                        foregroundColor: AppColores.acento),
+                      foregroundColor: AppColores.acento,
+                    ),
                   ),
                 ),
               const SizedBox(height: AppEspaciado.md),
@@ -199,7 +207,8 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                   labelText: 'DNI',
                   prefixIcon: const Icon(Icons.badge_outlined),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               const SizedBox(height: AppEspaciado.md),
@@ -210,14 +219,15 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                   labelText: 'Contraseña',
                   prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
-                    icon: Icon(_verPassword
-                        ? Icons.visibility_off
-                        : Icons.visibility),
+                    icon: Icon(
+                      _verPassword ? Icons.visibility_off : Icons.visibility,
+                    ),
                     onPressed: () =>
                         setState(() => _verPassword = !_verPassword),
                   ),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               const SizedBox(height: AppEspaciado.md),
@@ -228,7 +238,8 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                   labelText: 'Confirmar contraseña',
                   prefixIcon: const Icon(Icons.lock_outline),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               const SizedBox(height: AppEspaciado.lg),
@@ -241,22 +252,31 @@ class _RegistroClienteScreenState extends State<RegistroClienteScreen> {
                     foregroundColor: AppColores.sobreRelleno,
                     side: AppColores.ladoBoton,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? CircularProgressIndicator(color: AppColores.sobreRelleno)
-                      : const Text('CREAR CUENTA',
+                      ? CircularProgressIndicator(
+                          color: AppColores.sobreRelleno,
+                        )
+                      : const Text(
+                          'CREAR CUENTA',
                           style: TextStyle(
-                              fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: AppEspaciado.md),
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: Text('Ya tengo cuenta · Iniciar sesión',
-                      style: TextStyle(color: AppColores.acento)),
+                  child: Text(
+                    'Ya tengo cuenta · Iniciar sesión',
+                    style: TextStyle(color: AppColores.acento),
+                  ),
                 ),
               ),
             ],

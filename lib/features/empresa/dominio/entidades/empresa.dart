@@ -37,14 +37,14 @@ class Empresa {
   String get codigoParaBackend => codigoBackend ?? codigo;
 
   factory Empresa.desdeMapa(Map<String, dynamic> m) => Empresa(
-        id: m['id'] as int,
-        codigo: m['codigo'] as String,
-        nombre: m['nombre'] as String,
-        rutaGlobal: m['ruta_global'] as String,
-        codigoBackend: m['codigo_backend'] as String?,
-        paleta: m['paleta'] as String?,
-        logoUrl: m['logo_url'] as String?,
-        nombreComercial: m['nombre_comercial'] as String?,
-        activa: (m['activa'] as int? ?? 0) == 1,
-      );
+    id: m['id'] as int,
+    codigo: m['codigo'] as String,
+    nombre: m['nombre'] as String,
+    rutaGlobal: m['ruta_global'] as String,
+    codigoBackend: m['codigo_backend'] as String?,
+    paleta: m['paleta'] as String?,
+    logoUrl: m['logo_url'] as String?,
+    nombreComercial: m['nombre_comercial'] as String?,
+    activa: (m['activa'] as int? ?? 0) == 1,
+  );
 }

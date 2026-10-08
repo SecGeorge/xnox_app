@@ -17,29 +17,88 @@ abstract class FiltroContenido {
   /// admiten hasta 4 letras de terminación, para que "puta" también atrape
   /// "putazo" pero "disputa" (donde no arranca la palabra) se salve.
   static const _lisuras = <String>[
-    'concha', 'conchatumadre', 'conchasumadre', 'conchetumadre',
-    'mierda', 'puta', 'puto', 'putamadre', 'cabron', 'cabrona',
-    'huevon', 'hueon', 'weon', 'webon', 'ahuevonado',
-    'pendejo', 'pendeja', 'verga', 'pinga', 'pichula', 'poto',
-    'culo', 'culiao', 'culear', 'carajo', 'chucha', 'choto',
-    'cojudo', 'cojuda', 'maricon', 'marica', 'zorra', 'perra',
-    'baboso', 'imbecil', 'idiota', 'estupido', 'tarado', 'pelotudo',
-    'boludo', 'gilipollas', 'joder', 'jodido', 'jodete', 'coño',
-    'mierdero', 'asqueroso', 'malparido', 'hijueputa', 'hijodeputa',
+    'concha',
+    'conchatumadre',
+    'conchasumadre',
+    'conchetumadre',
+    'mierda',
+    'puta',
+    'puto',
+    'putamadre',
+    'cabron',
+    'cabrona',
+    'huevon',
+    'hueon',
+    'weon',
+    'webon',
+    'ahuevonado',
+    'pendejo',
+    'pendeja',
+    'verga',
+    'pinga',
+    'pichula',
+    'poto',
+    'culo',
+    'culiao',
+    'culear',
+    'carajo',
+    'chucha',
+    'choto',
+    'cojudo',
+    'cojuda',
+    'maricon',
+    'marica',
+    'zorra',
+    'perra',
+    'baboso',
+    'imbecil',
+    'idiota',
+    'estupido',
+    'tarado',
+    'pelotudo',
+    'boludo',
+    'gilipollas',
+    'joder',
+    'jodido',
+    'jodete',
+    'coño',
+    'mierdero',
+    'asqueroso',
+    'malparido',
+    'hijueputa',
+    'hijodeputa',
   ];
 
   /// Abreviaturas. Van por coincidencia EXACTA: con terminaciones libres
   /// atraparían palabras normales ("csm" dentro de nada, pero "ctm" en
   /// "ctmuy" sí molestaría).
   static const _abreviaturas = <String>[
-    'ctm', 'csm', 'ptm', 'hdp', 'mrd', 'wbn', 'ctmr', 'qlq', 'hdpt',
+    'ctm',
+    'csm',
+    'ptm',
+    'hdp',
+    'mrd',
+    'wbn',
+    'ctmr',
+    'qlq',
+    'hdpt',
   ];
 
   /// Secuencias típicas de teclado aporreado.
   /// Ojo: las repeticiones ("aaaa") no van aquí, [normalizar] ya las colapsa.
   static const _teclazos = <String>[
-    'asdf', 'sdfg', 'qwer', 'wert', 'zxcv', 'xcvb', 'hjkl', 'jklñ',
-    'poiu', 'lkjh', 'mnbv', 'ñlkj',
+    'asdf',
+    'sdfg',
+    'qwer',
+    'wert',
+    'zxcv',
+    'xcvb',
+    'hjkl',
+    'jklñ',
+    'poiu',
+    'lkjh',
+    'mnbv',
+    'ñlkj',
   ];
 
   /// Devuelve `null` si el texto es aceptable, o el motivo del rechazo.
@@ -70,13 +129,36 @@ abstract class FiltroContenido {
     var t = texto.toLowerCase();
 
     const equivalencias = {
-      'á': 'a', 'à': 'a', 'ä': 'a', 'â': 'a',
-      'é': 'e', 'è': 'e', 'ë': 'e', 'ê': 'e',
-      'í': 'i', 'ì': 'i', 'ï': 'i', 'î': 'i',
-      'ó': 'o', 'ò': 'o', 'ö': 'o', 'ô': 'o',
-      'ú': 'u', 'ù': 'u', 'ü': 'u', 'û': 'u',
-      '@': 'a', '4': 'a', '3': 'e', '1': 'i', '!': 'i',
-      '0': 'o', '5': 's', '\$': 's', '7': 't', '8': 'b',
+      'á': 'a',
+      'à': 'a',
+      'ä': 'a',
+      'â': 'a',
+      'é': 'e',
+      'è': 'e',
+      'ë': 'e',
+      'ê': 'e',
+      'í': 'i',
+      'ì': 'i',
+      'ï': 'i',
+      'î': 'i',
+      'ó': 'o',
+      'ò': 'o',
+      'ö': 'o',
+      'ô': 'o',
+      'ú': 'u',
+      'ù': 'u',
+      'ü': 'u',
+      'û': 'u',
+      '@': 'a',
+      '4': 'a',
+      '3': 'e',
+      '1': 'i',
+      '!': 'i',
+      '0': 'o',
+      '5': 's',
+      '\$': 's',
+      '7': 't',
+      '8': 'b',
     };
     equivalencias.forEach((de, a) => t = t.replaceAll(de, a));
 
@@ -92,8 +174,7 @@ abstract class FiltroContenido {
 
   /// ¿El texto ya normalizado contiene alguna grosería?
   static bool tieneGroseria(String normalizado) {
-    final palabras =
-        normalizado.split(' ').where((p) => p.isNotEmpty).toList();
+    final palabras = normalizado.split(' ').where((p) => p.isNotEmpty).toList();
 
     for (final palabra in palabras) {
       if (_abreviaturas.contains(palabra)) return true;
@@ -130,8 +211,10 @@ abstract class FiltroContenido {
       if (sinEspacios.contains(secuencia)) return true;
     }
 
-    final palabras =
-        normalizado.split(' ').where((p) => p.length >= 3).toList();
+    final palabras = normalizado
+        .split(' ')
+        .where((p) => p.length >= 3)
+        .toList();
 
     // Sin al menos dos palabras de verdad no hay recomendación que leer
     // (atrapa los mensajes de puros números o símbolos).
@@ -140,8 +223,9 @@ abstract class FiltroContenido {
     // Palabras largas sin ninguna vocal ("sdfghjk"): si son la mayoría, el
     // mensaje no es texto de verdad.
     if (palabras.isNotEmpty) {
-      final sinVocales =
-          palabras.where((p) => !RegExp(r'[aeiou]').hasMatch(p)).length;
+      final sinVocales = palabras
+          .where((p) => !RegExp(r'[aeiou]').hasMatch(p))
+          .length;
       if (sinVocales / palabras.length > 0.5) return true;
     }
 

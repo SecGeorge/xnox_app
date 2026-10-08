@@ -9,8 +9,10 @@ class ControladorDashboard {
   final CasoUsoEstadisticas _casoUsoEstadisticas;
   final CasoUsoLogout _casoUsoLogout;
 
-  ControladorDashboard() 
-    : _casoUsoEstadisticas = CasoUsoEstadisticas(RepositorioDashboardImpl(HttpService())),
+  ControladorDashboard()
+    : _casoUsoEstadisticas = CasoUsoEstadisticas(
+        RepositorioDashboardImpl(HttpService()),
+      ),
       _casoUsoLogout = CasoUsoLogout(RepositorioAuthImpl(HttpService()));
 
   Future<EstadisticasDashboard> obtenerEstadisticas() async {

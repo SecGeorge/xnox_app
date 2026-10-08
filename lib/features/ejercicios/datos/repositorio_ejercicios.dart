@@ -66,14 +66,11 @@ class RepositorioEjercicios {
   /// Lista vacía si no hay conexión, para no bloquear el alta a mano.
   Future<List<EjercicioCatalogo>> buscar(String termino) async {
     try {
-      final response = await _http.obtenerConDatos(
-        {
-          'metodo': 'buscar',
-          'termino': termino,
-          'miembro_id': await _miembroId(),
-        },
-        'ejercicios.php',
-      );
+      final response = await _http.obtenerConDatos({
+        'metodo': 'buscar',
+        'termino': termino,
+        'miembro_id': await _miembroId(),
+      }, 'ejercicios.php');
       return _mapear(response);
     } catch (_) {
       return [];
@@ -87,10 +84,10 @@ class RepositorioEjercicios {
   /// null si no se pudo (sin conexión o ejercicio inexistente).
   Future<EjercicioCatalogo?> obtener(int id) async {
     try {
-      final response = await _http.obtenerConDatos(
-        {'metodo': 'obtener', 'id': id},
-        'ejercicios.php',
-      );
+      final response = await _http.obtenerConDatos({
+        'metodo': 'obtener',
+        'id': id,
+      }, 'ejercicios.php');
 
       if (response is Map && response['resultado'] == true) {
         final datos = response['datos'];
@@ -133,27 +130,26 @@ class RepositorioEjercicios {
   }) async {
     try {
       final miembroId = await _miembroId();
-      final response = await _http.registrar(
-        {
-          'metodo': 'guardar',
-          'ejercicio': {
-            'nombre': nombre,
-            'descripcion': descripcion,
-            'grupo_muscular': grupoMuscular,
-            // Sin miembro el ejercicio entraría al catálogo de todos.
-            'miembro_id': miembroId,
-            'imagenes': imagenesBase64,
-          },
+      final response = await _http.registrar({
+        'metodo': 'guardar',
+        'ejercicio': {
+          'nombre': nombre,
+          'descripcion': descripcion,
+          'grupo_muscular': grupoMuscular,
+          // Sin miembro el ejercicio entraría al catálogo de todos.
+          'miembro_id': miembroId,
+          'imagenes': imagenesBase64,
         },
-        'ejercicios.php',
-      );
+      }, 'ejercicios.php');
 
       if (response is Map && response['resultado'] == true) {
         final datos = response['datos'];
         if (datos is Map) {
           final m = Map<String, dynamic>.from(datos);
           // El guardado devuelve la galería completa; la portada es la primera.
-          final imagenes = (m['imagenes'] is List) ? m['imagenes'] as List : const [];
+          final imagenes = (m['imagenes'] is List)
+              ? m['imagenes'] as List
+              : const [];
           final portada = imagenes.isNotEmpty && imagenes.first is Map
               ? (imagenes.first as Map)['imagen']
               : null;
@@ -200,8 +196,8 @@ class RepositorioEjercicios {
       if (respuesta is Map && respuesta['resultado'] == true) return null;
       return (respuesta is Map)
           ? (respuesta['error']?.toString() ??
-              respuesta['mensaje']?.toString() ??
-              'No se pudo subir el video')
+                respuesta['mensaje']?.toString() ??
+                'No se pudo subir el video')
           : 'No se pudo subir el video';
     } catch (_) {
       return 'No se pudo subir el video. Revisa tu conexión.';

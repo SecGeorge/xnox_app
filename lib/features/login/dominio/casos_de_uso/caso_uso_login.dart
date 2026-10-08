@@ -8,7 +8,10 @@ class CasoUsoLogin {
   CasoUsoLogin(this.repositorio);
 
   Future<RespuestaLogin> ejecutar(
-      String usuario, String password, TipoUsuario tipo) {
+    String usuario,
+    String password,
+    TipoUsuario tipo,
+  ) {
     return repositorio.login(usuario, password, tipo);
   }
 }

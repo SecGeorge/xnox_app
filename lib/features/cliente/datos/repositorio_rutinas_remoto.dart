@@ -30,14 +30,11 @@ class RepositorioRutinasRemoto {
   /// conexión o el backend no responde (la app sigue funcionando con SQLite).
   Future<List<Rutina>> obtenerSugeridas() async {
     try {
-      final response = await _http.obtenerConDatos(
-        {
-          'metodo': 'listar_sugeridas',
-          'sucursal_id': await _sucursalId(),
-          'miembro_id': await _miembroId(),
-        },
-        'rutinas.php',
-      );
+      final response = await _http.obtenerConDatos({
+        'metodo': 'listar_sugeridas',
+        'sucursal_id': await _sucursalId(),
+        'miembro_id': await _miembroId(),
+      }, 'rutinas.php');
       return _mapear(response);
     } catch (_) {
       return [];
@@ -61,7 +58,9 @@ class RepositorioRutinasRemoto {
     final diasJson = (j['dias'] is List) ? j['dias'] as List : const [];
     final dias = diasJson.whereType<Map>().map((d) {
       final dm = Map<String, dynamic>.from(d);
-      final ejsJson = (dm['ejercicios'] is List) ? dm['ejercicios'] as List : const [];
+      final ejsJson = (dm['ejercicios'] is List)
+          ? dm['ejercicios'] as List
+          : const [];
       final ejercicios = ejsJson.whereType<Map>().map((e) {
         final em = Map<String, dynamic>.from(e);
         final catalogoId = _entero(em['ejercicio_catalogo_id']);

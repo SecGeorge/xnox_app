@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/permisos/permisos.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/rutinas_admin/datos/repositorio_rutinas_admin.dart';
 import 'package:xnox_app/features/rutinas_admin/dominio/rutina_admin.dart';
@@ -38,8 +39,9 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
   Future<void> _cargarPermisos() async {
     final permisos = await Permisos.cargar();
     if (!mounted) return;
-    setState(() =>
-        _puedeGestionar = permisos.tiene(PermisosMovil.rutinasGestion));
+    setState(
+      () => _puedeGestionar = permisos.tiene(PermisosMovil.rutinasGestion),
+    );
   }
 
   Future<void> _cargar() async {
@@ -54,8 +56,11 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _cargando = false);
-      mostrarMensaje(context, 'No se pudieron cargar las rutinas',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudieron cargar las rutinas',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
@@ -71,10 +76,8 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
   Future<void> _editar(RutinaResumen r) async {
     final editado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => FormRutinaAdminScreen(
-          miembroId: widget.miembroId,
-          rutinaId: r.id,
-        ),
+        builder: (_) =>
+            FormRutinaAdminScreen(miembroId: widget.miembroId, rutinaId: r.id),
       ),
     );
     if (editado == true) _cargar();
@@ -84,8 +87,11 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
     final plantillas = await _repo.listarPlantillas();
     if (!mounted) return;
     if (plantillas.isEmpty) {
-      mostrarMensaje(context, 'No hay plantillas disponibles para asignar',
-          tipo: TipoMensaje.advertencia);
+      mostrarMensaje(
+        context,
+        'No hay plantillas disponibles para asignar',
+        tipo: TipoMensaje.advertencia,
+      );
       return;
     }
     final elegida = await showModalBottomSheet<RutinaResumen>(
@@ -100,11 +106,14 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
           children: [
             Padding(
               padding: EdgeInsets.all(AppEspaciado.md),
-              child: Text('Asignar una plantilla',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColores.textoPrincipal)),
+              child: Text(
+                'Asignar una plantilla',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
             ),
             Flexible(
               child: ListView.separated(
@@ -114,11 +123,14 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
                 itemBuilder: (_, i) {
                   final p = plantillas[i];
                   return ListTile(
-                    leading: Icon(Icons.fitness_center,
-                        color: AppColores.primario),
+                    leading: Icon(
+                      Icons.fitness_center,
+                      color: AppColores.primario,
+                    ),
                     title: Text(p.nombre),
                     subtitle: Text(
-                        '${p.totalDias} día(s) · ${p.totalEjercicios} ejercicio(s)'),
+                      '${p.totalDias} día(s) · ${p.totalEjercicios} ejercicio(s)',
+                    ),
                     onTap: () => Navigator.pop(ctx, p),
                   );
                 },
@@ -133,8 +145,11 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
     final error = await _repo.asignarPlantilla(elegida.id, widget.miembroId);
     if (!mounted) return;
     if (error == null) {
-      mostrarMensaje(context, 'Rutina asignada correctamente',
-          tipo: TipoMensaje.exito);
+      mostrarMensaje(
+        context,
+        'Rutina asignada correctamente',
+        tipo: TipoMensaje.exito,
+      );
       _cargar();
     } else {
       mostrarMensaje(context, error, tipo: TipoMensaje.error);
@@ -164,107 +179,218 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
     }
   }
 
+  static const _fotos = [
+    FotosApp.pecho,
+    FotosApp.espalda,
+    FotosApp.piernas,
+    FotosApp.hombros,
+    FotosApp.gluteos,
+    FotosApp.brazos,
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.nombreMiembro)),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : _rutinas.isEmpty
-              ? const EstadoVacio(
-                  icono: Icons.fitness_center,
-                  mensaje:
-                      'Este miembro aún no tiene rutinas.\nCrea una o asigna una plantilla.',
-                )
-              : RefreshIndicator(
-                  onRefresh: _cargar,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
-                        AppEspaciado.md, AppEspaciado.md, 96),
-                    itemCount: _rutinas.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppEspaciado.sm + 4),
-                    itemBuilder: (_, i) => _tarjeta(_rutinas[i]),
-                  ),
-                ),
-      floatingActionButton: _puedeGestionar
+    final activas = _rutinas.where((r) => r.activa).length;
+    return PantallaApp(
+      onRefresh: _cargar,
+      espacioAbajo: 110,
+      botonFlotante: _puedeGestionar
           ? FloatingActionButton.extended(
               onPressed: _nueva,
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded),
               label: const Text('Nueva'),
             )
           : null,
-      persistentFooterButtons: _puedeGestionar
-          ? [
-              TextButton.icon(
-                onPressed: _asignarPlantilla,
-                icon: const Icon(Icons.playlist_add_check),
-                label: const Text('Asignar plantilla'),
+      children: [
+        CabeceraApp(
+          titulo: widget.nombreMiembro,
+          subtitulo: 'Rutinas del socio',
+          acciones: [
+            if (_puedeGestionar)
+              BotonRedondo(
+                icono: Icons.playlist_add_check_rounded,
+                tooltip: 'Asignar plantilla',
+                onTap: _asignarPlantilla,
               ),
-            ]
-          : null,
-    );
-  }
-
-  Widget _tarjeta(RutinaResumen r) {
-    return TarjetaApp(
-      onTap: _puedeGestionar ? () => _editar(r) : null,
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        const SizedBox(height: AppEspaciado.md + 4),
+        PortadaFoto(
+          foto: FotosApp.inicio,
+          alineacion: const Alignment(0.6, -0.4),
+          etiqueta: 'Plan de entrenamiento',
+          titulo: _cargando
+              ? '…'
+              : activas == 1
+              ? '1 rutina activa'
+              : '$activas rutinas activas',
+          texto: 'Crea una nueva o asígnale una plantilla del gimnasio.',
+        ),
+        if (_puedeGestionar) ...[
+          const SizedBox(height: AppEspaciado.sm + 4),
+          TarjetaPlana(
+            onTap: _asignarPlantilla,
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        r.nombre,
+                const IconoSuave(Icons.playlist_add_check_rounded),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Asignar plantilla',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w800,
                           color: AppColores.textoPrincipal,
                         ),
                       ),
-                    ),
-                    EtiquetaEstado(
-                      texto: r.activa ? 'Activa' : 'Inactiva',
-                      color: r.activa ? AppColores.activo : AppColores.vencido,
-                    ),
-                  ],
+                      const Text(
+                        'Copia una rutina sugerida del gimnasio',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: AppColores.textoSecundario,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${r.totalDias} día(s) · ${r.totalEjercicios} ejercicio(s)'
-                  '${r.origenNombre != null ? ' · de "${r.origenNombre}"' : ''}',
-                  style: const TextStyle(
-                      fontSize: 12.5, color: AppColores.textoSecundario),
-                ),
+                Icon(Icons.chevron_right_rounded, color: AppColores.primario),
               ],
             ),
           ),
-          if (_puedeGestionar)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert,
-                  color: AppColores.textoSecundario),
-              onSelected: (op) {
-                if (op == 'editar') _editar(r);
-                if (op == 'estado') _cambiarEstado(r, 'estado');
-                if (op == 'eliminar') _cambiarEstado(r, 'eliminar');
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(value: 'editar', child: Text('Editar')),
-                PopupMenuItem(
-                    value: 'estado',
-                    child: Text(r.activa ? 'Desactivar' : 'Activar')),
-                const PopupMenuItem(
-                  value: 'eliminar',
-                  child: Text('Eliminar',
-                      style: TextStyle(color: AppColores.moroso)),
+        ],
+        const SizedBox(height: AppEspaciado.lg),
+        TituloSeccion(
+          icono: Icons.fitness_center_rounded,
+          titulo: 'Rutinas',
+          detalle: _cargando ? null : '${_rutinas.length}',
+        ),
+        if (_cargando)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 60),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_rutinas.isEmpty)
+          const VacioApp(
+            icono: Icons.fitness_center_rounded,
+            titulo: 'Aún no tiene rutinas',
+            texto: 'Crea una o asígnale una plantilla.',
+          )
+        else
+          for (var i = 0; i < _rutinas.length; i++) ...[
+            _tarjeta(_rutinas[i], _fotos[i % _fotos.length]),
+            const SizedBox(height: AppEspaciado.sm + 4),
+          ],
+      ],
+    );
+  }
+
+  Widget _tarjeta(RutinaResumen r, String foto) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColores.superficie,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio + 2),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _puedeGestionar ? () => _editar(r) : null,
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: 92,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(foto, fit: BoxFit.cover, cacheWidth: 300),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColores.primario.withValues(alpha: 0.25),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          r.nombre,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColores.textoPrincipal,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${r.totalDias} ${r.totalDias == 1 ? 'día' : 'días'} · '
+                          '${r.totalEjercicios} ${r.totalEjercicios == 1 ? 'ejercicio' : 'ejercicios'}'
+                          '${r.origenNombre != null ? ' · de "${r.origenNombre}"' : ''}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            color: AppColores.textoSecundario,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        EtiquetaEstado(
+                          texto: r.activa ? 'Activa' : 'Inactiva',
+                          color: r.activa
+                              ? AppColores.activo
+                              : AppColores.vencido,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_puedeGestionar)
+                  PopupMenuButton<String>(
+                    icon: const Icon(
+                      Icons.more_vert_rounded,
+                      color: AppColores.textoSecundario,
+                    ),
+                    onSelected: (op) {
+                      if (op == 'editar') _editar(r);
+                      if (op == 'estado') _cambiarEstado(r, 'estado');
+                      if (op == 'eliminar') _cambiarEstado(r, 'eliminar');
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'editar',
+                        child: Text('Editar'),
+                      ),
+                      PopupMenuItem(
+                        value: 'estado',
+                        child: Text(r.activa ? 'Desactivar' : 'Activar'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'eliminar',
+                        child: Text(
+                          'Eliminar',
+                          style: TextStyle(color: AppColores.moroso),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

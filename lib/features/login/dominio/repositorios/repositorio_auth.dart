@@ -4,7 +4,11 @@ import 'package:xnox_app/features/login/dominio/entidades/resultado_sucursales.d
 import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
 
 abstract class RepositorioAuth {
-  Future<RespuestaLogin> login(String usuario, String password, TipoUsuario tipo);
+  Future<RespuestaLogin> login(
+    String usuario,
+    String password,
+    TipoUsuario tipo,
+  );
   Future<RespuestaLogin> registrarCliente(DatosRegistro datos);
 
   /// Sucursales que el gimnasio devuelve para [codigoGimnasio]. El resultado

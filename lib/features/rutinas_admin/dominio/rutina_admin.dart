@@ -32,16 +32,16 @@ class RutinaResumen {
   bool get activa => estado == 1;
 
   factory RutinaResumen.fromJson(Map<String, dynamic> j) => RutinaResumen(
-        id: _int(j['id']),
-        nombre: j['nombre']?.toString() ?? '',
-        descripcion: j['descripcion']?.toString() ?? '',
-        totalDias: _int(j['total_dias']),
-        totalEjercicios: _int(j['total_ejercicios']),
-        estado: _int(j['estado'], por: 1),
-        origenNombre: (j['rutina_origen_nombre']?.toString().trim().isEmpty ?? true)
-            ? null
-            : j['rutina_origen_nombre'].toString(),
-      );
+    id: _int(j['id']),
+    nombre: j['nombre']?.toString() ?? '',
+    descripcion: j['descripcion']?.toString() ?? '',
+    totalDias: _int(j['total_dias']),
+    totalEjercicios: _int(j['total_ejercicios']),
+    estado: _int(j['estado'], por: 1),
+    origenNombre: (j['rutina_origen_nombre']?.toString().trim().isEmpty ?? true)
+        ? null
+        : j['rutina_origen_nombre'].toString(),
+  );
 }
 
 /// Rutina completa (cabecera + días + ejercicios), mutable para el formulario.
@@ -78,14 +78,12 @@ class RutinaAdmin {
 
   /// Serializa al formato que espera `rutinas.php` (metodo guardar).
   Map<String, dynamic> toJson() => {
-        if (id != null) 'id': id,
-        'nombre': nombre,
-        'descripcion': descripcion,
-        if (miembroId != null) 'miembro_id': miembroId,
-        'dias': [
-          for (var i = 0; i < dias.length; i++) dias[i].toJson(i + 1),
-        ],
-      };
+    if (id != null) 'id': id,
+    'nombre': nombre,
+    'descripcion': descripcion,
+    if (miembroId != null) 'miembro_id': miembroId,
+    'dias': [for (var i = 0; i < dias.length; i++) dias[i].toJson(i + 1)],
+  };
 }
 
 class DiaAdmin {
@@ -93,10 +91,12 @@ class DiaAdmin {
   List<EjercicioAdmin> ejercicios;
 
   DiaAdmin({required this.diaSemana, List<EjercicioAdmin>? ejercicios})
-      : ejercicios = ejercicios ?? [];
+    : ejercicios = ejercicios ?? [];
 
   factory DiaAdmin.fromJson(Map<String, dynamic> j) {
-    final ejsJson = (j['ejercicios'] is List) ? j['ejercicios'] as List : const [];
+    final ejsJson = (j['ejercicios'] is List)
+        ? j['ejercicios'] as List
+        : const [];
     return DiaAdmin(
       diaSemana: j['dia_semana']?.toString() ?? '',
       ejercicios: ejsJson
@@ -107,12 +107,12 @@ class DiaAdmin {
   }
 
   Map<String, dynamic> toJson(int orden) => {
-        'dia_semana': diaSemana,
-        'orden': orden,
-        'ejercicios': [
-          for (var i = 0; i < ejercicios.length; i++) ejercicios[i].toJson(i + 1),
-        ],
-      };
+    'dia_semana': diaSemana,
+    'orden': orden,
+    'ejercicios': [
+      for (var i = 0; i < ejercicios.length; i++) ejercicios[i].toJson(i + 1),
+    ],
+  };
 }
 
 class EjercicioAdmin {
@@ -138,33 +138,32 @@ class EjercicioAdmin {
   });
 
   factory EjercicioAdmin.fromJson(Map<String, dynamic> j) => EjercicioAdmin(
-        nombre: j['nombre']?.toString() ?? '',
-        series: _int(j['series']),
-        repeticiones: _int(j['repeticiones']),
-        descansoSeg:
-            _int(j['descanso_seg']) > 0 ? _int(j['descanso_seg']) : null,
-        observaciones: (j['observaciones']?.toString().trim().isEmpty ?? true)
-            ? null
-            : j['observaciones'].toString(),
-        catalogoId: _int(j['ejercicio_catalogo_id']) == 0
-            ? null
-            : _int(j['ejercicio_catalogo_id']),
-        // La imagen llega como ruta relativa; el repositorio la vuelve absoluta.
-        imagenUrl: (j['imagen']?.toString().trim().isEmpty ?? true)
-            ? null
-            : j['imagen'].toString(),
-      );
+    nombre: j['nombre']?.toString() ?? '',
+    series: _int(j['series']),
+    repeticiones: _int(j['repeticiones']),
+    descansoSeg: _int(j['descanso_seg']) > 0 ? _int(j['descanso_seg']) : null,
+    observaciones: (j['observaciones']?.toString().trim().isEmpty ?? true)
+        ? null
+        : j['observaciones'].toString(),
+    catalogoId: _int(j['ejercicio_catalogo_id']) == 0
+        ? null
+        : _int(j['ejercicio_catalogo_id']),
+    // La imagen llega como ruta relativa; el repositorio la vuelve absoluta.
+    imagenUrl: (j['imagen']?.toString().trim().isEmpty ?? true)
+        ? null
+        : j['imagen'].toString(),
+  );
 
   Map<String, dynamic> toJson(int orden) => {
-        'nombre': nombre,
-        'series': series,
-        'repeticiones': repeticiones,
-        if (descansoSeg != null) 'descanso_seg': descansoSeg,
-        if (observaciones != null && observaciones!.isNotEmpty)
-          'observaciones': observaciones,
-        'orden': orden,
-        if (catalogoId != null) 'ejercicio_catalogo_id': catalogoId,
-      };
+    'nombre': nombre,
+    'series': series,
+    'repeticiones': repeticiones,
+    if (descansoSeg != null) 'descanso_seg': descansoSeg,
+    if (observaciones != null && observaciones!.isNotEmpty)
+      'observaciones': observaciones,
+    'orden': orden,
+    if (catalogoId != null) 'ejercicio_catalogo_id': catalogoId,
+  };
 }
 
 int _int(dynamic v, {int por = 0}) =>

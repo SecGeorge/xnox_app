@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/foto_sesion.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/dia_rutina.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
@@ -44,63 +46,196 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
 
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(
-        title: Text(rutina?.nombre ?? 'Rutina'),
-      ),
       floatingActionButton: editable
           ? FloatingActionButton.extended(
               onPressed: _agregarDia,
-              icon: const Icon(Icons.calendar_today),
+              icon: const Icon(Icons.calendar_today_rounded),
               label: const Text('Agregar día'),
             )
           : null,
       body: rutina == null
-          ? const EstadoVacio(
-              icono: Icons.error_outline, mensaje: 'Rutina no encontrada')
+          ? const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(AppEspaciado.md),
+                child: Column(
+                  children: [
+                    CabeceraApp(titulo: 'Rutina'),
+                    SizedBox(height: AppEspaciado.xl),
+                    VacioApp(
+                      icono: Icons.error_outline_rounded,
+                      titulo: 'Rutina no encontrada',
+                    ),
+                  ],
+                ),
+              ),
+            )
           : ListView(
-              padding: const EdgeInsets.fromLTRB(
-                  AppEspaciado.md, AppEspaciado.md, AppEspaciado.md, 90),
+              padding: const EdgeInsets.only(bottom: 100),
               children: [
-                if (rutina.descripcion.isNotEmpty) ...[
-                  Text(rutina.descripcion,
-                      style: const TextStyle(
-                          fontSize: 14, color: AppColores.textoSecundario)),
-                  const SizedBox(height: AppEspaciado.md),
-                ],
-                if (rutina.esSugerida) ...[
-                  Row(
+                _portada(rutina),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppEspaciado.md,
+                    AppEspaciado.md,
+                    AppEspaciado.md,
+                    0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Icon(Icons.lock_outline,
-                          size: 16, color: AppColores.textoSecundario),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          rutina.personalizada
-                              ? 'Rutina que tu gimnasio armó para ti (solo lectura). Puedes registrar tus marcas.'
-                              : 'Rutina sugerida (solo lectura). Puedes registrar tus marcas.',
+                      if (rutina.descripcion.isNotEmpty) ...[
+                        Text(
+                          rutina.descripcion,
                           style: const TextStyle(
-                              fontSize: 12.5,
-                              color: AppColores.textoSecundario),
+                            fontSize: 14,
+                            color: AppColores.textoSecundario,
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: AppEspaciado.md),
+                      ],
+                      if (rutina.esSugerida) ...[
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.lock_outline,
+                              size: 16,
+                              color: AppColores.textoSecundario,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                rutina.personalizada
+                                    ? 'Rutina que tu gimnasio armó para ti (solo lectura). Puedes registrar tus marcas.'
+                                    : 'Rutina sugerida (solo lectura). Puedes registrar tus marcas.',
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  color: AppColores.textoSecundario,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppEspaciado.md),
+                      ],
+                      if (rutina.dias.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: EstadoVacio(
+                            icono: Icons.event_busy_outlined,
+                            mensaje: editable
+                                ? 'Esta rutina no tiene días.\nAgrega uno con el botón.'
+                                : 'Esta rutina no tiene días.',
+                          ),
+                        )
+                      else
+                        ...rutina.dias.map((d) => _buildDia(d, editable)),
                     ],
                   ),
-                  const SizedBox(height: AppEspaciado.md),
-                ],
-                if (rutina.dias.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 40),
-                    child: EstadoVacio(
-                      icono: Icons.event_busy_outlined,
-                      mensaje: editable
-                          ? 'Esta rutina no tiene días.\nAgrega uno con el botón.'
-                          : 'Esta rutina no tiene días.',
-                    ),
-                  )
-                else
-                  ...rutina.dias.map((d) => _buildDia(d, editable)),
+                ),
               ],
             ),
+    );
+  }
+
+  /// Foto de la sesión a todo el ancho con el nombre de la rutina encima.
+  Widget _portada(Rutina rutina) {
+    final foto = FotoSesion.para(rutina);
+    final top = MediaQuery.of(context).padding.top;
+    final ejercicios = rutina.dias.fold<int>(
+      0,
+      (s, d) => s + d.ejercicios.length,
+    );
+    return SizedBox(
+      height: 230 + top,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(foto.ruta, fit: BoxFit.cover, alignment: foto.alineacion),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.35),
+                  Colors.black.withValues(alpha: 0.1),
+                  Color.alphaBlend(
+                    AppColores.primario.withValues(alpha: 0.35),
+                    Colors.black.withValues(alpha: 0.85),
+                  ),
+                ],
+                stops: const [0, 0.4, 1],
+              ),
+            ),
+          ),
+          Positioned(
+            top: top + 8,
+            left: 12,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.4),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: () => Navigator.of(context).maybePop(),
+                child: const SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Icon(Icons.arrow_back_rounded, color: Colors.white),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: AppEspaciado.md,
+            right: AppEspaciado.md,
+            bottom: AppEspaciado.md,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  rutina.esSugerida
+                      ? (rutina.personalizada ? 'DE TU GIMNASIO' : 'SUGERIDA')
+                      : 'MI RUTINA',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    letterSpacing: 1.3,
+                    fontWeight: FontWeight.w800,
+                    color: AppColores.destacado,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  rutina.nombre,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    height: 1.1,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    DatoPortada(
+                      icono: Icons.calendar_view_week_rounded,
+                      valor: '${rutina.dias.length}',
+                      pie: rutina.dias.length == 1 ? 'día' : 'días',
+                    ),
+                    const SizedBox(width: 18),
+                    DatoPortada(
+                      icono: Icons.fitness_center_rounded,
+                      valor: '$ejercicios',
+                      pie: ejercicios == 1 ? 'ejercicio' : 'ejercicios',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -112,22 +247,57 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: AppColores.primario,
+                gradient: AppColores.degradadoRelleno,
+                border: AppColores.bordeCabecera,
                 borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
               ),
-              child: Text(dia.diaSemana,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14)),
+              child: Text(
+                dia.diaSemana.length >= 2
+                    ? dia.diaSemana.substring(0, 2).toUpperCase()
+                    : dia.diaSemana,
+                style: TextStyle(
+                  color: AppColores.sobreRelleno,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dia.diaSemana,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColores.textoPrincipal,
+                    ),
+                  ),
+                  Text(
+                    dia.ejercicios.length == 1
+                        ? '1 ejercicio'
+                        : '${dia.ejercicios.length} ejercicios',
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColores.textoSecundario,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             if (editable)
               IconButton(
-                icon: const Icon(Icons.delete_outline,
-                    size: 20, color: AppColores.textoSecundario),
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColores.textoSecundario,
+                ),
                 tooltip: 'Eliminar día',
                 onPressed: () => _eliminarDia(dia),
               ),
@@ -137,9 +307,10 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
         if (dia.ejercicios.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text('Sin ejercicios en este día',
-                style: TextStyle(
-                    fontSize: 13, color: AppColores.textoSecundario)),
+            child: Text(
+              'Sin ejercicios en este día',
+              style: TextStyle(fontSize: 13, color: AppColores.textoSecundario),
+            ),
           )
         else
           ...dia.ejercicios.map((e) => _buildEjercicio(e, editable)),
@@ -159,8 +330,9 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
 
   Widget _buildEjercicio(Ejercicio e, bool editable) {
     final pr = e.mejorMarca;
-    final progreso =
-        e.marcasOrdenadas.map((m) => m.peso).toList(growable: false);
+    final progreso = e.marcasOrdenadas
+        .map((m) => m.peso)
+        .toList(growable: false);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppEspaciado.md),
@@ -180,8 +352,9 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                       alignment: Alignment.center,
                       children: [
                         ClipRRect(
-                          borderRadius:
-                              BorderRadius.circular(AppEspaciado.radioSm),
+                          borderRadius: BorderRadius.circular(
+                            AppEspaciado.radioSm,
+                          ),
                           child: e.imagenUrl == null
                               ? _sinImagen()
                               : Image.network(
@@ -199,8 +372,11 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                               color: Colors.black54,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.play_arrow,
-                                size: 20, color: Colors.white),
+                            child: const Icon(
+                              Icons.play_arrow,
+                              size: 20,
+                              color: Colors.white,
+                            ),
                           )
                         else
                           Positioned(
@@ -212,8 +388,11 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                                 color: Colors.black54,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.zoom_out_map,
-                                  size: 13, color: Colors.white),
+                              child: const Icon(
+                                Icons.zoom_out_map,
+                                size: 13,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                       ],
@@ -225,24 +404,33 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(e.nombre,
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColores.textoPrincipal)),
+                      Text(
+                        e.nombre,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColores.textoPrincipal,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text('${e.series} series × ${e.repeticiones} reps',
-                          style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColores.textoSecundario)),
+                      Text(
+                        '${e.series} series × ${e.repeticiones} reps',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColores.textoSecundario,
+                        ),
+                      ),
                       if (e.observaciones != null &&
                           e.observaciones!.isNotEmpty) ...[
                         const SizedBox(height: 4),
-                        Text('📝 ${e.observaciones!}',
-                            style: const TextStyle(
-                                fontSize: 12.5,
-                                fontStyle: FontStyle.italic,
-                                color: AppColores.textoSecundario)),
+                        Text(
+                          '📝 ${e.observaciones!}',
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontStyle: FontStyle.italic,
+                            color: AppColores.textoSecundario,
+                          ),
+                        ),
                       ],
                       // Acceso explícito: la miniatura sola no deja claro que
                       // hay más fotos detrás (la rutina solo muestra una).
@@ -280,22 +468,31 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('PR',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColores.acento)),
-                      Text('${_num(pr.peso)} kg',
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: AppColores.textoPrincipal)),
+                      Text(
+                        'PR',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColores.acento,
+                        ),
+                      ),
+                      Text(
+                        '${_num(pr.peso)} kg',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppColores.textoPrincipal,
+                        ),
+                      ),
                     ],
                   ),
                 if (editable)
                   IconButton(
-                    icon: const Icon(Icons.delete_outline,
-                        size: 20, color: AppColores.textoSecundario),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: AppColores.textoSecundario,
+                    ),
                     tooltip: 'Eliminar ejercicio',
                     onPressed: () => _eliminarEjercicio(e),
                   ),
@@ -316,7 +513,9 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                             ? 'Última: ${_num(e.ultimaMarca!.peso)} kg × ${e.ultimaMarca!.repsTexto} reps · ${DateFormat('d MMM', 'es').format(e.ultimaMarca!.fecha)}'
                             : 'Sin marcas aún',
                         style: const TextStyle(
-                            fontSize: 12, color: AppColores.textoSecundario),
+                          fontSize: 12,
+                          color: AppColores.textoSecundario,
+                        ),
                       ),
                       if (e.marcaAnterior != null)
                         Padding(
@@ -324,7 +523,9 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                           child: Text(
                             'Sesión anterior: ${_num(e.marcaAnterior!.peso)} kg × ${e.marcaAnterior!.repsTexto} reps · ${DateFormat('d MMM', 'es').format(e.marcaAnterior!.fecha)}',
                             style: const TextStyle(
-                                fontSize: 11.5, color: AppColores.vencido),
+                              fontSize: 11.5,
+                              color: AppColores.vencido,
+                            ),
                           ),
                         ),
                     ],
@@ -370,8 +571,12 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
         maxChildSize: 0.9,
         minChildSize: 0.4,
         builder: (ctx, scroll) => Padding(
-          padding: const EdgeInsets.fromLTRB(AppEspaciado.lg, AppEspaciado.md,
-              AppEspaciado.lg, AppEspaciado.md),
+          padding: const EdgeInsets.fromLTRB(
+            AppEspaciado.lg,
+            AppEspaciado.md,
+            AppEspaciado.lg,
+            AppEspaciado.md,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -386,14 +591,21 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                   ),
                 ),
               ),
-              Text('Historial · ${e.nombre}',
-                  style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: AppColores.textoPrincipal)),
-              Text('$total sesiones registradas',
-                  style: const TextStyle(
-                      fontSize: 12.5, color: AppColores.textoSecundario)),
+              Text(
+                'Historial · ${e.nombre}',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
+              Text(
+                '$total sesiones registradas',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColores.textoSecundario,
+                ),
+              ),
               const SizedBox(height: AppEspaciado.md),
               Expanded(
                 child: ListView.separated(
@@ -405,9 +617,8 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                     // i=0 -> más reciente; numeración cronológica.
                     final m = ordenadas[total - 1 - i];
                     final numeroSesion = total - i;
-                    final esPr = pr != null &&
-                        m.peso == pr.peso &&
-                        m.fecha == pr.fecha;
+                    final esPr =
+                        pr != null && m.peso == pr.peso && m.fecha == pr.fecha;
                     return _filaHistorial(m, numeroSesion, esPr);
                   },
                 ),
@@ -432,11 +643,14 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
               color: AppColores.acento.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Text('$numeroSesion',
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: AppColores.acento,
-                    fontSize: 14)),
+            child: Text(
+              '$numeroSesion',
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                color: AppColores.acento,
+                fontSize: 14,
+              ),
+            ),
           ),
           const SizedBox(width: AppEspaciado.md),
           Expanded(
@@ -445,11 +659,14 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
               children: [
                 Row(
                   children: [
-                    Text('${_num(m.peso)} kg',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: AppColores.textoPrincipal)),
+                    Text(
+                      '${_num(m.peso)} kg',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: AppColores.textoPrincipal,
+                      ),
+                    ),
                     if (esPr) ...[
                       const SizedBox(width: 6),
                       EtiquetaEstado(texto: 'PR', color: AppColores.acento),
@@ -457,15 +674,23 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                   ],
                 ),
                 const SizedBox(height: 2),
-                Text('${m.repsTexto} reps',
-                    style: const TextStyle(
-                        fontSize: 12.5, color: AppColores.textoSecundario)),
+                Text(
+                  '${m.repsTexto} reps',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColores.textoSecundario,
+                  ),
+                ),
               ],
             ),
           ),
-          Text(DateFormat('d MMM y', 'es').format(m.fecha),
-              style: const TextStyle(
-                  fontSize: 12, color: AppColores.textoSecundario)),
+          Text(
+            DateFormat('d MMM y', 'es').format(m.fecha),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColores.textoSecundario,
+            ),
+          ),
         ],
       ),
     );
@@ -479,11 +704,13 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
     if (rutina == null) return;
     // Días aún no usados en la rutina.
     final usados = rutina.dias.map((d) => d.diaSemana).toSet();
-    final disponibles =
-        _diasSemana.where((d) => !usados.contains(d)).toList();
+    final disponibles = _diasSemana.where((d) => !usados.contains(d)).toList();
     if (disponibles.isEmpty) {
-      mostrarMensaje(context, 'Ya agregaste los 7 días',
-          tipo: TipoMensaje.advertencia);
+      mostrarMensaje(
+        context,
+        'Ya agregaste los 7 días',
+        tipo: TipoMensaje.advertencia,
+      );
       return;
     }
 
@@ -499,18 +726,22 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
           children: [
             Padding(
               padding: EdgeInsets.all(AppEspaciado.md),
-              child: Text('Elige el día',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColores.textoPrincipal)),
+              child: Text(
+                'Elige el día',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
             ),
-            ...disponibles.map((d) => ListTile(
-                  leading: Icon(Icons.calendar_today,
-                      color: AppColores.primario),
-                  title: Text(d),
-                  onTap: () => Navigator.of(ctx).pop(d),
-                )),
+            ...disponibles.map(
+              (d) => ListTile(
+                leading: Icon(Icons.calendar_today, color: AppColores.primario),
+                title: Text(d),
+                onTap: () => Navigator.of(ctx).pop(d),
+              ),
+            ),
             const SizedBox(height: AppEspaciado.sm),
           ],
         ),
@@ -525,7 +756,9 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
 
   Future<void> _eliminarDia(DiaRutina dia) async {
     final confirmar = await _confirmar(
-        'Eliminar día', '¿Eliminar "${dia.diaSemana}" y sus ejercicios?');
+      'Eliminar día',
+      '¿Eliminar "${dia.diaSemana}" y sus ejercicios?',
+    );
     if (!confirmar) return;
     await _controlador.eliminarDia(dia.id);
     if (!mounted) return;
@@ -533,8 +766,10 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
   }
 
   Future<void> _eliminarEjercicio(Ejercicio e) async {
-    final confirmar =
-        await _confirmar('Eliminar ejercicio', '¿Eliminar "${e.nombre}"?');
+    final confirmar = await _confirmar(
+      'Eliminar ejercicio',
+      '¿Eliminar "${e.nombre}"?',
+    );
     if (!confirmar) return;
     await _controlador.eliminarEjercicio(e.id);
     if (!mounted) return;
@@ -564,8 +799,11 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
       height: 72,
       color: AppColores.fondo,
       alignment: Alignment.center,
-      child: const Icon(Icons.fitness_center,
-          size: 24, color: AppColores.textoSecundario),
+      child: const Icon(
+        Icons.fitness_center,
+        size: 24,
+        color: AppColores.textoSecundario,
+      ),
     );
   }
 
@@ -645,8 +883,10 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
 
             Future<void> editar(int i) async {
               if (marcaId == null) return;
-              final r = await _pedirEntero('Editar serie ${i + 1}',
-                  inicial: '${reps[i]}');
+              final r = await _pedirEntero(
+                'Editar serie ${i + 1}',
+                inicial: '${reps[i]}',
+              );
               if (r == null) return;
               await _controlador.editarSerie(marcaId!, i + 1, r);
               setSheet(() => reps[i] = r);
@@ -700,37 +940,51 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                         ),
                       ),
                     ),
-                    Text('Sesión de hoy · ${e.nombre}',
-                        style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: AppColores.textoPrincipal)),
-                    Text(DateFormat('EEEE d MMM', 'es').format(DateTime.now()),
-                        style: const TextStyle(
-                            fontSize: 12.5, color: AppColores.textoSecundario)),
+                    Text(
+                      'Sesión de hoy · ${e.nombre}',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppColores.textoPrincipal,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('EEEE d MMM', 'es').format(DateTime.now()),
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColores.textoSecundario,
+                      ),
+                    ),
                     const SizedBox(height: AppEspaciado.md),
                     if (referencia != null) ...[
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColores.azul.withValues(alpha: 0.08),
-                          borderRadius:
-                              BorderRadius.circular(AppEspaciado.radioSm),
+                          borderRadius: BorderRadius.circular(
+                            AppEspaciado.radioSm,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.history,
-                                size: 18, color: AppColores.azul),
+                            const Icon(
+                              Icons.history,
+                              size: 18,
+                              color: AppColores.azul,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Última vez: ${_num(referencia.peso)} kg · ${referencia.repsTexto} reps',
                                 style: const TextStyle(
-                                    color: AppColores.azul,
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600),
+                                  color: AppColores.azul,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -741,16 +995,21 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                     TextField(
                       controller: pesoCtrl,
                       keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
-                      decoration:
-                          const InputDecoration(labelText: 'Peso de trabajo (kg)'),
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Peso de trabajo (kg)',
+                      ),
                       onSubmitted: (_) => guardarPeso(),
                     ),
                     const SizedBox(height: AppEspaciado.md),
-                    Text('Series de hoy',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: AppColores.textoPrincipal)),
+                    Text(
+                      'Series de hoy',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColores.textoPrincipal,
+                      ),
+                    ),
                     const SizedBox(height: AppEspaciado.sm),
                     if (reps.isEmpty)
                       const Padding(
@@ -758,35 +1017,52 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                         child: Text(
                           'Aún no registras series hoy. Agrega la primera.',
                           style: TextStyle(
-                              color: AppColores.textoSecundario, fontSize: 13),
+                            color: AppColores.textoSecundario,
+                            fontSize: 13,
+                          ),
                         ),
                       )
                     else
                       ...List.generate(
-                          reps.length, (i) => _filaSerieEditable(i, reps[i],
-                              () => editar(i), () => borrar(i))),
+                        reps.length,
+                        (i) => _filaSerieEditable(
+                          i,
+                          reps[i],
+                          () => editar(i),
+                          () => borrar(i),
+                        ),
+                      ),
                     if (error != null) ...[
                       const SizedBox(height: 4),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColores.advertencia.withValues(alpha: 0.12),
-                          borderRadius:
-                              BorderRadius.circular(AppEspaciado.radioSm),
+                          borderRadius: BorderRadius.circular(
+                            AppEspaciado.radioSm,
+                          ),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.warning_amber_rounded,
-                                size: 18, color: AppColores.advertencia),
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              size: 18,
+                              color: AppColores.advertencia,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(error!,
-                                  style: const TextStyle(
-                                      color: AppColores.advertencia,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600)),
+                              child: Text(
+                                error!,
+                                style: const TextStyle(
+                                  color: AppColores.advertencia,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -798,9 +1074,11 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                       child: ElevatedButton.icon(
                         onPressed: agregar,
                         icon: const Icon(Icons.add),
-                        label: Text(reps.isEmpty
-                            ? 'Agregar primera serie'
-                            : 'Agregar serie ${reps.length + 1}'),
+                        label: Text(
+                          reps.isEmpty
+                              ? 'Agregar primera serie'
+                              : 'Agregar serie ${reps.length + 1}',
+                        ),
                       ),
                     ),
                     SizedBox(
@@ -822,7 +1100,11 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
   }
 
   Widget _filaSerieEditable(
-      int i, int reps, VoidCallback onEditar, VoidCallback onBorrar) {
+    int i,
+    int reps,
+    VoidCallback onEditar,
+    VoidCallback onBorrar,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppEspaciado.sm),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -835,19 +1117,25 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
           CircleAvatar(
             radius: 14,
             backgroundColor: AppColores.acento.withValues(alpha: 0.12),
-            child: Text('${i + 1}',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColores.acento)),
+            child: Text(
+              '${i + 1}',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: AppColores.acento,
+              ),
+            ),
           ),
           const SizedBox(width: AppEspaciado.sm),
           Expanded(
-            child: Text('$reps reps',
-                style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColores.textoPrincipal)),
+            child: Text(
+              '$reps reps',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColores.textoPrincipal,
+              ),
+            ),
           ),
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 18),
@@ -886,24 +1174,34 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
 
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppEspaciado.radio)),
-              title: Text(titulo,
-                  style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w700)),
+                borderRadius: BorderRadius.circular(AppEspaciado.radio),
+              ),
+              title: Text(
+                titulo,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               content: TextField(
                 controller: ctrl,
                 autofocus: true,
                 keyboardType: TextInputType.number,
-                decoration:
-                    InputDecoration(labelText: 'Repeticiones', errorText: err),
+                decoration: InputDecoration(
+                  labelText: 'Repeticiones',
+                  errorText: err,
+                ),
                 onSubmitted: (_) => aceptar(),
               ),
               actions: [
                 TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text('Cancelar')),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancelar'),
+                ),
                 ElevatedButton(
-                    onPressed: aceptar, child: const Text('Guardar')),
+                  onPressed: aceptar,
+                  child: const Text('Guardar'),
+                ),
               ],
             );
           },

@@ -8,6 +8,10 @@ abstract class PermisosMovil {
   static const inicio = 'mobile_inicio';
   static const miembros = 'mobile_miembros';
   static const miembrosGestion = 'mobile_miembros_gestion';
+
+  /// Registrar la entrada de los socios desde el móvil. Todavía no existe en
+  /// el panel web: hasta que se agregue allí, solo lo tiene el Administrador.
+  static const asistencia = 'mobile_asistencia';
   static const pagos = 'mobile_pagos';
   static const pagosRegistrar = 'mobile_pagos_registrar';
 

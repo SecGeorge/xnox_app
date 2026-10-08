@@ -29,8 +29,9 @@ class _ColoresAppScreenState extends State<ColoresAppScreen> {
       mostrarMensajeGlobal(error, tipo: TipoMensaje.error);
     } else {
       mostrarMensajeGlobal(
-          '${paleta.nombre} aplicado en todos los dispositivos del gimnasio',
-          tipo: TipoMensaje.exito);
+        '${paleta.nombre} aplicado en todos los dispositivos del gimnasio',
+        tipo: TipoMensaje.exito,
+      );
     }
   }
 
@@ -44,8 +45,12 @@ class _ColoresAppScreenState extends State<ColoresAppScreen> {
         return Scaffold(
           appBar: AppBar(title: const Text('Colores de la app')),
           body: ListView(
-            padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
-                AppEspaciado.md, AppEspaciado.md, AppEspaciado.xl),
+            padding: const EdgeInsets.fromLTRB(
+              AppEspaciado.md,
+              AppEspaciado.md,
+              AppEspaciado.md,
+              AppEspaciado.xl,
+            ),
             children: [
               _Portada(marca: marca),
               const SizedBox(height: AppEspaciado.lg + 4),
@@ -171,8 +176,11 @@ class _Portada extends StatelessWidget {
           const SizedBox(height: AppEspaciado.md),
           Row(
             children: [
-              Icon(Icons.devices_outlined,
-                  size: 16, color: AppColores.sobreRellenoSuave),
+              Icon(
+                Icons.devices_outlined,
+                size: 16,
+                color: AppColores.sobreRellenoSuave,
+              ),
               const SizedBox(width: AppEspaciado.sm),
               Expanded(
                 child: Text(
@@ -283,9 +291,14 @@ class _TarjetaPlantilla extends StatelessWidget {
                             ),
                             child: guardando
                                 ? const CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white)
-                                : const Icon(Icons.check,
-                                    size: 12, color: Colors.white),
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  )
+                                : const Icon(
+                                    Icons.check,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
                           ),
                         ),
                     ],
@@ -375,13 +388,13 @@ class _Maqueta extends StatelessWidget {
   const _Maqueta({required this.paleta});
 
   Widget _barra(double ancho, Color color, {double alto = 4}) => Container(
-        width: ancho,
-        height: alto,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(alto),
-        ),
-      );
+    width: ancho,
+    height: alto,
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(alto),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -486,11 +499,17 @@ class _Maqueta extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _barra(30, paleta.textoPrincipal
-                                    .withValues(alpha: 0.7), alto: 3),
+                                _barra(
+                                  30,
+                                  paleta.textoPrincipal.withValues(alpha: 0.7),
+                                  alto: 3,
+                                ),
                                 const SizedBox(height: 3),
-                                _barra(20, paleta.textoPrincipal
-                                    .withValues(alpha: 0.3), alto: 3),
+                                _barra(
+                                  20,
+                                  paleta.textoPrincipal.withValues(alpha: 0.3),
+                                  alto: 3,
+                                ),
                               ],
                             ),
                           ),

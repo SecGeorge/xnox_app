@@ -53,6 +53,7 @@ dependencies:
   video_player: ^2.13.0
   # Aviso sonoro del temporizador de descanso entre series.
   audioplayers: ^6.5.1
+  mobile_scanner: ^7.4.2
 
 dev_dependencies:
   flutter_test:

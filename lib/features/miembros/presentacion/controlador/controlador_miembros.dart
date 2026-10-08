@@ -12,4 +12,7 @@ class ControladorMiembros {
       ControladorMiembros._(RepositorioMiembrosImpl(HttpService()));
 
   Future<List<Miembro>> buscarMiembros() => _repositorio.buscar();
+  Future<List<MiembroAlerta>> proximosVencer() => _repositorio.proximosVencer();
+  Future<List<MiembroAlerta>> vencidosRecuperar() =>
+      _repositorio.vencidosRecuperar();
 }

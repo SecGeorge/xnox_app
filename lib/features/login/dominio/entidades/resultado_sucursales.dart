@@ -43,13 +43,16 @@ class ResultadoSucursales {
         codigo: codigo,
       );
 
-  factory ResultadoSucursales.sinConexion(String codigo, [String? mensaje]) =>
-      ResultadoSucursales(
-        estado: EstadoSucursales.sinConexion,
-        codigo: codigo,
-        mensaje: mensaje ??
-            'Sin conexión con el gimnasio. Verifica tu red e inténtalo de nuevo.',
-      );
+  factory ResultadoSucursales.sinConexion(
+    String codigo, [
+    String? mensaje,
+  ]) => ResultadoSucursales(
+    estado: EstadoSucursales.sinConexion,
+    codigo: codigo,
+    mensaje:
+        mensaje ??
+        'Sin conexión con el gimnasio. Verifica tu red e inténtalo de nuevo.',
+  );
 
   factory ResultadoSucursales.errorServidor(String codigo, [String? mensaje]) =>
       ResultadoSucursales(

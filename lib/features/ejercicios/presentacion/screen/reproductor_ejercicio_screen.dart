@@ -35,8 +35,7 @@ class _ReproductorEjercicioScreenState
   }
 
   Future<void> _preparar() async {
-    final controlador =
-        VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    final controlador = VideoPlayerController.networkUrl(Uri.parse(widget.url));
     try {
       await controlador.initialize();
       // Los clips son de pocos segundos: en bucle se puede repasar la técnica
@@ -94,7 +93,8 @@ class _ReproductorEjercicioScreenState
   Widget _contenido() {
     if (_cargando) {
       return const Center(
-          child: CircularProgressIndicator(color: Colors.white));
+        child: CircularProgressIndicator(color: Colors.white),
+      );
     }
 
     final error = _error;
@@ -105,8 +105,11 @@ class _ReproductorEjercicioScreenState
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.videocam_off_outlined,
-                  size: 56, color: Colors.white38),
+              const Icon(
+                Icons.videocam_off_outlined,
+                size: 56,
+                color: Colors.white38,
+              ),
               const SizedBox(height: AppEspaciado.md),
               Text(
                 error,
@@ -160,8 +163,11 @@ class _ReproductorEjercicioScreenState
                       color: Colors.black45,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.play_arrow,
-                        size: 44, color: Colors.white),
+                    child: const Icon(
+                      Icons.play_arrow,
+                      size: 44,
+                      color: Colors.white,
+                    ),
                   ),
               ],
             ),
@@ -172,11 +178,15 @@ class _ReproductorEjercicioScreenState
           allowScrubbing: true,
           colors: VideoProgressColors(playedColor: AppColores.acento),
           padding: const EdgeInsets.symmetric(
-              horizontal: AppEspaciado.md, vertical: AppEspaciado.sm),
+            horizontal: AppEspaciado.md,
+            vertical: AppEspaciado.sm,
+          ),
         ),
         const Padding(
           padding: EdgeInsets.only(
-              top: AppEspaciado.xs, bottom: AppEspaciado.md),
+            top: AppEspaciado.xs,
+            bottom: AppEspaciado.md,
+          ),
           child: Text(
             'Toca el video para pausar · se repite en bucle',
             style: TextStyle(color: Colors.white38, fontSize: 12),

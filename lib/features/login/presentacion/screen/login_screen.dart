@@ -9,7 +9,6 @@ import 'package:xnox_app/features/login/presentacion/screen/registro_cliente_scr
 import 'package:xnox_app/features/dashboard/presentacion/screen/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-
   const LoginScreen({super.key});
 
   @override
@@ -52,7 +51,6 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (context) => destino),
       );
     } else {
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result.message), backgroundColor: Colors.red),
       );
@@ -60,9 +58,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _irARegistro() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const RegistroClienteScreen()),
-    );
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const RegistroClienteScreen()));
   }
 
   @override
@@ -90,7 +87,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: seleccionado ? AppColores.primario : Colors.transparent,
+                  color: seleccionado
+                      ? AppColores.primario
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -178,7 +177,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -191,7 +192,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _ocultarPassword
@@ -203,7 +206,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ? 'Mostrar contraseña'
                               : 'Ocultar contraseña',
                           onPressed: () => setState(
-                              () => _ocultarPassword = !_ocultarPassword),
+                            () => _ocultarPassword = !_ocultarPassword,
+                          ),
                         ),
                       ),
                     ),
@@ -224,48 +228,53 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 30),
                     LayoutBuilder(
                       builder: (context, constraints) => Center(
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        height: 50,
-                        width: _isLoading ? 50 : constraints.maxWidth,
-                        onEnd: () {
-                          // Al terminar de expandirse, recién mostramos el texto.
-                          if (!_isLoading && !_mostrarTexto) {
-                            setState(() => _mostrarTexto = true);
-                          }
-                        },
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _handleLogin,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColores.relleno,
-                            foregroundColor: AppColores.sobreRelleno,
-                            disabledBackgroundColor: AppColores.relleno,
-                            disabledForegroundColor: AppColores.sobreRelleno,
-                            side: AppColores.ladoBoton,
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(_isLoading ? 25 : 8),
-                            ),
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                            surfaceTintColor: Colors.transparent,
-                          ).copyWith(
-                            overlayColor: WidgetStateProperty.all(
-                              AppColores.sobreRelleno.withValues(alpha: 0.08),
-                            ),
-                          ),
-                          child: _isLoading
-                            ? SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  color: AppColores.sobreRelleno,
-                                  strokeWidth: 2.4,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          height: 50,
+                          width: _isLoading ? 50 : constraints.maxWidth,
+                          onEnd: () {
+                            // Al terminar de expandirse, recién mostramos el texto.
+                            if (!_isLoading && !_mostrarTexto) {
+                              setState(() => _mostrarTexto = true);
+                            }
+                          },
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleLogin,
+                            style:
+                                ElevatedButton.styleFrom(
+                                  backgroundColor: AppColores.relleno,
+                                  foregroundColor: AppColores.sobreRelleno,
+                                  disabledBackgroundColor: AppColores.relleno,
+                                  disabledForegroundColor:
+                                      AppColores.sobreRelleno,
+                                  side: AppColores.ladoBoton,
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      _isLoading ? 25 : 8,
+                                    ),
+                                  ),
+                                  elevation: 0,
+                                  shadowColor: Colors.transparent,
+                                  surfaceTintColor: Colors.transparent,
+                                ).copyWith(
+                                  overlayColor: WidgetStateProperty.all(
+                                    AppColores.sobreRelleno.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                  ),
                                 ),
-                              )
-                            : _mostrarTexto
+                            child: _isLoading
+                                ? SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      color: AppColores.sobreRelleno,
+                                      strokeWidth: 2.4,
+                                    ),
+                                  )
+                                : _mostrarTexto
                                 ? const Text(
                                     'INGRESAR',
                                     style: TextStyle(
@@ -275,8 +284,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   )
                                 : const SizedBox.shrink(),
+                          ),
                         ),
-                      ),
                       ),
                     ),
                     if (_tipoUsuario == TipoUsuario.cliente) ...[
@@ -284,17 +293,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text('¿No tienes cuenta?',
-                              style: TextStyle(
-                                  fontSize: 13, color: Colors.black54)),
+                          const Text(
+                            '¿No tienes cuenta?',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.black54,
+                            ),
+                          ),
                           TextButton(
                             onPressed: _irARegistro,
                             child: Text(
                               'Regístrate',
                               style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColores.acento),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColores.acento,
+                              ),
                             ),
                           ),
                         ],
@@ -303,10 +317,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 40),
                     const Text(
                       'Contactanos por WhatsApp 938197971',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.black54),
                     ),
                   ],
                 ),

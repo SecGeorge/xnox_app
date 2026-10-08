@@ -57,15 +57,12 @@ class ClienteDestinatario {
   });
 
   factory ClienteDestinatario.fromJson(Map<String, dynamic> json) {
-    final nombreCompleto = [
-      json['nombre'],
-      json['apellidoPaterno'],
-      json['apellidoMaterno'],
-    ]
-        .where((e) => e != null && e.toString().trim().isNotEmpty)
-        .map((e) => e.toString().trim())
-        .join(' ')
-        .trim();
+    final nombreCompleto =
+        [json['nombre'], json['apellidoPaterno'], json['apellidoMaterno']]
+            .where((e) => e != null && e.toString().trim().isNotEmpty)
+            .map((e) => e.toString().trim())
+            .join(' ')
+            .trim();
 
     final membresia = json['membresia']?.toString().trim() ?? '';
 
@@ -73,7 +70,9 @@ class ClienteDestinatario {
       id: json['id'] != null ? int.tryParse(json['id'].toString()) : null,
       nombre: nombreCompleto.isEmpty ? 'Sin nombre' : nombreCompleto,
       telefono: json['telefono']?.toString().trim() ?? '',
-      membresia: (membresia.isEmpty || membresia == 'SIN CONTRATO') ? '' : membresia,
+      membresia: (membresia.isEmpty || membresia == 'SIN CONTRATO')
+          ? ''
+          : membresia,
       debe: double.tryParse(json['debe']?.toString() ?? '0') ?? 0,
       estadoMembresia:
           int.tryParse(json['estado_membresia']?.toString() ?? '0') ?? 0,
@@ -128,7 +127,9 @@ class ClienteDestinatario {
 
   /// Reemplaza las variables de la plantilla con los datos de este cliente.
   String generarMensaje(String base) {
-    final fecha = fechaFin != null ? DateFormat('dd/MM/yyyy').format(fechaFin!) : '';
+    final fecha = fechaFin != null
+        ? DateFormat('dd/MM/yyyy').format(fechaFin!)
+        : '';
     return base
         .replaceAll('{nombre}', nombre)
         .replaceAll('{membresia}', membresia)

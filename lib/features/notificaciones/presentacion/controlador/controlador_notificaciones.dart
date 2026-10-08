@@ -7,7 +7,7 @@ class ControladorNotificaciones {
   final RepositorioNotificaciones _repositorio;
 
   ControladorNotificaciones()
-      : _repositorio = RepositorioNotificacionesImpl(HttpService());
+    : _repositorio = RepositorioNotificacionesImpl(HttpService());
 
   Future<List<Notificacion>> obtener() => _repositorio.obtener();
 
@@ -19,11 +19,10 @@ class ControladorNotificaciones {
     required String mensaje,
     required int tipoEnvio,
     int? miembroId,
-  }) =>
-      _repositorio.crear(
-        titulo: titulo,
-        mensaje: mensaje,
-        tipoEnvio: tipoEnvio,
-        miembroId: miembroId,
-      );
+  }) => _repositorio.crear(
+    titulo: titulo,
+    mensaje: mensaje,
+    tipoEnvio: tipoEnvio,
+    miembroId: miembroId,
+  );
 }

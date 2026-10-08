@@ -11,7 +11,7 @@ import 'package:xnox_app/features/cliente/presentacion/screen/detalle_rutina_scr
 import 'package:xnox_app/features/cliente/presentacion/screen/dia_rutina_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/sesion_ejercicio_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/foto_sesion.dart';
-import 'package:xnox_app/features/cliente/presentacion/widget/foto_tarjeta.dart';
+import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
 
 /// Rutinas del socio en tres vistas:
 /// - Mi semana: lo que le toca cada día, con el avance del día elegido.

@@ -44,10 +44,16 @@ class Publicidad {
       id: json['id'] != null ? int.parse(json['id'].toString()) : null,
       titulo: json['titulo'] ?? '',
       descripcion: json['descripcion'] ?? '',
-      fechaInicio: DateTime.parse(json['fecha_inicio'] ?? DateTime.now().toIso8601String()),
-      fechaFin: DateTime.parse(json['fecha_fin'] ?? DateTime.now().toIso8601String()),
+      fechaInicio: DateTime.parse(
+        json['fecha_inicio'] ?? DateTime.now().toIso8601String(),
+      ),
+      fechaFin: DateTime.parse(
+        json['fecha_fin'] ?? DateTime.now().toIso8601String(),
+      ),
       imagenUrl: json['imagen_url'],
-      encuadre: (json['encuadre']?.toString().isNotEmpty ?? false) ? json['encuadre'].toString() : '0,0',
+      encuadre: (json['encuadre']?.toString().isNotEmpty ?? false)
+          ? json['encuadre'].toString()
+          : '0,0',
     );
   }
 

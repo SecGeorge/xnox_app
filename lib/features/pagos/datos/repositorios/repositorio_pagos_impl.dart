@@ -14,10 +14,10 @@ class RepositorioPagosImpl implements RepositorioPagos {
     final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
 
     // Mismo endpoint que consume el dashboard web (InicioComponent.vue).
-    final resp = await _httpService.obtenerConDatos(
-      {'metodo': 'obtener', 'sucursal_id': sucursalId},
-      'inicio.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'obtener',
+      'sucursal_id': sucursalId,
+    }, 'inicio.php');
 
     if (resp is! Map) {
       throw Exception('Respuesta inválida del servidor de pagos');

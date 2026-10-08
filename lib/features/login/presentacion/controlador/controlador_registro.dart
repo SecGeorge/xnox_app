@@ -13,7 +13,7 @@ class ControladorRegistro {
   final RepositorioAuth _repositorio;
 
   ControladorRegistro._(this._repositorio)
-      : _casoUsoRegistro = CasoUsoRegistro(_repositorio);
+    : _casoUsoRegistro = CasoUsoRegistro(_repositorio);
 
   factory ControladorRegistro() =>
       ControladorRegistro._(RepositorioAuthImpl(HttpService()));
@@ -30,7 +30,9 @@ class ControladorRegistro {
     final empresa = await EmpresaDao.instancia.activa();
     if (empresa == null) {
       return ResultadoSucursales.errorServidor(
-          '', 'No hay un gimnasio configurado en esta app');
+        '',
+        'No hay un gimnasio configurado en esta app',
+      );
     }
 
     // El guardado primero (es el que suele funcionar); luego los candidatos
@@ -50,8 +52,10 @@ class ControladorRegistro {
 
       if (resultado.hayDatos) {
         if (candidato != empresa.codigoBackend) {
-          await EmpresaDao.instancia
-              .actualizarCodigoBackend(empresa.id, candidato);
+          await EmpresaDao.instancia.actualizarCodigoBackend(
+            empresa.id,
+            candidato,
+          );
         }
         return resultado;
       }
@@ -74,31 +78,39 @@ class ControladorRegistro {
   }) async {
     if (codigoGimnasio.trim().isEmpty) {
       return RespuestaLogin(
-          success: false, message: 'Ingresa el código de gimnasio');
+        success: false,
+        message: 'Ingresa el código de gimnasio',
+      );
     }
     if (idSucursal == null) {
-      return RespuestaLogin(
-          success: false, message: 'Selecciona una sucursal');
+      return RespuestaLogin(success: false, message: 'Selecciona una sucursal');
     }
     if (documento.trim().isEmpty || password.trim().isEmpty) {
       return RespuestaLogin(
-          success: false, message: 'Ingresa tu DNI y contraseña');
+        success: false,
+        message: 'Ingresa tu DNI y contraseña',
+      );
     }
     if (password.length < 4) {
       return RespuestaLogin(
-          success: false,
-          message: 'La contraseña debe tener al menos 4 caracteres');
+        success: false,
+        message: 'La contraseña debe tener al menos 4 caracteres',
+      );
     }
     if (password != confirmar) {
       return RespuestaLogin(
-          success: false, message: 'Las contraseñas no coinciden');
+        success: false,
+        message: 'Las contraseñas no coinciden',
+      );
     }
 
-    return _casoUsoRegistro.ejecutar(DatosRegistro(
-      codigoGimnasio: codigoGimnasio.trim(),
-      idSucursal: idSucursal,
-      documento: documento.trim(),
-      password: password,
-    ));
+    return _casoUsoRegistro.ejecutar(
+      DatosRegistro(
+        codigoGimnasio: codigoGimnasio.trim(),
+        idSucursal: idSucursal,
+        documento: documento.trim(),
+        password: password,
+      ),
+    );
   }
 }

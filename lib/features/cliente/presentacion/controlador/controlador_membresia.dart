@@ -16,10 +16,10 @@ class ControladorMembresia {
 
     Map<String, dynamic>? contrato;
     try {
-      final resp = await _httpService.obtenerConDatos(
-        {'metodo': 'obtener_contrato_por_miembro_id', 'miembro_id': miembroId},
-        'contratos.php',
-      );
+      final resp = await _httpService.obtenerConDatos({
+        'metodo': 'obtener_contrato_por_miembro_id',
+        'miembro_id': miembroId,
+      }, 'contratos.php');
       if (resp is List && resp.isNotEmpty) {
         contrato = Map<String, dynamic>.from(resp.first as Map);
       }
@@ -51,10 +51,10 @@ class ControladorMembresia {
       estado: _estado(est, deuda),
       fechaInicio:
           DateTime.tryParse(contrato['fecha_inicio']?.toString() ?? '') ??
-              DateTime.now(),
+          DateTime.now(),
       fechaVencimiento:
           DateTime.tryParse(contrato['fecha_fin']?.toString() ?? '') ??
-              DateTime.now(),
+          DateTime.now(),
       saldoPendiente: deuda,
       codigoQr: qr,
       contratoId: int.tryParse(contrato['contrato_id']?.toString() ?? ''),
@@ -65,7 +65,8 @@ class ControladorMembresia {
   EstadoMiembro _estado(int est, double deuda) {
     if (est == 5) return EstadoMiembro.activo;
     if (est == 6) return EstadoMiembro.deudor;
-    if (est == 7) return deuda > 0 ? EstadoMiembro.moroso : EstadoMiembro.vencido;
+    if (est == 7)
+      return deuda > 0 ? EstadoMiembro.moroso : EstadoMiembro.vencido;
     return EstadoMiembro.vencido;
   }
 }

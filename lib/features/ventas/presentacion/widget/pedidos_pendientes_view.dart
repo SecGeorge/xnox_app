@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
+import 'package:xnox_app/core/widgets/hoja_moderna.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/pago_yape/presentacion/widget/tarjeta_qr_yape.dart';
 import 'package:xnox_app/features/ventas/dominio/entidades/pedido_pendiente.dart';
 import 'package:xnox_app/features/ventas/dominio/entidades/tipo_pago.dart';
 import 'package:xnox_app/features/ventas/presentacion/controlador/controlador_ventas.dart';
+import 'package:xnox_app/features/ventas/presentacion/widget/piezas_ventas.dart';
 
 /// Pedidos que los clientes hacen desde la app y que el admin todavía no cobra.
 /// Es la versión móvil de `Ventas > Pedidos pendientes` del panel web.
 class PedidosPendientesView extends StatefulWidget {
-  const PedidosPendientesView({super.key});
+  /// Cabecera de Ventas (título y pestañas), va arriba del desplazamiento.
+  final Widget cabecera;
+
+  /// Pestaña visible. Al volver a ella se recargan los datos: una venta
+  /// hecha en otra pestaña tiene que verse sin jalar para actualizar.
+  final bool activa;
+
+  const PedidosPendientesView({
+    super.key,
+    required this.cabecera,
+    this.activa = true,
+  });
 
   @override
   State<PedidosPendientesView> createState() => _PedidosPendientesViewState();
@@ -31,8 +44,15 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
     _cargar();
   }
 
-  Future<void> _cargar() async {
-    setState(() => _cargando = true);
+  @override
+  void didUpdateWidget(covariant PedidosPendientesView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.activa && !oldWidget.activa) _cargar(silencioso: true);
+  }
+
+  /// [silencioso]: sin el indicador de carga, la lista se reemplaza al llegar.
+  Future<void> _cargar({bool silencioso = false}) async {
+    if (!silencioso) setState(() => _cargando = true);
     try {
       final pedidos = await _controlador.obtenerPedidos();
       // Los métodos de pago solo hacen falta al cobrar: si fallan no rompen
@@ -54,210 +74,131 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _cargando = false);
-      mostrarMensaje(context, 'No se pudieron cargar los pedidos',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudieron cargar los pedidos',
+        tipo: TipoMensaje.error,
+      );
     }
-  }
-
-  String _soles(double v) => 'S/ ${NumberFormat('#,##0.00', 'es').format(v)}';
-
-  String _fecha(String valor) {
-    final f = DateTime.tryParse(valor);
-    return f == null ? valor : DateFormat('dd/MM/yyyy').format(f);
   }
 
   List<PedidoPendiente> get _filtrados {
     final t = _busqueda.toLowerCase().trim();
     if (t.isEmpty) return _pedidos;
     return _pedidos
-        .where((p) =>
-            p.codigo.toLowerCase().contains(t) ||
-            p.cliente.toLowerCase().contains(t) ||
-            p.dni.toLowerCase().contains(t))
+        .where(
+          (p) =>
+              p.codigo.toLowerCase().contains(t) ||
+              p.cliente.toLowerCase().contains(t) ||
+              p.dni.toLowerCase().contains(t),
+        )
         .toList();
   }
 
   double get _totalPendiente =>
       _filtrados.fold(0.0, (a, p) => a + (p.esCanje ? 0 : p.montoTotal));
   int get _totalProductos => _filtrados.fold(0, (a, p) => a + p.items);
-  int get _clientesDistintos => _filtrados.map((p) => p.miembroId).toSet().length;
+  int get _clientesDistintos =>
+      _filtrados.map((p) => p.miembroId).toSet().length;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColores.fondo,
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _cargar,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
-                    AppEspaciado.sm, AppEspaciado.md, AppEspaciado.lg),
-                children: [
-                  _banner(),
-                  const SizedBox(height: AppEspaciado.md),
-                  _resumen(),
-                  const SizedBox(height: AppEspaciado.md),
-                  _buscador(),
-                  const SizedBox(height: AppEspaciado.md),
-                  if (_filtrados.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 40),
-                      child: EstadoVacio(
-                        icono: Icons.receipt_long_outlined,
-                        mensaje: 'No hay pedidos pendientes',
-                      ),
-                    )
-                  else
-                    for (final p in _filtrados) ...[
-                      _tarjetaPedido(p),
-                      const SizedBox(height: AppEspaciado.sm + 4),
-                    ],
-                ],
-              ),
+    final pedidos = _filtrados;
+    return RefreshIndicator(
+      onRefresh: _cargar,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          AppEspaciado.md,
+          AppEspaciado.md,
+          AppEspaciado.md,
+          110,
+        ),
+        children: [
+          widget.cabecera,
+          const SizedBox(height: AppEspaciado.md),
+          if (_cargando)
+            const Padding(
+              padding: EdgeInsets.only(top: 80),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else ...[
+            _portada(),
+            const SizedBox(height: AppEspaciado.md + 4),
+            BuscadorApp(
+              hint: 'Buscar por cliente, código o documento…',
+              onChanged: (v) => setState(() => _busqueda = v),
             ),
+            const SizedBox(height: AppEspaciado.md + 4),
+            TituloSeccion(
+              icono: Icons.shopping_basket_rounded,
+              titulo: 'Por atender',
+              detalle:
+                  '${pedidos.length} ${pedidos.length == 1 ? 'pedido' : 'pedidos'}',
+            ),
+            if (pedidos.isEmpty)
+              const VacioApp(
+                icono: Icons.receipt_long_rounded,
+                titulo: 'No hay pedidos pendientes',
+                texto:
+                    'Los pedidos que hagan tus socios desde la app '
+                    'aparecerán aquí para cobrarlos.',
+              )
+            else
+              for (final p in pedidos) ...[
+                _tarjetaPedido(p),
+                const SizedBox(height: AppEspaciado.sm + 4),
+              ],
+          ],
+        ],
+      ),
     );
   }
 
-  Widget _banner() {
-    return Container(
-      padding: const EdgeInsets.all(AppEspaciado.md),
-      decoration: BoxDecoration(
-        gradient: AppColores.degradadoRelleno,
-        border: AppColores.bordeCabecera,
-        borderRadius: BorderRadius.circular(AppEspaciado.radio),
-        boxShadow: AppSombras.tarjeta,
-      ),
-      child: Row(
+  /// Portada con foto: lo que hay por cobrar de los pedidos de la app.
+  Widget _portada() {
+    return PortadaFoto(
+      foto: FotosApp.motivacion,
+      altura: 170,
+      etiqueta: 'Pedidos de la app',
+      titulo: soles(_totalPendiente),
+      texto: 'Por cobrar en pedidos de tus socios.',
+      pie: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColores.sobreRelleno.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-            ),
-            child: Icon(Icons.shopping_basket_outlined,
-                color: AppColores.sobreRelleno, size: 22),
+          DatoPortada(
+            icono: Icons.receipt_long_rounded,
+            valor: '${_filtrados.length}',
+            pie: 'pedidos',
           ),
           const SizedBox(width: AppEspaciado.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pedidos de clientes',
-                  style: TextStyle(
-                    color: AppColores.sobreRelleno,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Revisa y cobra los pedidos hechos desde la app',
-                  style: TextStyle(color: AppColores.sobreRellenoSuave, fontSize: 12.5),
-                ),
-              ],
-            ),
+          DatoPortada(
+            icono: Icons.inventory_2_rounded,
+            valor: '$_totalProductos',
+            pie: 'productos',
+          ),
+          const SizedBox(width: AppEspaciado.md),
+          DatoPortada(
+            icono: Icons.groups_rounded,
+            valor: '$_clientesDistintos',
+            pie: 'clientes',
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _resumen() {
-    return Row(
-      children: [
-        Expanded(
-          child: _tarjetaDato('Pendientes', '${_filtrados.length}',
-              Icons.assignment_outlined, AppColores.azul),
-        ),
-        const SizedBox(width: AppEspaciado.sm + 4),
-        Expanded(
-          child: _tarjetaDato('Por cobrar', _soles(_totalPendiente),
-              Icons.payments_outlined, AppColores.verde),
-        ),
-        const SizedBox(width: AppEspaciado.sm + 4),
-        Expanded(
-          child: _tarjetaDato('Productos', '$_totalProductos',
-              Icons.inventory_2_outlined, AppColores.naranja),
-        ),
-        const SizedBox(width: AppEspaciado.sm + 4),
-        Expanded(
-          child: _tarjetaDato('Clientes', '$_clientesDistintos',
-              Icons.groups_outlined, AppColores.morado),
-        ),
-      ],
-    );
-  }
-
-  Widget _tarjetaDato(String titulo, String valor, IconData icono, Color color) {
-    return TarjetaApp(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppEspaciado.sm, vertical: AppEspaciado.sm + 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icono, color: color, size: 18),
-          const SizedBox(height: AppEspaciado.sm),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              valor,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: AppColores.textoPrincipal,
-              ),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            titulo,
-            style: const TextStyle(
-                fontSize: 11, color: AppColores.textoSecundario),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buscador() {
-    return TextField(
-      onChanged: (v) => setState(() => _busqueda = v),
-      decoration: InputDecoration(
-        hintText: 'Buscar por cliente, código o documento...',
-        prefixIcon: const Icon(Icons.search),
-        suffixIcon: IconButton(
-          icon: const Icon(Icons.refresh),
-          tooltip: 'Actualizar',
-          onPressed: _cargar,
-        ),
       ),
     );
   }
 
   Widget _tarjetaPedido(PedidoPendiente p) {
-    return TarjetaApp(
-      padding: const EdgeInsets.all(AppEspaciado.sm + 4),
+    final color = p.esCanje ? AppColores.morado : AppColores.naranja;
+    return TarjetaPlana(
+      padding: const EdgeInsets.all(14),
+      onTap: () => _verDetalle(p),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColores.primario.withValues(alpha: 0.10),
-                child: Text(
-                  p.inicial,
-                  style: TextStyle(
-                    color: AppColores.primario,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppEspaciado.sm + 4),
+              AvatarInicial(p.inicial),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,16 +210,18 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
                         color: AppColores.textoPrincipal,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${p.codigo} · ${_fecha(p.fecha)}',
+                      '${p.codigo} · ${fechaCorta(p.fecha)}',
                       style: const TextStyle(
-                          fontSize: 12, color: AppColores.textoSecundario),
+                        fontSize: 12.5,
+                        color: AppColores.textoSecundario,
+                      ),
                     ),
                   ],
                 ),
@@ -287,61 +230,89 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    p.esCanje ? 'Gratis' : _soles(p.montoTotal),
+                    p.esCanje ? 'Gratis' : soles(p.montoTotal),
                     style: TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: p.esCanje ? AppColores.morado : AppColores.verde,
+                      color: p.esCanje
+                          ? AppColores.morado
+                          : AppColores.textoPrincipal,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${p.items} ${p.items == 1 ? 'ítem' : 'ítems'}',
+                    '${p.items} ${p.items == 1 ? 'producto' : 'productos'}',
                     style: const TextStyle(
-                        fontSize: 11.5, color: AppColores.textoSecundario),
+                      fontSize: 12,
+                      color: AppColores.textoSecundario,
+                    ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: AppEspaciado.sm + 4),
+          const SizedBox(height: 12),
           Row(
             children: [
-              EtiquetaEstado(
-                texto: p.esCanje ? 'Canje por puntos' : 'Pendiente',
-                color: p.esCanje ? AppColores.morado : AppColores.naranja,
+              PildoraVenta(
+                p.esCanje ? 'Canje por puntos' : 'Pendiente de pago',
+                color,
+                icono: p.esCanje ? Icons.stars_rounded : Icons.schedule_rounded,
+                suave: true,
               ),
               const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.visibility_outlined),
-                color: AppColores.primario,
-                tooltip: 'Ver detalle',
-                onPressed: () => _verDetalle(p),
+              _botonIcono(
+                Icons.close_rounded,
+                AppColores.moroso,
+                'Cancelar pedido',
+                () => _cancelar(p),
               ),
-              IconButton(
-                icon: const Icon(Icons.cancel_outlined),
-                color: AppColores.moroso,
-                tooltip: 'Cancelar pedido',
-                onPressed: () => _cancelar(p),
-              ),
-              const SizedBox(width: AppEspaciado.xs),
-              ElevatedButton.icon(
-                onPressed: () => p.esCanje ? _entregar(p) : _cobrar(p),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      p.esCanje ? AppColores.morado : AppColores.verde,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: AppEspaciado.md, vertical: 10),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 40,
+                child: ElevatedButton.icon(
+                  onPressed: () => p.esCanje ? _entregar(p) : _cobrar(p),
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: const StadiumBorder(),
+                  ),
+                  icon: Icon(
+                    p.esCanje
+                        ? Icons.card_giftcard_rounded
+                        : Icons.payments_rounded,
+                    size: 18,
+                  ),
+                  label: Text(p.esCanje ? 'Entregar' : 'Cobrar'),
                 ),
-                icon: Icon(
-                    p.esCanje ? Icons.card_giftcard : Icons.point_of_sale,
-                    size: 17),
-                label: Text(p.esCanje ? 'Entregar' : 'Cobrar'),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _botonIcono(
+    IconData icono,
+    Color color,
+    String tooltip,
+    VoidCallback onTap,
+  ) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: color.withValues(alpha: 0.10),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Icon(icono, size: 20, color: color),
+          ),
+        ),
       ),
     );
   }
@@ -356,87 +327,43 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
     }
     if (!mounted) return;
     final total = items.fold<double>(0, (a, d) => a + d.subtotal);
-    await showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColores.superficie,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(AppEspaciado.md),
-        child: Column(
+    await mostrarHojaModerna<void>(
+      context,
+      builder: (ctx) => HojaModerna(
+        cabecera: AvatarInicial(p.inicial, tamano: 44),
+        titulo: p.cliente.trim().isEmpty ? 'Cliente sin nombre' : p.cliente,
+        subtitulo: '${p.codigo} · ${fechaCorta(p.fecha)}',
+        pie: Column(
           mainAxisSize: MainAxisSize.min,
+          children: [
+            TotalVenta(total),
+            const SizedBox(height: AppEspaciado.sm + 4),
+            BotonHoja(
+              texto: p.esCanje ? 'Entregar canje' : 'Cobrar pedido',
+              icono: p.esCanje
+                  ? Icons.card_giftcard_rounded
+                  : Icons.payments_rounded,
+              onPressed: () {
+                Navigator.pop(ctx);
+                p.esCanje ? _entregar(p) : _cobrar(p);
+              },
+            ),
+          ],
+        ),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            EncabezadoSeccion(
-              titulo: 'Detalle del pedido',
-              subtitulo: '${p.codigo} · ${p.cliente}',
-            ),
-            const SizedBox(height: AppEspaciado.md),
             if (items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
-                child: Text('Sin productos',
-                    style: TextStyle(color: AppColores.textoSecundario)),
-              )
+              const SinProductosHoja()
             else
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: items.length,
-                  separatorBuilder: (_, _) => const Divider(height: 16),
-                  itemBuilder: (_, i) {
-                    final d = items[i];
-                    return Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                d.productoNombre,
-                                style: const TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${d.cantidad.toStringAsFixed(0)} x ${_soles(d.precio)} · ${d.unidadNombre}',
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColores.textoSecundario),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Text(
-                          _soles(d.subtotal),
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: AppColores.textoPrincipal),
-                        ),
-                      ],
-                    );
-                  },
+              for (final d in items)
+                FilaDetalleVenta(
+                  nombre: d.productoNombre,
+                  cantidad: d.cantidad,
+                  precio: d.precio,
+                  unidad: d.unidadNombre,
+                  total: d.subtotal,
                 ),
-              ),
-            const Divider(height: AppEspaciado.lg),
-            Row(
-              children: [
-                const Text('Total',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                const Spacer(),
-                Text(
-                  _soles(total),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppColores.primario,
-                  ),
-                ),
-              ],
-            ),
             const SizedBox(height: AppEspaciado.sm),
           ],
         ),
@@ -447,18 +374,19 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
   // ----------------------------------------------------------------- Cobrar
   Future<void> _cobrar(PedidoPendiente p) async {
     if (_tiposPago.isEmpty) {
-      mostrarMensaje(context, 'No hay métodos de pago configurados',
-          tipo: TipoMensaje.advertencia);
+      mostrarMensaje(
+        context,
+        'No hay métodos de pago configurados',
+        tipo: TipoMensaje.advertencia,
+      );
       return;
     }
-    final hecho = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
+    final hecho = await mostrarHojaModerna<bool>(
+      context,
       builder: (_) => _DialogoCobro(
         pedido: p,
         tiposPago: _tiposPago,
         controlador: _controlador,
-        formatearSoles: _soles,
       ),
     );
     if (hecho == true) await _cargar();
@@ -479,8 +407,11 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
 
     final resultado = await _controlador.entregarPedido(p.id);
     if (!mounted) return;
-    mostrarMensaje(context, resultado.mensaje,
-        tipo: resultado.exito ? TipoMensaje.exito : TipoMensaje.error);
+    mostrarMensaje(
+      context,
+      resultado.mensaje,
+      tipo: resultado.exito ? TipoMensaje.exito : TipoMensaje.error,
+    );
     if (resultado.exito) await _cargar();
   }
 
@@ -489,8 +420,7 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
     final confirmado = await confirmarDialog(
       context,
       titulo: '¿Cancelar pedido?',
-      mensaje:
-          'Se cancelará el pedido ${p.codigo} por ${_soles(p.montoTotal)}.',
+      mensaje: 'Se cancelará el pedido ${p.codigo} por ${soles(p.montoTotal)}.',
       icono: Icons.cancel_outlined,
       textoConfirmar: 'Sí, cancelar',
       peligro: true,
@@ -499,26 +429,27 @@ class _PedidosPendientesViewState extends State<PedidosPendientesView> {
 
     final resultado = await _controlador.cancelarPedido(p.id);
     if (!mounted) return;
-    mostrarMensaje(context, resultado.mensaje,
-        tipo: resultado.exito ? TipoMensaje.exito : TipoMensaje.error);
+    mostrarMensaje(
+      context,
+      resultado.mensaje,
+      tipo: resultado.exito ? TipoMensaje.exito : TipoMensaje.error,
+    );
     if (resultado.exito) await _cargar();
   }
 }
 
-/// Diálogo de cobro de un pedido: elige el método de pago y, si es Yape, valida
+/// Hoja de cobro de un pedido: elige el método de pago y, si es Yape, valida
 /// el código de verificación del comprobante (con opción de reactivarlo si
 /// expiró, igual que en el web).
 class _DialogoCobro extends StatefulWidget {
   final PedidoPendiente pedido;
   final List<TipoPago> tiposPago;
   final ControladorVentas controlador;
-  final String Function(double) formatearSoles;
 
   const _DialogoCobro({
     required this.pedido,
     required this.tiposPago,
     required this.controlador,
-    required this.formatearSoles,
   });
 
   @override
@@ -553,8 +484,11 @@ class _DialogoCobroState extends State<_DialogoCobro> {
     final esYape = _tipoPago.esYape;
     final codigo = _codigoCtrl.text.trim();
     if (esYape && codigo.isEmpty) {
-      mostrarMensaje(context, 'Ingresa el código de verificación del pago Yape',
-          tipo: TipoMensaje.advertencia);
+      mostrarMensaje(
+        context,
+        'Ingresa el código de verificación del pago Yape',
+        tipo: TipoMensaje.advertencia,
+      );
       return;
     }
 
@@ -564,8 +498,7 @@ class _DialogoCobroState extends State<_DialogoCobro> {
     });
     final resultado = esYape
         ? await widget.controlador.validarPagoYape(widget.pedido.id, codigo)
-        : await widget.controlador
-            .atenderPedido(widget.pedido.id, _tipoPagoId);
+        : await widget.controlador.atenderPedido(widget.pedido.id, _tipoPagoId);
     if (!mounted) return;
     setState(() => _procesando = false);
 
@@ -575,8 +508,11 @@ class _DialogoCobroState extends State<_DialogoCobro> {
       return;
     }
     // Si el código expiró se ofrece reactivarlo sin salir del diálogo.
-    setState(() => _puedeReactivar =
-        esYape && RegExp('expir', caseSensitive: false).hasMatch(resultado.mensaje));
+    setState(
+      () => _puedeReactivar =
+          esYape &&
+          RegExp('expir', caseSensitive: false).hasMatch(resultado.mensaje),
+    );
     mostrarMensaje(context, resultado.mensaje, tipo: TipoMensaje.advertencia);
   }
 
@@ -598,121 +534,110 @@ class _DialogoCobroState extends State<_DialogoCobro> {
   @override
   Widget build(BuildContext context) {
     final p = widget.pedido;
-    return AlertDialog(
-      backgroundColor: AppColores.superficie,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+    return HojaModerna(
+      icono: Icons.payments_rounded,
+      titulo: 'Cobrar pedido',
+      subtitulo: '${p.codigo} · ${p.cliente}',
+      pie: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TotalVenta(p.montoTotal, etiqueta: 'A cobrar'),
+          const SizedBox(height: AppEspaciado.sm + 4),
+          BotonHoja(
+            texto: 'Confirmar venta',
+            icono: Icons.check_rounded,
+            cargando: _procesando,
+            onPressed: _confirmar,
+          ),
+        ],
       ),
-      title: const Text('Confirmar cobro', style: TextStyle(fontSize: 18)),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppEspaciado.sm + 4),
-              decoration: BoxDecoration(
-                color: AppColores.fondo,
-                borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Pedido ${p.codigo}',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  Text(
-                    widget.formatearSoles(p.montoTotal),
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: AppColores.verde,
-                    ),
-                  ),
-                ],
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Método de pago',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColores.textoPrincipal,
             ),
-            const SizedBox(height: AppEspaciado.sm + 4),
-            const Text(
-              'Al confirmar se genera la venta y se descuenta el stock.',
-              style:
-                  TextStyle(fontSize: 12.5, color: AppColores.textoSecundario),
+          ),
+          const SizedBox(height: AppEspaciado.sm + 2),
+          Wrap(
+            spacing: AppEspaciado.sm,
+            runSpacing: AppEspaciado.sm,
+            children: [
+              for (final t in widget.tiposPago)
+                ChipApp(
+                  texto: t.nombre,
+                  icono: t.esYape
+                      ? Icons.qr_code_2_rounded
+                      : t.esEfectivo
+                      ? Icons.payments_outlined
+                      : Icons.credit_card_rounded,
+                  activo: _tipoPagoId == t.id,
+                  onTap: _procesando
+                      ? null
+                      : () => setState(() => _tipoPagoId = t.id),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppEspaciado.md),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColores.primario.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(AppEspaciado.radio),
             ),
-            const SizedBox(height: AppEspaciado.md),
-            Wrap(
-              spacing: AppEspaciado.sm,
-              runSpacing: AppEspaciado.sm,
+            child: Row(
               children: [
-                for (final t in widget.tiposPago)
-                  ChoiceChip(
-                    label: Text(t.nombre),
-                    selected: _tipoPagoId == t.id,
-                    onSelected: _procesando
-                        ? null
-                        : (_) => setState(() => _tipoPagoId = t.id),
-                    selectedColor: AppColores.primario,
-                    labelStyle: TextStyle(
-                      color: _tipoPagoId == t.id
-                          ? Colors.white
-                          : AppColores.textoPrincipal,
-                      fontWeight: FontWeight.w600,
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: 20,
+                  color: AppColores.primario,
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'Al confirmar se genera la venta y se descuenta el stock.',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColores.textoSecundario,
                     ),
                   ),
+                ),
               ],
             ),
-            if (_tipoPago.esYape) ...[
-              // El cliente escanea el QR del negocio aquí mismo; después el
-              // admin ingresa el código del comprobante para validar el pago.
-              const SizedBox(height: AppEspaciado.md),
-              const TarjetaQrYape(compacta: true),
-              const SizedBox(height: AppEspaciado.md),
-              TextField(
-                controller: _codigoCtrl,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Código de verificación Yape',
-                  helperText: 'Código de seguridad del comprobante (ej. 815)',
-                  helperMaxLines: 2,
-                  prefixIcon: Icon(Icons.shield_outlined),
-                ),
+          ),
+          if (_tipoPago.esYape) ...[
+            // El cliente escanea el QR del negocio aquí mismo; después el
+            // admin ingresa el código del comprobante para validar el pago.
+            const SizedBox(height: AppEspaciado.md),
+            const TarjetaQrYape(compacta: true),
+            const SizedBox(height: AppEspaciado.md),
+            TextField(
+              controller: _codigoCtrl,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(
+                labelText: 'Código de verificación Yape',
+                helperText: 'Código de seguridad del comprobante (ej. 815)',
+                helperMaxLines: 2,
+                prefixIcon: Icon(Icons.shield_outlined),
               ),
-              if (_puedeReactivar) ...[
-                const SizedBox(height: AppEspaciado.sm),
-                TextButton.icon(
-                  onPressed: _procesando ? null : _reactivar,
-                  icon: const Icon(Icons.refresh, size: 18),
-                  label: const Text('Reactivar código (expiró)'),
-                ),
-              ],
+            ),
+            if (_puedeReactivar) ...[
+              const SizedBox(height: AppEspaciado.sm),
+              TextButton.icon(
+                onPressed: _procesando ? null : _reactivar,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Reactivar código (expiró)'),
+              ),
             ],
           ],
-        ),
+          const SizedBox(height: AppEspaciado.md),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _procesando ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Cancelar'),
-        ),
-        ElevatedButton.icon(
-          onPressed: _procesando ? null : _confirmar,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColores.verde,
-            foregroundColor: Colors.white,
-          ),
-          icon: _procesando
-              ? const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
-              : const Icon(Icons.check, size: 18),
-          label: const Text('Confirmar venta'),
-        ),
-      ],
     );
   }
 }

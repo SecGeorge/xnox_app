@@ -41,9 +41,9 @@ class VentaRealizada {
     final detalleRaw = json['detalle'];
     final detalle = (detalleRaw is List)
         ? detalleRaw
-            .whereType<Map>()
-            .map((d) => DetalleVenta.fromJson(Map<String, dynamic>.from(d)))
-            .toList()
+              .whereType<Map>()
+              .map((d) => DetalleVenta.fromJson(Map<String, dynamic>.from(d)))
+              .toList()
         : <DetalleVenta>[];
 
     return VentaRealizada(

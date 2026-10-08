@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/servicios/lector_pagos_channel.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
-import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 
 /// Pantalla para activar/verificar el lector de pagos Yape/Plin.
 ///
@@ -59,34 +59,46 @@ class _LectorPagosScreenState extends State<LectorPagosScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Lector de pagos')),
+      bottomNavigationBar: _cargando
+          ? null
+          : PieBoton(
+              texto: _activo
+                  ? 'Abrir ajustes del sistema'
+                  : 'Activar lector de pagos',
+              icono: _activo ? Icons.settings_rounded : Icons.shield_rounded,
+              onPressed: _activar,
+            ),
       body: SafeArea(
+        bottom: false,
         child: _cargando
             ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
+            : ListView(
                 padding: const EdgeInsets.all(AppEspaciado.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _tarjetaEstado(),
-                    const SizedBox(height: AppEspaciado.md),
-                    _tarjetaInfo(),
-                    const SizedBox(height: AppEspaciado.lg),
-                    ElevatedButton.icon(
-                      onPressed: _activar,
-                      icon: Icon(_activo ? Icons.settings : Icons.shield_outlined),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _activo ? AppColores.primario : AppColores.activo,
-                      ),
-                      label: Text(
-                        _activo
-                            ? 'ABRIR AJUSTES DEL SISTEMA'
-                            : 'ACTIVAR LECTOR DE PAGOS',
-                      ),
-                    ),
-                  ],
-                ),
+                children: [
+                  const CabeceraApp(
+                    titulo: 'Lector de pagos',
+                    subtitulo: 'Registra Yape y Plin automáticamente',
+                  ),
+                  const SizedBox(height: AppEspaciado.md + 4),
+                  PortadaFoto(
+                    foto: FotosApp.tienda,
+                    alineacion: const Alignment(0.4, 0.2),
+                    altura: 140,
+                    etiqueta: 'Estado del lector',
+                    titulo: _activo ? 'Activo' : 'Inactivo',
+                    texto: _activo
+                        ? 'Los pagos de Yape/Plin se registran solos.'
+                        : 'Concede "Acceso a notificaciones" para empezar.',
+                  ),
+                  const SizedBox(height: AppEspaciado.md),
+                  _tarjetaEstado(),
+                  const SizedBox(height: AppEspaciado.lg),
+                  const TituloSeccion(
+                    icono: Icons.help_outline_rounded,
+                    titulo: '¿Cómo funciona?',
+                  ),
+                  _tarjetaInfo(),
+                ],
               ),
       ),
     );
@@ -94,20 +106,15 @@ class _LectorPagosScreenState extends State<LectorPagosScreen>
 
   Widget _tarjetaEstado() {
     final color = _activo ? AppColores.activo : AppColores.advertencia;
-    return TarjetaApp(
+    return TarjetaPlana(
+      color: color.withValues(alpha: 0.06),
+      colorBorde: color.withValues(alpha: 0.35),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-            ),
-            child: Icon(
-              _activo ? Icons.check_circle : Icons.error_outline,
-              color: color,
-              size: 26,
-            ),
+          IconoSuave(
+            _activo ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+            color: color,
+            circular: true,
           ),
           const SizedBox(width: AppEspaciado.md),
           Expanded(
@@ -141,32 +148,26 @@ class _LectorPagosScreenState extends State<LectorPagosScreen>
   }
 
   Widget _tarjetaInfo() {
-    return TarjetaApp(
+    return TarjetaPlana(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '¿Cómo funciona?',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColores.textoPrincipal,
-            ),
-          ),
-          SizedBox(height: AppEspaciado.sm),
           _Paso(
             numero: '1',
-            texto: 'Pulsa "Activar lector" y concede el acceso a XNOX en la '
+            texto:
+                'Pulsa "Activar lector" y concede el acceso a XNOX en la '
                 'lista de aplicaciones.',
           ),
           _Paso(
             numero: '2',
-            texto: 'Cuando un cliente pague por Yape o Plin, la notificación '
+            texto:
+                'Cuando un cliente pague por Yape o Plin, la notificación '
                 'se enviará al sistema automáticamente.',
           ),
           _Paso(
             numero: '3',
-            texto: 'No necesitas tener la app abierta: el lector trabaja en '
+            texto:
+                'No necesitas tener la app abierta: el lector trabaja en '
                 'segundo plano.',
           ),
         ],
@@ -188,15 +189,20 @@ class _Paso extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 11,
-            backgroundColor: AppColores.acento.withValues(alpha: 0.15),
+          Container(
+            width: 28,
+            height: 28,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: AppColores.degradadoRelleno,
+              shape: BoxShape.circle,
+            ),
             child: Text(
               numero,
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColores.acento,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppColores.sobreRelleno,
               ),
             ),
           ),

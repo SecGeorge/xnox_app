@@ -91,10 +91,13 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
   bool get _nombreEsNuevo {
     final texto = _nombreCtrl.text.trim();
     if (texto.isEmpty) return false;
-    if (_elegido != null && _elegido!.nombre.toLowerCase() == texto.toLowerCase()) {
+    if (_elegido != null &&
+        _elegido!.nombre.toLowerCase() == texto.toLowerCase()) {
       return false;
     }
-    return !_sugerencias.any((s) => s.nombre.toLowerCase() == texto.toLowerCase());
+    return !_sugerencias.any(
+      (s) => s.nombre.toLowerCase() == texto.toLowerCase(),
+    );
   }
 
   @override
@@ -187,7 +190,8 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
       final duracion = await _duracionVideo(archivo);
       if (duracion != null && duracion.inSeconds > _maxSegundosVideo + 1) {
         _rechazarVideo(
-            'El video dura ${duracion.inSeconds} s y el máximo son $_maxSegundosVideo s');
+          'El video dura ${duracion.inSeconds} s y el máximo son $_maxSegundosVideo s',
+        );
         return;
       }
 
@@ -233,15 +237,19 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.videocam_outlined,
-                  color: AppColores.primario),
+              leading: Icon(
+                Icons.videocam_outlined,
+                color: AppColores.primario,
+              ),
               title: const Text('Grabar video'),
               subtitle: const Text('Máximo $_maxSegundosVideo segundos'),
               onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
             ),
             ListTile(
-              leading: Icon(Icons.video_library_outlined,
-                  color: AppColores.primario),
+              leading: Icon(
+                Icons.video_library_outlined,
+                color: AppColores.primario,
+              ),
               title: const Text('Elegir de la galería'),
               onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
             ),
@@ -254,11 +262,14 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
   }
 
   String? _validar() {
-    if (_nombreCtrl.text.trim().isEmpty) return 'Ingresa el nombre del ejercicio';
+    if (_nombreCtrl.text.trim().isEmpty)
+      return 'Ingresa el nombre del ejercicio';
     final series = int.tryParse(_seriesCtrl.text.trim());
-    if (series == null || series <= 0) return 'Las series deben ser un número mayor a 0';
+    if (series == null || series <= 0)
+      return 'Las series deben ser un número mayor a 0';
     final reps = int.tryParse(_repsCtrl.text.trim());
-    if (reps == null || reps <= 0) return 'Las repeticiones deben ser un número mayor a 0';
+    if (reps == null || reps <= 0)
+      return 'Las repeticiones deben ser un número mayor a 0';
     return null;
   }
 
@@ -321,15 +332,19 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
     }
 
     if (!mounted) return;
-    Navigator.of(context).pop(EjercicioElegido(
-      nombre: nombre,
-      series: int.tryParse(_seriesCtrl.text.trim()) ?? 0,
-      repeticiones: int.tryParse(_repsCtrl.text.trim()) ?? 0,
-      observaciones: _obsCtrl.text.trim().isEmpty ? null : _obsCtrl.text.trim(),
-      catalogoId: catalogoId,
-      imagenUrl: imagenUrl,
-      videoUrl: videoUrl,
-    ));
+    Navigator.of(context).pop(
+      EjercicioElegido(
+        nombre: nombre,
+        series: int.tryParse(_seriesCtrl.text.trim()) ?? 0,
+        repeticiones: int.tryParse(_repsCtrl.text.trim()) ?? 0,
+        observaciones: _obsCtrl.text.trim().isEmpty
+            ? null
+            : _obsCtrl.text.trim(),
+        catalogoId: catalogoId,
+        imagenUrl: imagenUrl,
+        videoUrl: videoUrl,
+      ),
+    );
   }
 
   Future<List<String>> _fotosEnBase64() async {
@@ -355,11 +370,14 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Agregar ejercicio',
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColores.textoPrincipal)),
+            Text(
+              'Agregar ejercicio',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColores.textoPrincipal,
+              ),
+            ),
             const SizedBox(height: AppEspaciado.md),
 
             TextField(
@@ -380,8 +398,11 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
                         ),
                       )
                     : (_elegido != null
-                        ? const Icon(Icons.check_circle, color: AppColores.exito)
-                        : null),
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: AppColores.exito,
+                            )
+                          : null),
               ),
               onChanged: _alEscribir,
             ),
@@ -416,7 +437,9 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
                   child: TextField(
                     controller: _repsCtrl,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Repeticiones'),
+                    decoration: const InputDecoration(
+                      labelText: 'Repeticiones',
+                    ),
                   ),
                 ),
               ],
@@ -425,13 +448,18 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
             TextField(
               controller: _obsCtrl,
               textCapitalization: TextCapitalization.sentences,
-              decoration:
-                  const InputDecoration(labelText: 'Observaciones (opcional)'),
+              decoration: const InputDecoration(
+                labelText: 'Observaciones (opcional)',
+              ),
             ),
 
             if (_error != null) ...[
               const SizedBox(height: AppEspaciado.md),
-              _aviso(_error!, AppColores.advertencia, Icons.warning_amber_rounded),
+              _aviso(
+                _error!,
+                AppColores.advertencia,
+                Icons.warning_amber_rounded,
+              ),
             ],
 
             const SizedBox(height: AppEspaciado.md),
@@ -444,7 +472,9 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColores.sobreRelleno),
+                          strokeWidth: 2,
+                          color: AppColores.sobreRelleno,
+                        ),
                       )
                     : Text(_textoBotonGuardar()),
               ),
@@ -457,7 +487,9 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
 
   String _textoBotonGuardar() {
     if (_pidiendoFotos && _elegido == null) {
-      return _fotos.isEmpty ? 'Guardar sin fotos' : 'Guardar con ${_fotos.length} foto(s)';
+      return _fotos.isEmpty
+          ? 'Guardar sin fotos'
+          : 'Guardar con ${_fotos.length} foto(s)';
     }
     return 'Guardar';
   }
@@ -479,10 +511,13 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
           return ListTile(
             dense: true,
             leading: _miniatura(e.imagenUrl),
-            title: Text(e.nombre,
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColores.textoPrincipal)),
+            title: Text(
+              e.nombre,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppColores.textoPrincipal,
+              ),
+            ),
             subtitle: Text(
               [
                 if (e.grupoMuscular != null) e.grupoMuscular!,
@@ -513,16 +548,21 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(e.nombre,
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColores.textoPrincipal)),
+                Text(
+                  e.nombre,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
                 Text(
                   e.imagenUrl == null
                       ? 'Del catálogo del gimnasio'
                       : 'Con imagen de referencia',
                   style: const TextStyle(
-                      fontSize: 12, color: AppColores.textoSecundario),
+                    fontSize: 12,
+                    color: AppColores.textoSecundario,
+                  ),
                 ),
               ],
             ),
@@ -562,8 +602,12 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                    child: Image.file(_fotos[i],
-                        width: 76, height: 76, fit: BoxFit.cover),
+                    child: Image.file(
+                      _fotos[i],
+                      width: 76,
+                      height: 76,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                   Positioned(
                     top: 0,
@@ -576,8 +620,11 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
                           shape: BoxShape.circle,
                         ),
                         padding: const EdgeInsets.all(2),
-                        child: const Icon(Icons.close,
-                            size: 14, color: Colors.white),
+                        child: const Icon(
+                          Icons.close,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -629,7 +676,9 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                        fontSize: 12.5, fontWeight: FontWeight.w600),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -676,13 +725,19 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
       ),
       clipBehavior: Clip.antiAlias,
       child: url == null
-          ? const Icon(Icons.fitness_center,
-              size: 20, color: AppColores.textoSecundario)
+          ? const Icon(
+              Icons.fitness_center,
+              size: 20,
+              color: AppColores.textoSecundario,
+            )
           : Image.network(
               url,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const Icon(Icons.fitness_center,
-                  size: 20, color: AppColores.textoSecundario),
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.fitness_center,
+                size: 20,
+                color: AppColores.textoSecundario,
+              ),
             ),
     );
   }
@@ -700,9 +755,14 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
           Icon(icono, size: 18, color: color),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(texto,
-                style: TextStyle(
-                    color: color, fontSize: 12.5, fontWeight: FontWeight.w600)),
+            child: Text(
+              texto,
+              style: TextStyle(
+                color: color,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),

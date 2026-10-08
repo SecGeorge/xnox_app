@@ -21,10 +21,16 @@ class ClientePublicidadScreen extends StatefulWidget {
   /// Avisa cuántas novedades vigentes hay (para el botón del inicio).
   final ValueChanged<int>? onNovedades;
 
+  /// Se llama al terminar la primera carga, cuando ya no queda el modal de
+  /// novedades por mostrar (se cerró o no había): el inicio encadena ahí su
+  /// propio aviso para no encimar modales.
+  final VoidCallback? onListo;
+
   const ClientePublicidadScreen({
     super.key,
     this.incrustada = false,
     this.onNovedades,
+    this.onListo,
   });
 
   @override
@@ -59,6 +65,16 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
 
   Future<void> recargar() => _cargar();
 
+  /// Novedades vigentes ya cargadas.
+  List<Publicidad> get novedades => List.unmodifiable(_publicidades);
+
+  bool _listoAvisado = false;
+  void _avisarListo() {
+    if (_listoAvisado) return;
+    _listoAvisado = true;
+    widget.onListo?.call();
+  }
+
   /// El modal sale solo una vez por sesión de la app: volver al inicio o
   /// recargar no lo repite.
   static bool _modalMostrado = false;
@@ -67,14 +83,7 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
   Future<void> mostrarNovedades() async {
     if (_publicidades.isEmpty || !mounted) return;
     _modalMostrado = true;
-    await showDialog<void>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
-      builder: (_) => _ModalNovedades(
-        publicidades: _publicidades,
-        onVerImagen: _mostrarImagen,
-      ),
-    );
+    await abrirNovedades(context, lista: _publicidades);
   }
 
   Future<void> _cargar() async {
@@ -103,7 +112,12 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
       widget.onNovedades?.call(_publicidades.length);
       if (widget.incrustada && !_modalMostrado && _publicidades.isNotEmpty) {
         // Tras el primer frame, para no abrir el modal en mitad del build.
-        WidgetsBinding.instance.addPostFrameCallback((_) => mostrarNovedades());
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await mostrarNovedades();
+          _avisarListo();
+        });
+      } else {
+        _avisarListo();
       }
     } catch (_) {
       if (!mounted) return;
@@ -111,6 +125,7 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
         _publicidades = [];
         _isLoading = false;
       });
+      _avisarListo();
     }
   }
 
@@ -118,42 +133,6 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
   bool _estaVigente(Publicidad p) {
     final hoy = DateTime.now();
     return !hoy.isBefore(p.fechaInicio) && !hoy.isAfter(p.fechaFin);
-  }
-
-  /// Muestra la imagen de la campaña a pantalla completa, como un modal.
-  void _mostrarImagen(String url) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.92),
-      builder: (ctx) => GestureDetector(
-        onTap: () => Navigator.of(ctx).pop(),
-        child: Stack(
-          children: [
-            Center(
-              child: InteractiveViewer(
-                child: Image.network(
-                  url,
-                  fit: BoxFit.contain,
-                  errorBuilder: (c, e, s) => const Icon(
-                    Icons.broken_image,
-                    color: Colors.white54,
-                    size: 64,
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 40,
-              right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                onPressed: () => Navigator.of(ctx).pop(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -492,7 +471,7 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
               ),
               child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
                   ? GestureDetector(
-                      onTap: () => _mostrarImagen(p.imagenUrl!),
+                      onTap: () => _verImagen(context, p.imagenUrl!),
                       // Mismo marco que se usó al encuadrar en el admin: se
                       // muestra la parte de la imagen que el usuario eligió
                       // (Alignment del encuadre). La imagen completa se ve al
@@ -599,6 +578,78 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
 
 /// Novedades del gimnasio en un modal: una tarjeta por novedad y, si hay
 /// varias, se deslizan de lado a lado.
+/// Abre el modal deslizable de novedades desde cualquier pantalla. Sin
+/// [lista], trae las vigentes del gimnasio; si no hay, lo dice.
+Future<void> abrirNovedades(
+  BuildContext context, {
+  List<Publicidad>? lista,
+}) async {
+  var novedades = lista;
+  if (novedades == null) {
+    try {
+      final hoy = DateTime.now();
+      novedades = (await ControladorPublicidad().fetchPublicidadesActivas())
+          .where(
+            (p) => !hoy.isBefore(p.fechaInicio) && !hoy.isAfter(p.fechaFin),
+          )
+          .toList();
+    } catch (_) {
+      novedades = const [];
+    }
+  }
+  if (!context.mounted) return;
+  if (novedades.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Por ahora no hay novedades del gimnasio')),
+    );
+    return;
+  }
+  await showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.7),
+    builder: (_) => _ModalNovedades(
+      publicidades: novedades!,
+      onVerImagen: (url) => _verImagen(context, url),
+    ),
+  );
+}
+
+/// Muestra la imagen de la campaña a pantalla completa, como un modal.
+void _verImagen(BuildContext context, String url) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.92),
+    builder: (ctx) => GestureDetector(
+      onTap: () => Navigator.of(ctx).pop(),
+      child: Stack(
+        children: [
+          Center(
+            child: InteractiveViewer(
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (c, e, s) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 40,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: Colors.white, size: 28),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _ModalNovedades extends StatefulWidget {
   final List<Publicidad> publicidades;
   final void Function(String url) onVerImagen;

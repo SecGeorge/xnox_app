@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/features/ejercicios/datos/repositorio_ejercicios.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/screen/reproductor_ejercicio_screen.dart';
 
@@ -86,10 +87,8 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
     if (!_tieneVideo) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReproductorEjercicioScreen(
-          url: _videoUrl!,
-          titulo: widget.nombre,
-        ),
+        builder: (_) =>
+            ReproductorEjercicioScreen(url: _videoUrl!, titulo: widget.nombre),
       ),
     );
   }
@@ -98,31 +97,91 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(
-        title: Text(
-          widget.nombre,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: AppEspaciado.lg),
+        padding: EdgeInsets.zero,
         children: [
-          _galeria(),
+          Stack(
+            children: [
+              _galeria(),
+              // Atrás flotando sobre la foto, como en la sesión de ejercicio.
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 8,
+                left: 12,
+                child: Material(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => Navigator.of(context).maybePop(),
+                    child: const SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           if (_imagenes.length > 1) _tiras(),
           Padding(
-            padding: const EdgeInsets.fromLTRB(AppEspaciado.md, AppEspaciado.md,
-                AppEspaciado.md, 0),
+            padding: const EdgeInsets.fromLTRB(
+              AppEspaciado.md,
+              AppEspaciado.md,
+              AppEspaciado.md,
+              AppEspaciado.xl,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  widget.nombre,
+                  style: TextStyle(
+                    fontSize: 25,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
+                const SizedBox(height: AppEspaciado.md),
                 if (_tieneVideo) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _verVideo,
-                      icon: const Icon(Icons.play_circle_outline),
-                      label: const Text('Ver video de ejecución'),
+                  TarjetaPlana(
+                    onTap: _verVideo,
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            gradient: AppColores.degradadoRelleno,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.play_arrow_rounded,
+                            color: AppColores.sobreRelleno,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Ver video de ejecución',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppColores.textoPrincipal,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColores.primario,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: AppEspaciado.md),
@@ -131,14 +190,23 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
                   _etiqueta(_grupoMuscular!),
                   const SizedBox(height: AppEspaciado.sm),
                 ],
-                if (_descripcion != null)
-                  Text(
-                    _descripcion!,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        height: 1.4,
-                        color: AppColores.textoSecundario),
+                if (_descripcion != null) ...[
+                  const SizedBox(height: AppEspaciado.sm),
+                  const TituloSeccion(
+                    icono: Icons.menu_book_rounded,
+                    titulo: 'Cómo se hace',
                   ),
+                  TarjetaPlana(
+                    child: Text(
+                      _descripcion!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.45,
+                        color: AppColores.textoSecundario,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -150,7 +218,9 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
   /// Marco grande: la foto entera (sin recortar) sobre fondo oscuro y con
   /// pellizco para acercar el detalle de la técnica.
   Widget _galeria() {
-    final alto = MediaQuery.of(context).size.height * 0.48;
+    final alto =
+        MediaQuery.of(context).size.height * 0.46 +
+        MediaQuery.of(context).padding.top;
 
     if (_imagenes.isEmpty) {
       return Container(
@@ -162,11 +232,16 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
             : const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.image_not_supported_outlined,
-                      size: 48, color: Colors.white38),
+                  Icon(
+                    Icons.image_not_supported_outlined,
+                    size: 48,
+                    color: Colors.white38,
+                  ),
                   SizedBox(height: AppEspaciado.sm),
-                  Text('Este ejercicio no tiene fotos',
-                      style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  Text(
+                    'Este ejercicio no tiene fotos',
+                    style: TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
                 ],
               ),
       );
@@ -193,10 +268,15 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
                         ? hijo
                         : const Center(
                             child: CircularProgressIndicator(
-                                color: Colors.white)),
+                              color: Colors.white,
+                            ),
+                          ),
                     errorBuilder: (_, _, _) => const Center(
-                      child: Icon(Icons.broken_image_outlined,
-                          size: 48, color: Colors.white38),
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        size: 48,
+                        color: Colors.white38,
+                      ),
                     ),
                   ),
                 ),
@@ -208,16 +288,22 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
               top: AppEspaciado.sm,
               right: AppEspaciado.sm,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text('${_actual + 1} / ${_imagenes.length}',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600)),
+                child: Text(
+                  '${_actual + 1} / ${_imagenes.length}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           // Siguen llegando fotos del catálogo mientras se ve la portada.
@@ -229,7 +315,9 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
                 width: 18,
                 height: 18,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white70),
+                  strokeWidth: 2,
+                  color: Colors.white70,
+                ),
               ),
             ),
         ],
@@ -244,7 +332,9 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(
-            horizontal: AppEspaciado.md, vertical: AppEspaciado.sm),
+          horizontal: AppEspaciado.md,
+          vertical: AppEspaciado.sm,
+        ),
         itemCount: _imagenes.length,
         separatorBuilder: (_, _) => const SizedBox(width: AppEspaciado.sm),
         itemBuilder: (_, i) {
@@ -268,8 +358,11 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
               child: Image.network(
                 _imagenes[i],
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const Icon(Icons.fitness_center,
-                    size: 18, color: AppColores.textoSecundario),
+                errorBuilder: (_, _, _) => const Icon(
+                  Icons.fitness_center,
+                  size: 18,
+                  color: AppColores.textoSecundario,
+                ),
               ),
             ),
           );
@@ -285,11 +378,14 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
         color: AppColores.primario.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(texto,
-          style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: AppColores.primario)),
+      child: Text(
+        texto,
+        style: TextStyle(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+          color: AppColores.primario,
+        ),
+      ),
     );
   }
 }

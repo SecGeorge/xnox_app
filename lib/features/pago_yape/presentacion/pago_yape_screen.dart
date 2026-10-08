@@ -1,10 +1,12 @@
 import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/pago_yape/datos/repositorio_pago_yape.dart';
 import 'package:xnox_app/features/pago_yape/dominio/config_pago_yape.dart';
@@ -46,7 +48,8 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
   bool _validando = false;
 
   /// `true` si tenemos con qué validar el pago (pedido o contrato).
-  bool get _puedeValidar => widget.pedidoId != null || widget.contratoId != null;
+  bool get _puedeValidar =>
+      widget.pedidoId != null || widget.contratoId != null;
 
   @override
   void initState() {
@@ -81,24 +84,28 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Pagar por Yape')),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : _config == null || !_config!.disponible
-              ? _sinConfig()
-              : _contenido(_config!),
+      body: SafeArea(
+        child: _cargando
+            ? const Center(child: CircularProgressIndicator())
+            : _config == null || !_config!.disponible
+            ? _sinConfig()
+            : _contenido(_config!),
+      ),
     );
   }
 
   Widget _sinConfig() {
     return ListView(
+      padding: const EdgeInsets.all(AppEspaciado.md),
       children: const [
-        SizedBox(height: 100),
-        EstadoVacio(
-          icono: Icons.qr_code_2_outlined,
-          mensaje:
-              'El gimnasio aún no configuró un número de Yape para cobrar.\n'
-              'Comunícate con recepción.',
+        CabeceraApp(titulo: 'Pagar por Yape'),
+        SizedBox(height: AppEspaciado.xl),
+        VacioApp(
+          icono: Icons.qr_code_2_rounded,
+          titulo: 'Yape aún no está disponible',
+          texto:
+              'El gimnasio aún no configuró un número de Yape para '
+              'cobrar. Comunícate con recepción.',
         ),
       ],
     );
@@ -110,6 +117,11 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const CabeceraApp(
+            titulo: 'Pagar por Yape',
+            subtitulo: 'Escanea el QR o yapea al número',
+          ),
+          const SizedBox(height: AppEspaciado.md + 4),
           _tarjetaMonto(),
           const SizedBox(height: AppEspaciado.md),
           if (c.tieneQr) _tarjetaQr(c) else _tarjetaSinQr(),
@@ -177,7 +189,9 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColores.sobreRelleno),
+                      strokeWidth: 2,
+                      color: AppColores.sobreRelleno,
+                    ),
                   )
                 : const Icon(Icons.verified_outlined),
             label: Text(_validando ? 'Verificando...' : 'Validar y confirmar'),
@@ -188,32 +202,13 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
   }
 
   Widget _tarjetaMonto() {
-    return Container(
-      padding: const EdgeInsets.all(AppEspaciado.lg),
-      decoration: BoxDecoration(
-        gradient: AppColores.degradadoRelleno,
-        border: AppColores.bordeCabecera,
-        borderRadius: BorderRadius.circular(AppEspaciado.radio),
-        boxShadow: AppSombras.tarjeta,
-      ),
-      child: Column(
-        children: [
-          Text(
-            widget.concepto,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColores.sobreRellenoSuave, fontSize: 14),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _soles(widget.monto),
-            style: TextStyle(
-              color: AppColores.sobreRelleno,
-              fontSize: 34,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
+    return PortadaFoto(
+      foto: FotosApp.tienda,
+      alineacion: const Alignment(0.4, 0.2),
+      altura: 140,
+      etiqueta: widget.concepto,
+      titulo: _soles(widget.monto),
+      texto: 'Monto a pagar',
     );
   }
 
@@ -253,8 +248,10 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
                     width: 240,
                     height: 240,
                     child: Center(
-                      child: Text('No se pudo cargar el QR',
-                          style: TextStyle(color: AppColores.textoSecundario)),
+                      child: Text(
+                        'No se pudo cargar el QR',
+                        style: TextStyle(color: AppColores.textoSecundario),
+                      ),
                     ),
                   ),
                 ),
@@ -300,8 +297,10 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Número de Yape',
-              style: TextStyle(fontSize: 12, color: AppColores.textoSecundario)),
+          const Text(
+            'Número de Yape',
+            style: TextStyle(fontSize: 12, color: AppColores.textoSecundario),
+          ),
           const SizedBox(height: 4),
           Row(
             children: [
@@ -327,14 +326,19 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
             const Divider(height: AppEspaciado.lg),
             Row(
               children: [
-                const Icon(Icons.person_outline,
-                    size: 18, color: AppColores.textoSecundario),
+                const Icon(
+                  Icons.person_outline,
+                  size: 18,
+                  color: AppColores.textoSecundario,
+                ),
                 const SizedBox(width: AppEspaciado.sm),
                 Expanded(
                   child: Text(
                     c.titular,
                     style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -359,14 +363,23 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final Uint8List bytes = byteData!.buffer.asUint8List();
-      await Gal.putImageBytes(bytes, name: 'yape_qr_${widget.pedidoId ?? 'pago'}');
+      await Gal.putImageBytes(
+        bytes,
+        name: 'yape_qr_${widget.pedidoId ?? 'pago'}',
+      );
       if (!mounted) return;
-      mostrarMensaje(context, 'QR guardado en la galería',
-          tipo: TipoMensaje.exito);
+      mostrarMensaje(
+        context,
+        'QR guardado en la galería',
+        tipo: TipoMensaje.exito,
+      );
     } catch (e) {
       if (!mounted) return;
-      mostrarMensaje(context, 'No se pudo guardar el QR',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudo guardar el QR',
+        tipo: TipoMensaje.error,
+      );
     } finally {
       if (mounted) setState(() => _descargando = false);
     }
@@ -389,7 +402,10 @@ class _PagoYapeScreenState extends State<PagoYapeScreen> {
 
     ResultadoPagoYape resultado;
     if (widget.pedidoId != null) {
-      resultado = await _repositorio.validarPagoPedido(widget.pedidoId!, codigo);
+      resultado = await _repositorio.validarPagoPedido(
+        widget.pedidoId!,
+        codigo,
+      );
     } else {
       resultado = await _repositorio.validarPagoMembresia(
         widget.contratoId!,

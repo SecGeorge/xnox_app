@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/recomendaciones/datos/repositorio_recomendaciones.dart';
 import 'package:xnox_app/features/recomendaciones/dominio/entidades/recomendacion.dart';
@@ -99,70 +100,85 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Dejar una recomendación')),
+      bottomNavigationBar: !_verificando && _habilitado
+          ? PieBoton(
+              texto: _enviando ? 'Enviando…' : 'Enviar recomendación',
+              icono: Icons.send_rounded,
+              cargando: _enviando,
+              onPressed: _enviar,
+            )
+          : null,
       body: SafeArea(
+        bottom: false,
         child: _verificando
             ? const Center(child: CircularProgressIndicator())
             : _habilitado
-                ? _formulario()
-                : _bloqueado(),
+            ? _formulario()
+            : _bloqueado(),
       ),
     );
   }
 
   /// Pantalla que ve el socio con la membresía vencida.
   Widget _bloqueado() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppEspaciado.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: AppColores.advertencia.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.card_membership,
-                  color: AppColores.advertencia, size: 34),
-            ),
-            const SizedBox(height: AppEspaciado.md),
-            Text(
-              'Membresía no vigente',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColores.textoPrincipal,
-              ),
-            ),
-            const SizedBox(height: AppEspaciado.sm),
-            Text(
-              _motivoBloqueo.isEmpty
-                  ? 'Para dejar una recomendación necesitas una membresía activa.'
-                  : _motivoBloqueo,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.4,
-                color: AppColores.textoSecundario,
-              ),
-            ),
-            const SizedBox(height: AppEspaciado.lg),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColores.primario,
-                side: BorderSide(color: AppColores.primario),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+    return ListView(
+      padding: const EdgeInsets.all(AppEspaciado.md),
+      children: [
+        const CabeceraApp(titulo: 'Dejar una recomendación'),
+        const SizedBox(height: AppEspaciado.xl),
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColores.advertencia.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.card_membership,
+                  color: AppColores.advertencia,
+                  size: 34,
                 ),
               ),
-              child: const Text('Entendido'),
-            ),
-          ],
+              const SizedBox(height: AppEspaciado.md),
+              Text(
+                'Membresía no vigente',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
+              const SizedBox(height: AppEspaciado.sm),
+              Text(
+                _motivoBloqueo.isEmpty
+                    ? 'Para dejar una recomendación necesitas una membresía activa.'
+                    : _motivoBloqueo,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.4,
+                  color: AppColores.textoSecundario,
+                ),
+              ),
+              const SizedBox(height: AppEspaciado.lg),
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColores.primario,
+                  side: BorderSide(color: AppColores.primario),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+                  ),
+                ),
+                child: const Text('Entendido'),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -170,6 +186,11 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
     return ListView(
       padding: const EdgeInsets.all(AppEspaciado.md),
       children: [
+        const CabeceraApp(
+          titulo: 'Dejar una recomendación',
+          subtitulo: 'Ayúdanos a mejorar',
+        ),
+        const SizedBox(height: AppEspaciado.md + 4),
         _intro(),
         const SizedBox(height: AppEspaciado.md),
         _selectorDestino(),
@@ -177,63 +198,20 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
         _campoMensaje(),
         const SizedBox(height: AppEspaciado.md),
         _switchAnonimo(),
-        const SizedBox(height: AppEspaciado.lg),
-        SizedBox(
-          height: 50,
-          child: ElevatedButton.icon(
-            onPressed: _enviando ? null : _enviar,
-            icon: _enviando
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppColores.sobreRelleno),
-                  )
-                : const Icon(Icons.send),
-            label: Text(_enviando ? 'Enviando…' : 'Enviar recomendación'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColores.relleno,
-              foregroundColor: AppColores.sobreRelleno,
-              side: AppColores.ladoBoton,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-              ),
-            ),
-          ),
-        ),
       ],
     );
   }
 
   Widget _intro() {
-    return TarjetaApp(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColores.acento.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-            ),
-            child: Icon(Icons.lightbulb_outline,
-                color: AppColores.acento, size: 22),
-          ),
-          const SizedBox(width: AppEspaciado.md),
-          const Expanded(
-            child: Text(
-              'Cuéntanos qué mejorarías. Tu recomendación llega directo al '
-              'administrador del gimnasio. Escríbela con respeto: los '
-              'mensajes con groserías no se envían.',
-              style: TextStyle(
-                fontSize: 13.5,
-                height: 1.35,
-                color: AppColores.textoSecundario,
-              ),
-            ),
-          ),
-        ],
-      ),
+    return const PortadaFoto(
+      foto: FotosApp.motivacion,
+      alineacion: Alignment(0.5, -0.3),
+      altura: 150,
+      etiqueta: 'Tu opinión cuenta',
+      titulo: '¿Qué mejorarías?',
+      texto:
+          'Llega directo al administrador. Escríbela con respeto: los '
+          'mensajes con groserías no se envían.',
     );
   }
 
@@ -276,7 +254,10 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
   }
 
   Widget _opcionDestino(
-      DestinoRecomendacion destino, IconData icono, String detalle) {
+    DestinoRecomendacion destino,
+    IconData icono,
+    String detalle,
+  ) {
     final activo = _destino == destino;
     return InkWell(
       onTap: () => setState(() => _destino = destino),
@@ -296,18 +277,18 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icono,
-                size: 22,
-                color:
-                    activo ? AppColores.primario : AppColores.textoSecundario),
+            Icon(
+              icono,
+              size: 22,
+              color: activo ? AppColores.primario : AppColores.textoSecundario,
+            ),
             const SizedBox(height: 6),
             Text(
               destino.etiqueta,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color:
-                    activo ? AppColores.primario : AppColores.textoPrincipal,
+                color: activo ? AppColores.primario : AppColores.textoPrincipal,
               ),
             ),
             const SizedBox(height: 2),
@@ -356,7 +337,9 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
                   ? 'Ej: me gustaría ver mi historial de pagos en la app'
                   : 'Ej: sería bueno tener más discos de 10 kg',
               hintStyle: const TextStyle(
-                  fontSize: 13.5, color: AppColores.textoSecundario),
+                fontSize: 13.5,
+                color: AppColores.textoSecundario,
+              ),
               filled: true,
               fillColor: AppColores.fondo,
               border: OutlineInputBorder(
@@ -381,7 +364,11 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
   Widget _switchAnonimo() {
     return TarjetaApp(
       padding: const EdgeInsets.fromLTRB(
-          AppEspaciado.md, AppEspaciado.sm, AppEspaciado.sm, AppEspaciado.sm),
+        AppEspaciado.md,
+        AppEspaciado.sm,
+        AppEspaciado.sm,
+        AppEspaciado.sm,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -400,7 +387,9 @@ class _EnviarRecomendacionScreenState extends State<EnviarRecomendacionScreen> {
                 Text(
                   'No se guardará tu nombre. Tampoco podrán responderte.',
                   style: TextStyle(
-                      fontSize: 12, color: AppColores.textoSecundario),
+                    fontSize: 12,
+                    color: AppColores.textoSecundario,
+                  ),
                 ),
               ],
             ),

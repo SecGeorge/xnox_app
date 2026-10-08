@@ -34,8 +34,9 @@ class AlmacenRutinas {
       _rutinas.where((r) => r.origen == OrigenRutina.cliente).toList();
 
   /// Todos los ejercicios de todas las rutinas (para el reporte de avance).
-  List<Ejercicio> get todosLosEjercicios =>
-      [for (final r in _rutinas) ...r.ejercicios];
+  List<Ejercicio> get todosLosEjercicios => [
+    for (final r in _rutinas) ...r.ejercicios,
+  ];
 
   Rutina? buscarRutina(int id) {
     for (final r in _rutinas) {
@@ -58,8 +59,10 @@ class AlmacenRutinas {
     final diasRows = await db.query('rutina_dia', orderBy: 'orden ASC, id ASC');
     final ejRows = await db.query('ejercicio', orderBy: 'orden ASC, id ASC');
     final marcaRows = await db.query('marca', orderBy: 'fecha ASC, id ASC');
-    final serieRows =
-        await db.query('serie', orderBy: 'marca_id ASC, numero ASC');
+    final serieRows = await db.query(
+      'serie',
+      orderBy: 'marca_id ASC, numero ASC',
+    );
 
     // Series agrupadas por sesión (marca_id) -> [12, 10, 8, 8].
     final seriesPorMarca = <int, List<int>>{};
@@ -74,15 +77,21 @@ class AlmacenRutinas {
       final ejId = m['ejercicio_id'] as int;
       final marcaId = m['id'] as int;
       // Series desde la tabla normalizada; fallback al texto legado si faltara.
-      final reps = seriesPorMarca[marcaId] ??
-          _parsearReps(m['reps_series'] as String?);
-      marcasPorEj.putIfAbsent(ejId, () => []).add(Marca(
-            id: marcaId,
-            fecha: DateTime.tryParse(m['fecha'] as String? ?? '') ?? DateTime.now(),
-            peso: (m['peso'] as num?)?.toDouble() ?? 0,
-            repeticiones: m['repeticiones'] as int? ?? 0,
-            repsPorSerie: reps,
-          ));
+      final reps =
+          seriesPorMarca[marcaId] ?? _parsearReps(m['reps_series'] as String?);
+      marcasPorEj
+          .putIfAbsent(ejId, () => [])
+          .add(
+            Marca(
+              id: marcaId,
+              fecha:
+                  DateTime.tryParse(m['fecha'] as String? ?? '') ??
+                  DateTime.now(),
+              peso: (m['peso'] as num?)?.toDouble() ?? 0,
+              repeticiones: m['repeticiones'] as int? ?? 0,
+              repsPorSerie: reps,
+            ),
+          );
     }
 
     // Ejercicios agrupados por día.
@@ -90,18 +99,22 @@ class AlmacenRutinas {
     for (final e in ejRows) {
       final id = e['id'] as int;
       final diaId = e['dia_id'] as int;
-      ejPorDia.putIfAbsent(diaId, () => []).add(Ejercicio(
-            id: id,
-            nombre: e['nombre'] as String? ?? '',
-            series: e['series'] as int? ?? 0,
-            repeticiones: e['repeticiones'] as int? ?? 0,
-            observaciones: e['observaciones'] as String?,
-            catalogoId: e['catalogo_id'] as int?,
-            imagenUrl: e['imagen_url'] as String?,
-            videoUrl: e['video_url'] as String?,
-            descansoSeg: e['descanso_seg'] as int?,
-            marcas: marcasPorEj[id] ?? [],
-          ));
+      ejPorDia
+          .putIfAbsent(diaId, () => [])
+          .add(
+            Ejercicio(
+              id: id,
+              nombre: e['nombre'] as String? ?? '',
+              series: e['series'] as int? ?? 0,
+              repeticiones: e['repeticiones'] as int? ?? 0,
+              observaciones: e['observaciones'] as String?,
+              catalogoId: e['catalogo_id'] as int?,
+              imagenUrl: e['imagen_url'] as String?,
+              videoUrl: e['video_url'] as String?,
+              descansoSeg: e['descanso_seg'] as int?,
+              marcas: marcasPorEj[id] ?? [],
+            ),
+          );
     }
 
     // Días agrupados por rutina.
@@ -109,11 +122,15 @@ class AlmacenRutinas {
     for (final d in diasRows) {
       final id = d['id'] as int;
       final rutinaId = d['rutina_id'] as int;
-      diasPorRutina.putIfAbsent(rutinaId, () => []).add(DiaRutina(
-            id: id,
-            diaSemana: d['dia_semana'] as String? ?? '',
-            ejercicios: ejPorDia[id] ?? [],
-          ));
+      diasPorRutina
+          .putIfAbsent(rutinaId, () => [])
+          .add(
+            DiaRutina(
+              id: id,
+              diaSemana: d['dia_semana'] as String? ?? '',
+              ejercicios: ejPorDia[id] ?? [],
+            ),
+          );
     }
 
     _rutinas = rutinasRows.map((r) {
@@ -172,8 +189,13 @@ class AlmacenRutinas {
 
   Future<int> agregarDia(int rutinaId, String diaSemana) async {
     final db = await BaseDatosLocal.instancia.db;
-    final orden = Sqflite.firstIntValue(await db.rawQuery(
-            'SELECT COUNT(*) FROM rutina_dia WHERE rutina_id = ?', [rutinaId])) ??
+    final orden =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM rutina_dia WHERE rutina_id = ?',
+            [rutinaId],
+          ),
+        ) ??
         0;
     final id = await db.insert('rutina_dia', {
       'rutina_id': rutinaId,
@@ -204,8 +226,12 @@ class AlmacenRutinas {
     String? videoUrl,
   }) async {
     final db = await BaseDatosLocal.instancia.db;
-    final orden = Sqflite.firstIntValue(await db.rawQuery(
-            'SELECT COUNT(*) FROM ejercicio WHERE dia_id = ?', [diaId])) ??
+    final orden =
+        Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM ejercicio WHERE dia_id = ?', [
+            diaId,
+          ]),
+        ) ??
         0;
     await db.insert('ejercicio', {
       'dia_id': diaId,
@@ -234,7 +260,10 @@ class AlmacenRutinas {
   /// [repsPorSerie] son las repeticiones hechas en cada serie. En
   /// `repeticiones` se guarda el total (suma) para no romper los reportes.
   Future<void> agregarMarca(
-      int ejercicioId, double peso, List<int> repsPorSerie) async {
+    int ejercicioId,
+    double peso,
+    List<int> repsPorSerie,
+  ) async {
     final db = await BaseDatosLocal.instancia.db;
     final total = repsPorSerie.fold<int>(0, (a, b) => a + b);
     await db.transaction((txn) async {
@@ -279,8 +308,13 @@ class AlmacenRutinas {
       } else {
         marcaId = marcaHoy['id'] as int;
       }
-      final cuantas = Sqflite.firstIntValue(await txn.rawQuery(
-              'SELECT COUNT(*) FROM serie WHERE marca_id = ?', [marcaId])) ??
+      final cuantas =
+          Sqflite.firstIntValue(
+            await txn.rawQuery(
+              'SELECT COUNT(*) FROM serie WHERE marca_id = ?',
+              [marcaId],
+            ),
+          ) ??
           0;
       await txn.insert('serie', {
         'marca_id': marcaId,
@@ -297,8 +331,12 @@ class AlmacenRutinas {
   Future<void> editarSerie(int marcaId, int numero, int reps) async {
     final db = await BaseDatosLocal.instancia.db;
     await db.transaction((txn) async {
-      await txn.update('serie', {'repeticiones': reps},
-          where: 'marca_id = ? AND numero = ?', whereArgs: [marcaId, numero]);
+      await txn.update(
+        'serie',
+        {'repeticiones': reps},
+        where: 'marca_id = ? AND numero = ?',
+        whereArgs: [marcaId, numero],
+      );
       await _recomputarMarca(txn, marcaId, null);
     });
     await cargar();
@@ -307,8 +345,12 @@ class AlmacenRutinas {
   /// Actualiza el peso de trabajo de la sesión.
   Future<void> editarPesoSesion(int marcaId, double peso) async {
     final db = await BaseDatosLocal.instancia.db;
-    await db.update('marca', {'peso': peso},
-        where: 'id = ?', whereArgs: [marcaId]);
+    await db.update(
+      'marca',
+      {'peso': peso},
+      where: 'id = ?',
+      whereArgs: [marcaId],
+    );
     await cargar();
   }
 
@@ -317,14 +359,25 @@ class AlmacenRutinas {
   Future<void> eliminarSerie(int marcaId, int numero) async {
     final db = await BaseDatosLocal.instancia.db;
     await db.transaction((txn) async {
-      await txn.delete('serie',
-          where: 'marca_id = ? AND numero = ?', whereArgs: [marcaId, numero]);
-      final restantes = await txn.query('serie',
-          where: 'marca_id = ?', whereArgs: [marcaId], orderBy: 'numero ASC');
+      await txn.delete(
+        'serie',
+        where: 'marca_id = ? AND numero = ?',
+        whereArgs: [marcaId, numero],
+      );
+      final restantes = await txn.query(
+        'serie',
+        where: 'marca_id = ?',
+        whereArgs: [marcaId],
+        orderBy: 'numero ASC',
+      );
       // Renumerar 1..N para mantener la secuencia.
       for (var i = 0; i < restantes.length; i++) {
-        await txn.update('serie', {'numero': i + 1},
-            where: 'id = ?', whereArgs: [restantes[i]['id']]);
+        await txn.update(
+          'serie',
+          {'numero': i + 1},
+          where: 'id = ?',
+          whereArgs: [restantes[i]['id']],
+        );
       }
       if (restantes.isEmpty) {
         await txn.delete('marca', where: 'id = ?', whereArgs: [marcaId]);
@@ -337,9 +390,17 @@ class AlmacenRutinas {
 
   /// Recalcula `repeticiones` (total) y `reps_series` de la marca a partir de
   /// sus series. Si [peso] no es null, también actualiza el peso de la sesión.
-  Future<void> _recomputarMarca(Transaction txn, int marcaId, double? peso) async {
-    final series = await txn.query('serie',
-        where: 'marca_id = ?', whereArgs: [marcaId], orderBy: 'numero ASC');
+  Future<void> _recomputarMarca(
+    Transaction txn,
+    int marcaId,
+    double? peso,
+  ) async {
+    final series = await txn.query(
+      'serie',
+      where: 'marca_id = ?',
+      whereArgs: [marcaId],
+      orderBy: 'numero ASC',
+    );
     final reps = series.map((s) => s['repeticiones'] as int? ?? 0).toList();
     final datos = <String, Object?>{
       'repeticiones': reps.fold<int>(0, (a, b) => a + b),
@@ -351,16 +412,26 @@ class AlmacenRutinas {
 
   /// Devuelve la fila de la marca/sesión de HOY del ejercicio, o null.
   Future<Map<String, Object?>?> _marcaDeHoy(
-      Transaction txn, int ejercicioId) async {
+    Transaction txn,
+    int ejercicioId,
+  ) async {
     final hoy = DateTime.now();
     final inicio = DateTime(hoy.year, hoy.month, hoy.day).toIso8601String();
-    final fin =
-        DateTime(hoy.year, hoy.month, hoy.day, 23, 59, 59).toIso8601String();
-    final rows = await txn.query('marca',
-        where: 'ejercicio_id = ? AND fecha BETWEEN ? AND ?',
-        whereArgs: [ejercicioId, inicio, fin],
-        orderBy: 'id DESC',
-        limit: 1);
+    final fin = DateTime(
+      hoy.year,
+      hoy.month,
+      hoy.day,
+      23,
+      59,
+      59,
+    ).toIso8601String();
+    final rows = await txn.query(
+      'marca',
+      where: 'ejercicio_id = ? AND fecha BETWEEN ? AND ?',
+      whereArgs: [ejercicioId, inicio, fin],
+      orderBy: 'id DESC',
+      limit: 1,
+    );
     return rows.isNotEmpty ? rows.first : null;
   }
 
@@ -466,8 +537,12 @@ class AlmacenRutinas {
       int diaId;
       if (porDiaSemana.containsKey(dia.diaSemana)) {
         diaId = porDiaSemana[dia.diaSemana]!;
-        await txn.update('rutina_dia', {'orden': orden},
-            where: 'id = ?', whereArgs: [diaId]);
+        await txn.update(
+          'rutina_dia',
+          {'orden': orden},
+          where: 'id = ?',
+          whereArgs: [diaId],
+        );
       } else {
         diaId = await txn.insert('rutina_dia', {
           'rutina_id': rutinaId,
@@ -482,7 +557,11 @@ class AlmacenRutinas {
     // Eliminar días que ya no vienen del backend.
     for (final entry in porDiaSemana.entries) {
       if (!diasVistos.contains(entry.key)) {
-        await txn.delete('rutina_dia', where: 'id = ?', whereArgs: [entry.value]);
+        await txn.delete(
+          'rutina_dia',
+          where: 'id = ?',
+          whereArgs: [entry.value],
+        );
       }
     }
   }
@@ -520,8 +599,12 @@ class AlmacenRutinas {
       };
       if (porNombre.containsKey(ej.nombre)) {
         // Update en sitio: conserva el id y, por tanto, las marcas.
-        await txn.update('ejercicio', datos,
-            where: 'id = ?', whereArgs: [porNombre[ej.nombre]]);
+        await txn.update(
+          'ejercicio',
+          datos,
+          where: 'id = ?',
+          whereArgs: [porNombre[ej.nombre]],
+        );
       } else {
         await txn.insert('ejercicio', {'dia_id': diaId, ...datos});
       }
@@ -531,7 +614,11 @@ class AlmacenRutinas {
     // Eliminar ejercicios que el admin quitó (se pierden sus marcas).
     for (final entry in porNombre.entries) {
       if (!nombresVistos.contains(entry.key)) {
-        await txn.delete('ejercicio', where: 'id = ?', whereArgs: [entry.value]);
+        await txn.delete(
+          'ejercicio',
+          where: 'id = ?',
+          whereArgs: [entry.value],
+        );
       }
     }
   }

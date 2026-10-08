@@ -23,10 +23,10 @@ class RepositorioMensajeriaImpl implements RepositorioMensajeria {
   // ---------------------------------------------------------------- Plantillas
   @override
   Future<List<PlantillaMensaje>> listarPlantillas() async {
-    final response = await _httpService.obtenerConDatos(
-      {'metodo': 'listar_plantillas', 'sucursal_id': await _sucursalId()},
-      'mensajeria.php',
-    );
+    final response = await _httpService.obtenerConDatos({
+      'metodo': 'listar_plantillas',
+      'sucursal_id': await _sucursalId(),
+    }, 'mensajeria.php');
     final datos = (response is Map) ? response['datos'] : null;
     if (datos is List) {
       return datos
@@ -40,28 +40,22 @@ class RepositorioMensajeriaImpl implements RepositorioMensajeria {
   @override
   Future<bool> guardarPlantilla(PlantillaMensaje plantilla) async {
     final esEdicion = plantilla.id != null;
-    final response = await _httpService.registrar(
-      {
-        'metodo': esEdicion ? 'editar_plantilla' : 'registrar_plantilla',
-        'datos': plantilla.toJson(),
-        'sucursal_id': await _sucursalId(),
-        'usuario_id': await _usuarioId(),
-      },
-      'mensajeria.php',
-    );
+    final response = await _httpService.registrar({
+      'metodo': esEdicion ? 'editar_plantilla' : 'registrar_plantilla',
+      'datos': plantilla.toJson(),
+      'sucursal_id': await _sucursalId(),
+      'usuario_id': await _usuarioId(),
+    }, 'mensajeria.php');
     return response is Map && response['resultado'] == true;
   }
 
   @override
   Future<bool> eliminarPlantilla(int id) async {
-    final response = await _httpService.eliminar(
-      'mensajeria.php',
-      {
-        'metodo': 'eliminar_plantilla',
-        'id': id,
-        'usuario_id': await _usuarioId(),
-      },
-    );
+    final response = await _httpService.eliminar('mensajeria.php', {
+      'metodo': 'eliminar_plantilla',
+      'id': id,
+      'usuario_id': await _usuarioId(),
+    });
     return response is Map && response['resultado'] == true;
   }
 
@@ -75,25 +69,26 @@ class RepositorioMensajeriaImpl implements RepositorioMensajeria {
   }
 
   Future<List<ClienteDestinatario>> _buscarPorEstado(
-      int sucursalId, int estado) async {
-    final response = await _httpService.obtenerConDatos(
-      {
-        'metodo': 'buscar',
-        'sucursal_id': sucursalId,
-        'filtros': {
-          'estado': estado,
-          'membresia': '',
-          'bandera_rostro': 0,
-          'fecha_inicio': '',
-          'fecha_fin': '',
-        },
+    int sucursalId,
+    int estado,
+  ) async {
+    final response = await _httpService.obtenerConDatos({
+      'metodo': 'buscar',
+      'sucursal_id': sucursalId,
+      'filtros': {
+        'estado': estado,
+        'membresia': '',
+        'bandera_rostro': 0,
+        'fecha_inicio': '',
+        'fecha_fin': '',
       },
-      'miembros.php',
-    );
+    }, 'miembros.php');
     if (response is List) {
       return response
           .whereType<Map>()
-          .map((e) => ClienteDestinatario.fromJson(Map<String, dynamic>.from(e)))
+          .map(
+            (e) => ClienteDestinatario.fromJson(Map<String, dynamic>.from(e)),
+          )
           .toList();
     }
     return [];
@@ -108,30 +103,27 @@ class RepositorioMensajeriaImpl implements RepositorioMensajeria {
     required int totalClientes,
     required String estado,
   }) async {
-    final response = await _httpService.registrar(
-      {
-        'metodo': 'registrar_campania',
-        'datos': {
-          'plantilla_id': plantillaId,
-          'plantilla_nombre': plantillaNombre,
-          'filtro': filtro,
-          'total_clientes': totalClientes,
-          'estado': estado,
-        },
-        'sucursal_id': await _sucursalId(),
-        'usuario_id': await _usuarioId(),
+    final response = await _httpService.registrar({
+      'metodo': 'registrar_campania',
+      'datos': {
+        'plantilla_id': plantillaId,
+        'plantilla_nombre': plantillaNombre,
+        'filtro': filtro,
+        'total_clientes': totalClientes,
+        'estado': estado,
       },
-      'mensajeria.php',
-    );
+      'sucursal_id': await _sucursalId(),
+      'usuario_id': await _usuarioId(),
+    }, 'mensajeria.php');
     return response is Map && response['resultado'] == true;
   }
 
   @override
   Future<List<Campania>> listarCampanias() async {
-    final response = await _httpService.obtenerConDatos(
-      {'metodo': 'listar_campanias', 'sucursal_id': await _sucursalId()},
-      'mensajeria.php',
-    );
+    final response = await _httpService.obtenerConDatos({
+      'metodo': 'listar_campanias',
+      'sucursal_id': await _sucursalId(),
+    }, 'mensajeria.php');
     final datos = (response is Map) ? response['datos'] : null;
     if (datos is List) {
       return datos

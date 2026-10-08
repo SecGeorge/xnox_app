@@ -12,9 +12,9 @@ class TipoPago {
   bool get esEfectivo => nombre.toLowerCase().contains('efectivo');
 
   factory TipoPago.fromJson(Map<String, dynamic> json) => TipoPago(
-        id: int.tryParse(json['tipo_pago_id']?.toString() ?? '') ?? 0,
-        nombre: json['nombre']?.toString() ?? '',
-      );
+    id: int.tryParse(json['tipo_pago_id']?.toString() ?? '') ?? 0,
+    nombre: json['nombre']?.toString() ?? '',
+  );
 }
 
 /// Un turno de caja abierto en la sucursal (caja.php, `sesiones_abiertas`).
@@ -34,9 +34,10 @@ class SesionCaja {
       '${cajaCodigo.isEmpty ? 'Caja' : cajaCodigo} — ${cajero.isEmpty ? 'cajero' : cajero}';
 
   factory SesionCaja.fromJson(Map<String, dynamic> json) => SesionCaja(
-        id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-        cajaCodigo: json['caja_codigo']?.toString() ??
-            'Caja ${json['caja_id'] ?? ''}'.trim(),
-        cajero: json['cajero']?.toString() ?? '',
-      );
+    id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
+    cajaCodigo:
+        json['caja_codigo']?.toString() ??
+        'Caja ${json['caja_id'] ?? ''}'.trim(),
+    cajero: json['cajero']?.toString() ?? '',
+  );
 }

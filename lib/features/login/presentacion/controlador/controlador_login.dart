@@ -9,15 +9,21 @@ class ControladorLogin {
   final RepositorioAuthImpl _repositorio;
 
   ControladorLogin._(this._repositorio)
-      : _casoUsoLogin = CasoUsoLogin(_repositorio);
+    : _casoUsoLogin = CasoUsoLogin(_repositorio);
 
   factory ControladorLogin() =>
       ControladorLogin._(RepositorioAuthImpl(HttpService()));
 
   Future<RespuestaLogin> login(
-      String usuario, String password, TipoUsuario tipo) async {
+    String usuario,
+    String password,
+    TipoUsuario tipo,
+  ) async {
     if (usuario.isEmpty || password.isEmpty) {
-      return RespuestaLogin(success: false, message: 'Por favor, complete todos los campos');
+      return RespuestaLogin(
+        success: false,
+        message: 'Por favor, complete todos los campos',
+      );
     }
     return await _casoUsoLogin.ejecutar(usuario, password, tipo);
   }

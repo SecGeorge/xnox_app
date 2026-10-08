@@ -6,8 +6,7 @@ import 'package:xnox_app/features/ajustes/dominio/entidades/perfil_usuario.dart'
 class ControladorAjustes {
   final RepositorioAjustesImpl _repositorio;
 
-  ControladorAjustes()
-      : _repositorio = RepositorioAjustesImpl(HttpService());
+  ControladorAjustes() : _repositorio = RepositorioAjustesImpl(HttpService());
 
   Future<PerfilUsuario?> obtenerPerfil() => _repositorio.obtenerPerfil();
 
@@ -22,13 +21,12 @@ class ControladorAjustes {
     required String numero,
     required String titular,
     String? qrBase64,
-  }) =>
-      _repositorio.guardarYape(
-        id: id,
-        numero: numero,
-        titular: titular,
-        qrBase64: qrBase64,
-      );
+  }) => _repositorio.guardarYape(
+    id: id,
+    numero: numero,
+    titular: titular,
+    qrBase64: qrBase64,
+  );
 
   Future<bool> verificarPassword(String actual) =>
       _repositorio.verificarPassword(actual);

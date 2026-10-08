@@ -55,20 +55,26 @@ class ControladorRutinas {
     int? catalogoId,
     String? imagenUrl,
     String? videoUrl,
-  }) =>
-      _almacen.agregarEjercicio(diaId, nombre, series, repeticiones,
-          observaciones: observaciones,
-          catalogoId: catalogoId,
-          imagenUrl: imagenUrl,
-          videoUrl: videoUrl);
+  }) => _almacen.agregarEjercicio(
+    diaId,
+    nombre,
+    series,
+    repeticiones,
+    observaciones: observaciones,
+    catalogoId: catalogoId,
+    imagenUrl: imagenUrl,
+    videoUrl: videoUrl,
+  );
 
   Future<void> eliminarEjercicio(int ejercicioId) =>
       _almacen.eliminarEjercicio(ejercicioId);
 
   /// Registra una marca de progreso (peso + reps por serie) en un ejercicio.
   Future<void> registrarMarca(
-          int ejercicioId, double peso, List<int> repsPorSerie) =>
-      _almacen.agregarMarca(ejercicioId, peso, repsPorSerie);
+    int ejercicioId,
+    double peso,
+    List<int> repsPorSerie,
+  ) => _almacen.agregarMarca(ejercicioId, peso, repsPorSerie);
 
   // ----------------------------------- Registro serie por serie (sesión hoy)
 

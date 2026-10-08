@@ -3,9 +3,5 @@ class RespuestaLogin {
   final String message;
   final Map<String, dynamic>? userData;
 
-  RespuestaLogin({
-    required this.success,
-    required this.message,
-    this.userData,
-  });
+  RespuestaLogin({required this.success, required this.message, this.userData});
 }

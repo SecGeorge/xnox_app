@@ -16,10 +16,10 @@ class RepositorioTiendaImpl implements RepositorioTienda {
     final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
 
     // 1) Almacén (organizador) activo de la sucursal.
-    final almacenResp = await _httpService.obtenerConDatos(
-      {'metodo': 'get_almacenes', 'sucursal_id': sucursalId},
-      'organizador.php',
-    );
+    final almacenResp = await _httpService.obtenerConDatos({
+      'metodo': 'get_almacenes',
+      'sucursal_id': sucursalId,
+    }, 'organizador.php');
     final almacenes = (almacenResp is Map) ? almacenResp['datos'] : null;
     int organizadorId = 0;
     if (almacenes is List && almacenes.isNotEmpty) {
@@ -31,10 +31,10 @@ class RepositorioTiendaImpl implements RepositorioTienda {
     }
 
     // 2) Productos de ese almacén.
-    final resp = await _httpService.obtenerConDatos(
-      {'metodo': 'get', 'almacen_id': organizadorId},
-      'tienda.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'get',
+      'almacen_id': organizadorId,
+    }, 'tienda.php');
     final datos = (resp is Map) ? resp['datos'] : null;
     if (datos is! List) {
       throw Exception('No se pudo cargar el catálogo de productos');
@@ -51,7 +51,9 @@ class RepositorioTiendaImpl implements RepositorioTienda {
 
   @override
   Future<ResultadoPedido> crearPedido(
-      int organizadorId, List<ItemCarrito> items) async {
+    int organizadorId,
+    List<ItemCarrito> items,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
     final miembroId = int.tryParse(prefs.getString('miembroId') ?? '') ?? 0;
@@ -80,8 +82,8 @@ class RepositorioTiendaImpl implements RepositorioTienda {
     }
     final mensaje = (resp is Map)
         ? (resp['mensaje']?.toString() ??
-            resp['error']?.toString() ??
-            'No se pudo enviar el pedido')
+              resp['error']?.toString() ??
+              'No se pudo enviar el pedido')
         : 'No se pudo enviar el pedido';
     return ResultadoPedido(false, mensaje);
   }
@@ -92,10 +94,10 @@ class RepositorioTiendaImpl implements RepositorioTienda {
     final miembroId = int.tryParse(prefs.getString('miembroId') ?? '') ?? 0;
     if (miembroId == 0) return const [];
 
-    final resp = await _httpService.obtenerConDatos(
-      {'metodo': 'mis_pedidos', 'miembro_id': miembroId},
-      'pedidos.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'mis_pedidos',
+      'miembro_id': miembroId,
+    }, 'pedidos.php');
     final datos = (resp is Map) ? resp['datos'] : null;
     if (datos is! List) return const [];
 

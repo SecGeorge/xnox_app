@@ -13,12 +13,12 @@ class DatosRegistro {
   });
 
   Map<String, dynamic> toJson() => {
-        'codigo_gimnasio': codigoGimnasio,
-        'sucursal_id': idSucursal,
-        // El DNI es el código con el que el cliente figura como miembro
-        // y además será su usuario de acceso. El backend toma el nombre y
-        // teléfono del miembro ya registrado en el gimnasio.
-        'codigo': documento,
-        'password': password,
-      };
+    'codigo_gimnasio': codigoGimnasio,
+    'sucursal_id': idSucursal,
+    // El DNI es el código con el que el cliente figura como miembro
+    // y además será su usuario de acceso. El backend toma el nombre y
+    // teléfono del miembro ya registrado en el gimnasio.
+    'codigo': documento,
+    'password': password,
+  };
 }

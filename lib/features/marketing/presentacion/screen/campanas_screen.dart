@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/marketing/dominio/entidades/cliente_destinatario.dart';
 import 'package:xnox_app/features/marketing/dominio/entidades/plantilla_mensaje.dart';
@@ -20,7 +21,8 @@ class _CampanasScreenState extends State<CampanasScreen> {
   final _mensajeCtrl = TextEditingController();
 
   // Datasets cargados bajo demanda.
-  List<ClienteDestinatario> _generales = []; // estado 0 (activos/deudores/sin contrato)
+  List<ClienteDestinatario> _generales =
+      []; // estado 0 (activos/deudores/sin contrato)
   List<ClienteDestinatario> _vencidos = []; // estado 7
   bool _vencidosCargados = false;
 
@@ -67,8 +69,11 @@ class _CampanasScreenState extends State<CampanasScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _cargando = false);
-      mostrarMensaje(context, 'No se pudieron cargar los datos',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudieron cargar los datos',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
@@ -88,8 +93,11 @@ class _CampanasScreenState extends State<CampanasScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _cargandoDataset = false);
-      mostrarMensaje(context, 'No se pudieron cargar los vencidos',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudieron cargar los vencidos',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
@@ -106,7 +114,8 @@ class _CampanasScreenState extends State<CampanasScreen> {
     final q = _busqueda.toLowerCase();
     return _dataset.where((c) {
       final coincideFiltro = c.coincideFiltro(_filtro, _hoy);
-      final coincideBusqueda = q.isEmpty ||
+      final coincideBusqueda =
+          q.isEmpty ||
           c.nombre.toLowerCase().contains(q) ||
           c.telefono.contains(q);
       return coincideFiltro && coincideBusqueda;
@@ -178,12 +187,19 @@ class _CampanasScreenState extends State<CampanasScreen> {
   void _iniciarEnvio() {
     final destinatarios = _destinatarios;
     if (destinatarios.isEmpty) {
-      mostrarMensaje(context, 'Selecciona al menos un cliente con teléfono',
-          tipo: TipoMensaje.advertencia);
+      mostrarMensaje(
+        context,
+        'Selecciona al menos un cliente con teléfono',
+        tipo: TipoMensaje.advertencia,
+      );
       return;
     }
     if (_mensajeCtrl.text.trim().isEmpty) {
-      mostrarMensaje(context, 'Escribe un mensaje', tipo: TipoMensaje.advertencia);
+      mostrarMensaje(
+        context,
+        'Escribe un mensaje',
+        tipo: TipoMensaje.advertencia,
+      );
       return;
     }
     Navigator.of(context).push(
@@ -201,33 +217,14 @@ class _CampanasScreenState extends State<CampanasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Envío de mensajes'),
-        actions: [
-          IconButton(
-            tooltip: 'Plantillas',
-            icon: const Icon(Icons.text_snippet_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PlantillasScreen()),
-            ),
-          ),
-          IconButton(
-            tooltip: 'Historial',
-            icon: const Icon(Icons.history),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const HistorialCampanasScreen()),
-            ),
-          ),
-        ],
+      backgroundColor: AppColores.fondo,
+      bottomNavigationBar: _cargando ? null : _buildBarraInferior(),
+      body: SafeArea(
+        bottom: false,
+        child: _cargando
+            ? const Center(child: CircularProgressIndicator())
+            : _buildContenido(),
       ),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(child: _buildContenido()),
-                _buildBarraInferior(),
-              ],
-            ),
     );
   }
 
@@ -250,10 +247,48 @@ class _CampanasScreenState extends State<CampanasScreen> {
   Widget _buildSecciones(int totalFiltrados) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppEspaciado.md, AppEspaciado.md, AppEspaciado.md, 0),
+        AppEspaciado.md,
+        AppEspaciado.md,
+        AppEspaciado.md,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          CabeceraApp(
+            titulo: 'Envío de mensajes',
+            subtitulo: 'Campañas por WhatsApp a tus socios',
+            acciones: [
+              BotonRedondo(
+                icono: Icons.text_snippet_rounded,
+                tooltip: 'Plantillas',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PlantillasScreen()),
+                ),
+              ),
+              BotonRedondo(
+                icono: Icons.history_rounded,
+                tooltip: 'Historial',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const HistorialCampanasScreen(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppEspaciado.md + 4),
+          PortadaFoto(
+            foto: FotosApp.motivacion,
+            alineacion: const Alignment(0.5, -0.3),
+            altura: 140,
+            etiqueta: 'Marketing',
+            titulo: _destinatarios.length == 1
+                ? '1 destinatario'
+                : '${_destinatarios.length} destinatarios',
+            texto: 'Filtra, elige el mensaje y envía en tres pasos.',
+          ),
+          const SizedBox(height: AppEspaciado.lg),
           _tituloPaso('1', 'Filtrar clientes'),
           const SizedBox(height: AppEspaciado.sm),
           _buildFiltros(),
@@ -261,51 +296,58 @@ class _CampanasScreenState extends State<CampanasScreen> {
 
           _tituloPaso('2', 'Plantilla y mensaje'),
           const SizedBox(height: AppEspaciado.sm),
-          _buildTiposPlantilla(),
-          const SizedBox(height: AppEspaciado.sm),
-          _buildSelectorPlantilla(),
-          const SizedBox(height: AppEspaciado.sm + 4),
-          TextField(
-            controller: _mensajeCtrl,
-            maxLines: 5,
-            onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(
-              labelText: 'Mensaje',
-              alignLabelWithHint: true,
+          TarjetaPlana(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTiposPlantilla(),
+                const SizedBox(height: AppEspaciado.sm + 4),
+                _buildSelectorPlantilla(),
+                const SizedBox(height: AppEspaciado.sm + 4),
+                TextField(
+                  controller: _mensajeCtrl,
+                  maxLines: 5,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Mensaje',
+                    alignLabelWithHint: true,
+                  ),
+                ),
+                const SizedBox(height: AppEspaciado.sm + 4),
+                _buildPreview(),
+              ],
             ),
           ),
-          const SizedBox(height: AppEspaciado.sm + 4),
-          _buildPreview(),
           const SizedBox(height: AppEspaciado.lg),
 
           _tituloPaso('3', 'Seleccionar clientes'),
           const SizedBox(height: AppEspaciado.sm),
           Row(
             children: [
-              Text('${_destinatarios.length} seleccionados de $totalFiltrados',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: AppColores.textoPrincipal)),
+              Text(
+                '${_destinatarios.length} seleccionados de $totalFiltrados',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
               const Spacer(),
               TextButton(
                 onPressed: _seleccionados.isEmpty
                     ? _seleccionarTodosVisibles
                     : () => setState(() => _seleccionados.clear()),
                 child: Text(
-                    _seleccionados.isEmpty ? 'Seleccionar todos' : 'Quitar todos'),
+                  _seleccionados.isEmpty ? 'Seleccionar todos' : 'Quitar todos',
+                ),
               ),
             ],
           ),
-          TextField(
+          BuscadorApp(
+            hint: 'Buscar cliente',
             onChanged: (v) => setState(() {
               _busqueda = v;
               _pagina = 0;
             }),
-            decoration: const InputDecoration(
-              hintText: 'Buscar cliente',
-              prefixIcon: Icon(Icons.search),
-              isDense: true,
-            ),
           ),
           const SizedBox(height: AppEspaciado.sm),
           if (_cargandoDataset)
@@ -315,10 +357,11 @@ class _CampanasScreenState extends State<CampanasScreen> {
             )
           else if (totalFiltrados == 0)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppEspaciado.lg),
-              child: EstadoVacio(
-                  icono: Icons.people_outline,
-                  mensaje: 'No hay clientes para este filtro.'),
+              padding: EdgeInsets.symmetric(vertical: AppEspaciado.md),
+              child: VacioApp(
+                icono: Icons.people_outline_rounded,
+                titulo: 'No hay clientes para este filtro',
+              ),
             ),
         ],
       ),
@@ -328,21 +371,34 @@ class _CampanasScreenState extends State<CampanasScreen> {
   Widget _tituloPaso(String n, String titulo) {
     return Row(
       children: [
-        CircleAvatar(
-          radius: 13,
-          backgroundColor: AppColores.primario,
-          child: Text(n,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold)),
-        ),
-        const SizedBox(width: AppEspaciado.sm),
-        Text(titulo,
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            gradient: AppColores.degradadoRelleno,
+            border: AppColores.bordeCabecera,
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            n,
             style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColores.primario)),
+              color: AppColores.sobreRelleno,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          titulo,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+            color: AppColores.textoPrincipal,
+          ),
+        ),
       ],
     );
   }
@@ -350,30 +406,16 @@ class _CampanasScreenState extends State<CampanasScreen> {
   Widget _buildFiltros() {
     return Wrap(
       spacing: 8,
-      runSpacing: 4,
+      runSpacing: 8,
       children: FiltroCampania.values.map((f) {
-        final sel = _filtro == f;
         final esVencidosSinCargar =
             f == FiltroCampania.vencidos && !_vencidosCargados;
-        final etiqueta =
-            esVencidosSinCargar ? f.etiqueta : '${f.etiqueta}  ${_conteoFiltro(f)}';
-        return FilterChip(
-          selected: sel,
-          onSelected: (_) => _cambiarFiltro(f),
-          showCheckmark: false,
-          avatar: esVencidosSinCargar
-              ? Icon(Icons.cloud_download_outlined,
-                  size: 16, color: sel ? Colors.white : AppColores.primario)
-              : null,
-          label: Text(etiqueta),
-          selectedColor: AppColores.primario,
-          backgroundColor: AppColores.superficie,
-          side: BorderSide(color: AppColores.borde),
-          labelStyle: TextStyle(
-            color: sel ? Colors.white : AppColores.primario,
-            fontWeight: FontWeight.w600,
-            fontSize: 12.5,
-          ),
+        return ChipApp(
+          texto: f.etiqueta,
+          activo: _filtro == f,
+          icono: esVencidosSinCargar ? Icons.cloud_download_outlined : null,
+          contador: esVencidosSinCargar ? null : _conteoFiltro(f),
+          onTap: () => _cambiarFiltro(f),
         );
       }).toList(),
     );
@@ -383,25 +425,19 @@ class _CampanasScreenState extends State<CampanasScreen> {
     final tipos = <String?>[null, ...kTiposPlantilla];
     return Wrap(
       spacing: 8,
+      runSpacing: 8,
       children: tipos.map((t) {
-        final sel = _tipoFiltro == t;
-        return ChoiceChip(
-          label: Text(t ?? 'Todas'),
-          selected: sel,
-          onSelected: (_) => setState(() {
+        return ChipApp(
+          texto: t ?? 'Todas',
+          activo: _tipoFiltro == t,
+          onTap: () => setState(() {
             _tipoFiltro = t;
-            if (_plantillaSel != null && t != null && _plantillaSel!.tipo != t) {
+            if (_plantillaSel != null &&
+                t != null &&
+                _plantillaSel!.tipo != t) {
               _plantillaSel = null;
             }
           }),
-          selectedColor: AppColores.primario,
-          backgroundColor: AppColores.superficie,
-          side: BorderSide(color: AppColores.borde),
-          labelStyle: TextStyle(
-            color: sel ? Colors.white : AppColores.primario,
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
         );
       }).toList(),
     );
@@ -409,24 +445,30 @@ class _CampanasScreenState extends State<CampanasScreen> {
 
   Widget _buildSelectorPlantilla() {
     return DropdownButtonFormField<PlantillaMensaje>(
-      initialValue:
-          _plantillasFiltradas.contains(_plantillaSel) ? _plantillaSel : null,
+      initialValue: _plantillasFiltradas.contains(_plantillaSel)
+          ? _plantillaSel
+          : null,
       isExpanded: true,
       decoration: const InputDecoration(labelText: 'Plantilla', isDense: true),
       hint: const Text('Elegir plantilla'),
       items: _plantillasFiltradas
-          .map((p) => DropdownMenuItem(
-                value: p,
-                child: Row(
-                  children: [
-                    Expanded(
-                        child: Text(p.nombre, overflow: TextOverflow.ellipsis)),
-                    const SizedBox(width: 6),
-                    EtiquetaEstado(
-                        texto: p.tipo, color: colorTipoPlantilla(p.tipo)),
-                  ],
-                ),
-              ))
+          .map(
+            (p) => DropdownMenuItem(
+              value: p,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(p.nombre, overflow: TextOverflow.ellipsis),
+                  ),
+                  const SizedBox(width: 6),
+                  EtiquetaEstado(
+                    texto: p.tipo,
+                    color: colorTipoPlantilla(p.tipo),
+                  ),
+                ],
+              ),
+            ),
+          )
           .toList(),
       onChanged: (p) => setState(() {
         _plantillaSel = p;
@@ -448,17 +490,24 @@ class _CampanasScreenState extends State<CampanasScreen> {
         children: [
           Row(
             children: [
-              const Text('Vista previa',
-                  style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 0.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF5A6B7B))),
+              const Text(
+                'Vista previa',
+                style: TextStyle(
+                  fontSize: 11,
+                  letterSpacing: 0.5,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF5A6B7B),
+                ),
+              ),
               const Spacer(),
               if (_clienteMuestra != null)
-                Text('ej: ${_clienteMuestra!.nombre}',
-                    style:
-                        const TextStyle(fontSize: 11, color: Color(0xFF5A6B7B))),
+                Text(
+                  'ej: ${_clienteMuestra!.nombre}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF5A6B7B),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: AppEspaciado.sm),
@@ -471,8 +520,10 @@ class _CampanasScreenState extends State<CampanasScreen> {
                 color: const Color(0xFFDCF8C6),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(_mensajePreview,
-                  style: const TextStyle(fontSize: 14, height: 1.35)),
+              child: Text(
+                _mensajePreview,
+                style: const TextStyle(fontSize: 14, height: 1.35),
+              ),
             ),
           ),
         ],
@@ -483,28 +534,33 @@ class _CampanasScreenState extends State<CampanasScreen> {
   Widget _buildClienteTile(ClienteDestinatario c) {
     final sel = _seleccionados.contains(c.id);
     void toggle() => setState(() {
-          if (sel) {
-            _seleccionados.remove(c.id);
-          } else if (c.id != null) {
-            _seleccionados.add(c.id!);
-          }
-        });
+      if (sel) {
+        _seleccionados.remove(c.id);
+      } else if (c.id != null) {
+        _seleccionados.add(c.id!);
+      }
+    });
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: AppEspaciado.md, vertical: 3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppEspaciado.md,
+        vertical: 3,
+      ),
       child: Material(
-        color: AppColores.superficie,
-        borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+        color: sel
+            ? AppColores.primario.withValues(alpha: 0.05)
+            : AppColores.superficie,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+          borderRadius: BorderRadius.circular(AppEspaciado.radio),
           onTap: toggle,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+              borderRadius: BorderRadius.circular(AppEspaciado.radio),
               border: Border.all(
-                  color: sel ? AppColores.primario : AppColores.borde,
-                  width: sel ? 1.4 : 1),
+                color: sel ? AppColores.primario : AppColores.borde,
+                width: sel ? 1.4 : 1,
+              ),
             ),
             child: Row(
               children: [
@@ -513,29 +569,43 @@ class _CampanasScreenState extends State<CampanasScreen> {
                   activeColor: AppColores.primario,
                   onChanged: (_) => toggle(),
                 ),
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: AppColores.fondo,
-                  child: Text(c.iniciales,
-                      style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColores.primario)),
+                Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    gradient: AppColores.degradadoRelleno,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    c.iniciales,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColores.sobreRelleno,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: AppEspaciado.sm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(c.nombre,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600)),
+                      Text(
+                        c.nombre,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                       Row(
                         children: [
                           Icon(
-                            c.tieneTelefono ? Icons.phone : Icons.phone_disabled,
+                            c.tieneTelefono
+                                ? Icons.phone
+                                : Icons.phone_disabled,
                             size: 12,
                             color: c.tieneTelefono
                                 ? AppColores.textoSecundario
@@ -553,11 +623,14 @@ class _CampanasScreenState extends State<CampanasScreen> {
                           ),
                           if (c.debe > 0) ...[
                             const SizedBox(width: 8),
-                            Text('S/ ${c.debe.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColores.error)),
+                            Text(
+                              'S/ ${c.debe.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColores.error,
+                              ),
+                            ),
                           ],
                         ],
                       ),
@@ -578,21 +651,27 @@ class _CampanasScreenState extends State<CampanasScreen> {
     final hasta = (_pagina * _porPagina + _porPagina).clamp(0, totalFiltrados);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppEspaciado.md, AppEspaciado.sm, AppEspaciado.md, AppEspaciado.md),
+        AppEspaciado.md,
+        AppEspaciado.sm,
+        AppEspaciado.md,
+        AppEspaciado.md,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            onPressed:
-                _pagina > 0 ? () => setState(() => _pagina--) : null,
+            onPressed: _pagina > 0 ? () => setState(() => _pagina--) : null,
             icon: const Icon(Icons.chevron_left),
             color: AppColores.primario,
           ),
-          Text('$desde–$hasta de $totalFiltrados   ·   pág. ${_pagina + 1}/$_totalPaginas',
-              style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColores.textoSecundario)),
+          Text(
+            '$desde–$hasta de $totalFiltrados   ·   pág. ${_pagina + 1}/$_totalPaginas',
+            style: const TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: AppColores.textoSecundario,
+            ),
+          ),
           IconButton(
             onPressed: _pagina + 1 < _totalPaginas
                 ? () => setState(() => _pagina++)
@@ -606,23 +685,10 @@ class _CampanasScreenState extends State<CampanasScreen> {
   }
 
   Widget _buildBarraInferior() {
-    return Container(
-      padding: const EdgeInsets.all(AppEspaciado.md),
-      decoration: BoxDecoration(
-        color: AppColores.superficie,
-        border: Border(top: BorderSide(color: AppColores.borde)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: _iniciarEnvio,
-            icon: const Icon(Icons.send),
-            label: Text('Iniciar envío (${_destinatarios.length})'),
-          ),
-        ),
-      ),
+    return PieBoton(
+      texto: 'Iniciar envío (${_destinatarios.length})',
+      icono: Icons.send_rounded,
+      onPressed: _iniciarEnvio,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/permisos/permisos.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/pago_yape/presentacion/widget/tarjeta_qr_yape.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/item_carrito.dart';
@@ -198,13 +199,19 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
       return;
     }
     if (_tipoPagoId == null) {
-      mostrarMensaje(context, 'Selecciona el método de pago',
-          tipo: TipoMensaje.advertencia);
+      mostrarMensaje(
+        context,
+        'Selecciona el método de pago',
+        tipo: TipoMensaje.advertencia,
+      );
       return;
     }
     if (_montoRecibido < _total) {
-      mostrarMensaje(context, 'El monto recibido es menor que el total',
-          tipo: TipoMensaje.advertencia);
+      mostrarMensaje(
+        context,
+        'El monto recibido es menor que el total',
+        tipo: TipoMensaje.advertencia,
+      );
       return;
     }
 
@@ -240,40 +247,46 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Cobrar venta')),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(AppEspaciado.md),
-              children: [
-                _tarjetaComprobante(),
-                const SizedBox(height: AppEspaciado.md),
-                _tarjetaMetodoPago(),
-                const SizedBox(height: AppEspaciado.md),
-                _tarjetaResumen(),
-                const SizedBox(height: AppEspaciado.md),
-                _tarjetaMonto(),
-                const SizedBox(height: AppEspaciado.lg),
-                SizedBox(
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    onPressed: _procesando ? null : _registrarVenta,
-                    icon: _procesando
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: AppColores.sobreRelleno),
-                          )
-                        : const Icon(Icons.check_circle_outline),
-                    label: Text(_procesando
-                        ? 'Registrando...'
-                        : 'Registrar venta · ${_soles(_total)}'),
-                  ),
-                ),
-                const SizedBox(height: AppEspaciado.lg),
-              ],
+      bottomNavigationBar: _cargando
+          ? null
+          : PieBoton(
+              texto: _procesando
+                  ? 'Registrando…'
+                  : 'Registrar venta · ${_soles(_total)}',
+              icono: Icons.check_circle_rounded,
+              cargando: _procesando,
+              onPressed: _registrarVenta,
             ),
+      body: SafeArea(
+        bottom: false,
+        child: _cargando
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(AppEspaciado.md),
+                children: [
+                  const CabeceraApp(
+                    titulo: 'Cobrar venta',
+                    subtitulo: 'Comprobante, método de pago y monto',
+                  ),
+                  const SizedBox(height: AppEspaciado.md + 4),
+                  PortadaFoto(
+                    foto: FotosApp.tienda,
+                    alineacion: const Alignment(0.4, 0.2),
+                    altura: 130,
+                    etiqueta: 'Total a cobrar',
+                    titulo: _soles(_total),
+                  ),
+                  const SizedBox(height: AppEspaciado.md),
+                  _tarjetaComprobante(),
+                  const SizedBox(height: AppEspaciado.md),
+                  _tarjetaMetodoPago(),
+                  const SizedBox(height: AppEspaciado.md),
+                  _tarjetaResumen(),
+                  const SizedBox(height: AppEspaciado.md),
+                  _tarjetaMonto(),
+                ],
+              ),
+      ),
     );
   }
 
@@ -328,9 +341,9 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
             decoration: InputDecoration(
               labelText: _esFactura ? 'RUC' : 'DNI',
               hintText: _esFactura ? 'Ingresa el RUC' : 'Ingresa el DNI',
-              prefixIcon: Icon(_esFactura
-                  ? Icons.domain_outlined
-                  : Icons.badge_outlined),
+              prefixIcon: Icon(
+                _esFactura ? Icons.domain_outlined : Icons.badge_outlined,
+              ),
               suffixIcon: _buscando
                   ? const Padding(
                       padding: EdgeInsets.all(12),
@@ -350,8 +363,11 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
             const SizedBox(height: AppEspaciado.sm + 4),
             Row(
               children: [
-                const Icon(Icons.check_circle,
-                    color: AppColores.verde, size: 18),
+                const Icon(
+                  Icons.check_circle,
+                  color: AppColores.verde,
+                  size: 18,
+                ),
                 const SizedBox(width: AppEspaciado.sm),
                 Expanded(
                   child: Text(
@@ -440,13 +456,16 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontSize: 13.5, fontWeight: FontWeight.w600),
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         Text(
                           '${item.cantidad} x ${_soles(item.precio)} · ${item.unidadNombre}',
                           style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColores.textoSecundario),
+                            fontSize: 12,
+                            color: AppColores.textoSecundario,
+                          ),
                         ),
                       ],
                     ),
@@ -454,8 +473,9 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
                   Text(
                     _soles(item.subtotal),
                     style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColores.textoPrincipal),
+                      fontWeight: FontWeight.w700,
+                      color: AppColores.textoPrincipal,
+                    ),
                   ),
                 ],
               ),
@@ -463,8 +483,10 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
           const Divider(height: AppEspaciado.lg),
           Row(
             children: [
-              const Text('Total',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const Text(
+                'Total',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
               const Spacer(),
               Text(
                 _soles(_total),
@@ -501,9 +523,13 @@ class _CobrarVentaScreenState extends State<CobrarVentaScreen> {
           const SizedBox(height: AppEspaciado.md),
           Row(
             children: [
-              const Text('Vuelto',
-                  style: TextStyle(
-                      fontSize: 14, color: AppColores.textoSecundario)),
+              const Text(
+                'Vuelto',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColores.textoSecundario,
+                ),
+              ),
               const Spacer(),
               Text(
                 _soles(_vuelto),

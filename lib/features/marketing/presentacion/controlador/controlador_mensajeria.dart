@@ -31,13 +31,12 @@ class ControladorMensajeria {
     required String filtro,
     required int totalClientes,
     required String estado,
-  }) =>
-      _repositorio.registrarCampania(
-        plantillaId: plantillaId,
-        plantillaNombre: plantillaNombre,
-        filtro: filtro,
-        totalClientes: totalClientes,
-        estado: estado,
-      );
+  }) => _repositorio.registrarCampania(
+    plantillaId: plantillaId,
+    plantillaNombre: plantillaNombre,
+    filtro: filtro,
+    totalClientes: totalClientes,
+    estado: estado,
+  );
   Future<List<Campania>> listarCampanias() => _repositorio.listarCampanias();
 }

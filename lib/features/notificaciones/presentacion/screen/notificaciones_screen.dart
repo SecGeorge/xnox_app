@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/permisos/permisos.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/notificaciones/dominio/entidades/notificacion.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
@@ -39,8 +40,9 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
   Future<void> _cargarPermisos() async {
     final permisos = await Permisos.cargar();
     if (!mounted) return;
-    setState(() =>
-        _puedeEnviarAvisos = permisos.tiene(PermisosMovil.notifEnviar));
+    setState(
+      () => _puedeEnviarAvisos = permisos.tiene(PermisosMovil.notifEnviar),
+    );
   }
 
   Future<void> _cargar() async {
@@ -55,8 +57,11 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      mostrarMensaje(context, 'No se pudieron cargar las notificaciones',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudieron cargar las notificaciones',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
@@ -70,38 +75,58 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
       await _controlador.marcarLeido(n.id);
     } catch (_) {
       if (!mounted) return;
-      mostrarMensaje(context, 'No se pudo marcar como leída',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudo marcar como leída',
+        tipo: TipoMensaje.error,
+      );
       _cargar();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColores.fondo,
-      appBar: AppBar(
-        title: const Text('Notificaciones'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(_huboCambios),
-        ),
+    // Al volver (botón o gesto) avisa si se marcó algo como leído.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (hecho, _) {
+        if (!hecho) Navigator.of(context).pop(_huboCambios);
+      },
+      child: PantallaApp(
+        onRefresh: _cargar,
+        espacioAbajo: 110,
+        // Solo quien tiene el permiso de enviar avisos ve el botón. Los
+        // clientes nunca lo tienen: para ellos la pantalla es de solo lectura.
+        botonFlotante: _puedeEnviarAvisos
+            ? FloatingActionButton.extended(
+                onPressed: _abrirCrear,
+                icon: const Icon(Icons.campaign_rounded),
+                label: const Text('Enviar aviso'),
+              )
+            : null,
+        children: [
+          const CabeceraApp(
+            titulo: 'Avisos',
+            subtitulo: 'Desliza un aviso para marcarlo como leído',
+          ),
+          const SizedBox(height: AppEspaciado.md + 4),
+          PortadaFoto(
+            foto: FotosApp.motivacion,
+            alineacion: const Alignment(0.5, -0.3),
+            altura: 130,
+            etiqueta: 'Bandeja',
+            titulo: _isLoading
+                ? '…'
+                : _notificaciones.isEmpty
+                ? 'Todo al día'
+                : _notificaciones.length == 1
+                ? '1 aviso pendiente'
+                : '${_notificaciones.length} avisos pendientes',
+          ),
+          const SizedBox(height: AppEspaciado.lg),
+          ..._buildContenido(),
+        ],
       ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _cargar,
-          child: _buildContenido(),
-        ),
-      ),
-      // Solo quien tiene el permiso de enviar avisos ve el botón. Los clientes
-      // nunca lo tienen, así que para ellos la pantalla es de solo lectura.
-      floatingActionButton: _puedeEnviarAvisos
-          ? FloatingActionButton.extended(
-              onPressed: _abrirCrear,
-              icon: const Icon(Icons.campaign_outlined),
-              label: const Text('Enviar aviso'),
-            )
-          : null,
     );
   }
 
@@ -116,30 +141,30 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
     }
   }
 
-  Widget _buildContenido() {
+  List<Widget> _buildContenido() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const [
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 60),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
     }
-
     if (_notificaciones.isEmpty) {
-      // ListView para que el RefreshIndicator funcione aun estando vacío.
-      return ListView(
-        children: const [
-          SizedBox(height: 120),
-          EstadoVacio(
-            icono: Icons.notifications_off_outlined,
-            mensaje: 'No tienes notificaciones pendientes',
-          ),
-        ],
-      );
+      return const [
+        VacioApp(
+          icono: Icons.notifications_off_rounded,
+          titulo: 'No tienes avisos pendientes',
+          texto: 'Aquí aparecerán los mensajes del gimnasio.',
+        ),
+      ];
     }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(AppEspaciado.md),
-      itemCount: _notificaciones.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppEspaciado.sm + 4),
-      itemBuilder: (_, i) => _buildTarjeta(_notificaciones[i]),
-    );
+    return [
+      for (final n in _notificaciones) ...[
+        _buildTarjeta(n),
+        const SizedBox(height: AppEspaciado.sm + 4),
+      ],
+    ];
   }
 
   Widget _buildTarjeta(Notificacion n) {
@@ -152,22 +177,16 @@ class _NotificacionesScreenState extends State<NotificacionesScreen> {
         padding: const EdgeInsets.only(right: AppEspaciado.lg),
         decoration: BoxDecoration(
           color: AppColores.activo.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(AppEspaciado.radio),
+          borderRadius: BorderRadius.circular(AppEspaciado.radio + 2),
         ),
-        child: const Icon(Icons.done_all, color: AppColores.activo),
+        child: const Icon(Icons.done_all_rounded, color: AppColores.activo),
       ),
-      child: TarjetaApp(
+      child: TarjetaPlana(
+        padding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: n.tipo.color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-              ),
-              child: Icon(n.tipo.icono, color: n.tipo.color, size: 22),
-            ),
+            IconoSuave(n.tipo.icono, color: n.tipo.color, circular: true),
             const SizedBox(width: AppEspaciado.md),
             Expanded(
               child: Column(

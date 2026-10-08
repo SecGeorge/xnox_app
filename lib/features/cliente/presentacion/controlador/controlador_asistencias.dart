@@ -22,10 +22,9 @@ class ControladorAsistencias {
   /// Carga inicial: lista de membresías (contratos) del cliente + asistencias
   /// recientes. Resuelve todo en una sola petición (`data_detalle_miembro`).
   Future<
-      ({
-        List<OpcionMembresia> membresias,
-        List<AsistenciaCliente> asistencias,
-      })> cargarInicial() async {
+    ({List<OpcionMembresia> membresias, List<AsistenciaCliente> asistencias})
+  >
+  cargarInicial() async {
     final id = await _miembroId();
     if (id == 0) {
       return (
@@ -38,23 +37,24 @@ class ControladorAsistencias {
     final asistencias = <AsistenciaCliente>[];
 
     try {
-      final res = await _httpService.obtenerConDatos(
-        {'metodo': 'data_detalle_miembro', 'id': id},
-        'miembros.php',
-      );
+      final res = await _httpService.obtenerConDatos({
+        'metodo': 'data_detalle_miembro',
+        'id': id,
+      }, 'miembros.php');
       if (res is Map) {
         final contratos = res['contratos'];
         if (contratos is List) {
           final vistos = <int>{};
           for (final c in contratos) {
             if (c is! Map) continue;
-            final mid =
-                int.tryParse(c['membresia_id']?.toString() ?? '') ?? 0;
+            final mid = int.tryParse(c['membresia_id']?.toString() ?? '') ?? 0;
             if (mid > 0 && vistos.add(mid)) {
-              membresias.add(OpcionMembresia(
-                mid,
-                c['membresia_descripcion']?.toString() ?? 'Plan $mid',
-              ));
+              membresias.add(
+                OpcionMembresia(
+                  mid,
+                  c['membresia_descripcion']?.toString() ?? 'Plan $mid',
+                ),
+              );
             }
           }
         }
@@ -73,20 +73,18 @@ class ControladorAsistencias {
   /// Asistencias filtradas por contrato/membresía. Con [membresiaId] = 0 el
   /// backend devuelve solo los últimos 2 meses; con un id concreto devuelve
   /// todas las asistencias de ese contrato.
-  Future<List<AsistenciaCliente>> obtenerAsistencias(
-      {int membresiaId = 0}) async {
+  Future<List<AsistenciaCliente>> obtenerAsistencias({
+    int membresiaId = 0,
+  }) async {
     final id = await _miembroId();
     if (id == 0) return [];
     try {
-      final res = await _httpService.obtenerConDatos(
-        {
-          'metodo': 'obtener_asistencias',
-          'id_miembro': id,
-          'sucursal_id': null,
-          'id_membresia': membresiaId,
-        },
-        'miembros.php',
-      );
+      final res = await _httpService.obtenerConDatos({
+        'metodo': 'obtener_asistencias',
+        'id_miembro': id,
+        'sucursal_id': null,
+        'id_membresia': membresiaId,
+      }, 'miembros.php');
       if (res is List) return _mapear(res);
     } catch (_) {
       // Sin red.
@@ -94,8 +92,14 @@ class ControladorAsistencias {
     return [];
   }
 
-  List<AsistenciaCliente> _mapear(List<dynamic> data) => data
-      .whereType<Map>()
-      .map((e) => AsistenciaCliente.desdeJson(Map<String, dynamic>.from(e)))
-      .toList();
+  /// El backend puede repetir la misma visita (una fila por cada join); se
+  /// deja una sola por día, hora y contrato.
+  List<AsistenciaCliente> _mapear(List<dynamic> data) {
+    final vistas = <String>{};
+    return data
+        .whereType<Map>()
+        .map((e) => AsistenciaCliente.desdeJson(Map<String, dynamic>.from(e)))
+        .where((a) => vistas.add('${a.claveDia}|${a.hora}|${a.contratoId}'))
+        .toList();
+  }
 }

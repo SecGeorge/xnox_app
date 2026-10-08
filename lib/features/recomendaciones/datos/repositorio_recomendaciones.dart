@@ -12,7 +12,8 @@ class RepositorioRecomendaciones {
 
   final HttpService _http;
 
-  RepositorioRecomendaciones([HttpService? http]) : _http = http ?? HttpService();
+  RepositorioRecomendaciones([HttpService? http])
+    : _http = http ?? HttpService();
 
   /// Envía una recomendación. Devuelve el mensaje del backend para poder
   /// mostrar el motivo exacto cuando falla.
@@ -24,20 +25,17 @@ class RepositorioRecomendaciones {
     final prefs = await SharedPreferences.getInstance();
     final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
 
-    final resp = await _http.registrar(
-      {
-        'metodo': 'registrar',
-        'recomendacion': {
-          'destino': destino.valor,
-          'mensaje': mensaje,
-          'anonimo': anonimo ? 1 : 0,
-          // El autor lo pone el servidor con la sesión; la sede solo se manda
-          // como respaldo por si la sesión no la trae.
-          'sucursal_id': sucursalId,
-        },
+    final resp = await _http.registrar({
+      'metodo': 'registrar',
+      'recomendacion': {
+        'destino': destino.valor,
+        'mensaje': mensaje,
+        'anonimo': anonimo ? 1 : 0,
+        // El autor lo pone el servidor con la sesión; la sede solo se manda
+        // como respaldo por si la sesión no la trae.
+        'sucursal_id': sucursalId,
       },
-      _ruta,
-    );
+    }, _ruta);
 
     return _resultado(resp, mensajeError: 'No se pudo enviar tu recomendación');
   }
@@ -67,14 +65,11 @@ class RepositorioRecomendaciones {
     DestinoRecomendacion? destino,
     bool soloPendientes = false,
   }) async {
-    final resp = await _http.obtenerConDatos(
-      {
-        'metodo': 'listar',
-        'destino': destino?.valor ?? 0,
-        'solo_pendientes': soloPendientes ? 1 : 0,
-      },
-      _ruta,
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'listar',
+      'destino': destino?.valor ?? 0,
+      'solo_pendientes': soloPendientes ? 1 : 0,
+    }, _ruta);
 
     // Sin conexión el HttpService ya avisó con su propio toast: devolver
     // vacío evita mostrar dos mensajes seguidos por lo mismo.
@@ -99,10 +94,11 @@ class RepositorioRecomendaciones {
   }
 
   Future<bool> marcarLeido(int id, {bool leido = true}) async {
-    final resp = await _http.registrar(
-      {'metodo': 'marcar_leido', 'id': id, 'leido': leido ? 1 : 0},
-      _ruta,
-    );
+    final resp = await _http.registrar({
+      'metodo': 'marcar_leido',
+      'id': id,
+      'leido': leido ? 1 : 0,
+    }, _ruta);
     return _resultado(resp, mensajeError: 'No se pudo actualizar').exito;
   }
 

@@ -58,9 +58,9 @@ class ProductoTienda {
     final unidadesRaw = json['unidades'];
     final unidades = (unidadesRaw is List)
         ? unidadesRaw
-            .whereType<Map>()
-            .map((u) => UnidadProducto.fromJson(Map<String, dynamic>.from(u)))
-            .toList()
+              .whereType<Map>()
+              .map((u) => UnidadProducto.fromJson(Map<String, dynamic>.from(u)))
+              .toList()
         : <UnidadProducto>[];
 
     return ProductoTienda(

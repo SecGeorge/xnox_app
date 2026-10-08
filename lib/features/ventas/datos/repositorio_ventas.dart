@@ -47,8 +47,8 @@ class RepositorioVentas {
     }
     final mensaje = (resp is Map)
         ? (resp['mensaje']?.toString() ??
-            resp['error']?.toString() ??
-            'No se pudo completar la operación')
+              resp['error']?.toString() ??
+              'No se pudo completar la operación')
         : 'No se pudo completar la operación';
     return ResultadoOperacion(false, mensaje);
   }
@@ -57,16 +57,18 @@ class RepositorioVentas {
 
   /// Métodos de pago configurados (efectivo, Yape, tarjeta…).
   Future<List<TipoPago>> obtenerTiposPago() async {
-    final resp = await _http.obtenerConDatos({'metodo': 'get'}, 'tipo_pago.php');
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'get',
+    }, 'tipo_pago.php');
     return _lista(resp).map(TipoPago.fromJson).toList();
   }
 
   /// Turnos de caja abiertos en la sucursal. Vacío = no hay caja abierta.
   Future<List<SesionCaja>> obtenerCajasAbiertas() async {
-    final resp = await _http.obtenerConDatos(
-      {'metodo': 'sesiones_abiertas', 'sucursal_id': await _sucursalId()},
-      'caja.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'sesiones_abiertas',
+      'sucursal_id': await _sucursalId(),
+    }, 'caja.php');
     return _lista(resp).map(SesionCaja.fromJson).toList();
   }
 
@@ -80,14 +82,13 @@ class RepositorioVentas {
       _buscarCliente('get_ruc', {'ruc': ruc});
 
   Future<ClienteVenta?> _buscarCliente(
-      String metodo, Map<String, dynamic> documento) async {
-    final resp = await _http.obtenerConDatos(
-      {
-        'metodo': metodo,
-        'cliente': {...documento, 'usuario_creacion': await _usuarioId()},
-      },
-      'clientes.php',
-    );
+    String metodo,
+    Map<String, dynamic> documento,
+  ) async {
+    final resp = await _http.obtenerConDatos({
+      'metodo': metodo,
+      'cliente': {...documento, 'usuario_creacion': await _usuarioId()},
+    }, 'clientes.php');
     if (resp is! Map || resp['success'] != true) return null;
     final datos = _lista(resp);
     if (datos.isEmpty) return null;
@@ -124,13 +125,15 @@ class RepositorioVentas {
         'organizador_id': organizadorId,
         'caja_sesion_id': cajaSesionId,
         'productos': items
-            .map((i) => {
-                  'id': i.productoId,
-                  'cantidad': i.cantidad,
-                  'precio': i.precio,
-                  'descuento': 0,
-                  'unidad_medidad_id': i.unidadMedidaId,
-                })
+            .map(
+              (i) => {
+                'id': i.productoId,
+                'cantidad': i.cantidad,
+                'precio': i.precio,
+                'descuento': 0,
+                'unidad_medidad_id': i.unidadMedidaId,
+              },
+            )
             .toList(),
       },
     }, 'tienda.php');
@@ -162,8 +165,8 @@ class RepositorioVentas {
     String? aFecha(DateTime? f) => f == null
         ? null
         : '${f.year.toString().padLeft(4, '0')}-'
-            '${f.month.toString().padLeft(2, '0')}-'
-            '${f.day.toString().padLeft(2, '0')}';
+              '${f.month.toString().padLeft(2, '0')}-'
+              '${f.day.toString().padLeft(2, '0')}';
 
     final resp = await _http.obtenerConDatos({
       'metodo': 'obtener',
@@ -183,19 +186,19 @@ class RepositorioVentas {
 
   /// Pedidos pendientes de la sucursal (los que los clientes hacen desde la app).
   Future<List<PedidoPendiente>> obtenerPedidos() async {
-    final resp = await _http.obtenerConDatos(
-      {'metodo': 'obtener', 'sucursal_id': await _sucursalId()},
-      'pedidos.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'obtener',
+      'sucursal_id': await _sucursalId(),
+    }, 'pedidos.php');
     return _lista(resp).map(PedidoPendiente.fromJson).toList();
   }
 
   /// Productos de un pedido.
   Future<List<DetallePedido>> obtenerDetalle(int pedidoId) async {
-    final resp = await _http.obtenerConDatos(
-      {'metodo': 'detalle', 'pedido_id': pedidoId},
-      'pedidos.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'detalle',
+      'pedido_id': pedidoId,
+    }, 'pedidos.php');
     return _lista(resp).map(DetallePedido.fromJson).toList();
   }
 
@@ -214,7 +217,9 @@ class RepositorioVentas {
 
   /// Cobra un pedido pagado por Yape validando el código del comprobante.
   Future<ResultadoOperacion> validarPagoYape(
-      int pedidoId, String codigo) async {
+    int pedidoId,
+    String codigo,
+  ) async {
     final resp = await _http.registrar({
       'metodo': 'validar_pago_yape',
       'pedido_id': pedidoId,
@@ -246,10 +251,10 @@ class RepositorioVentas {
 
   /// Cancela un pedido pendiente.
   Future<ResultadoOperacion> cancelarPedido(int pedidoId) async {
-    final resp = await _http.registrar(
-      {'metodo': 'cancelar', 'pedido_id': pedidoId},
-      'pedidos.php',
-    );
+    final resp = await _http.registrar({
+      'metodo': 'cancelar',
+      'pedido_id': pedidoId,
+    }, 'pedidos.php');
     return _resultado(resp, 'Pedido cancelado');
   }
 }

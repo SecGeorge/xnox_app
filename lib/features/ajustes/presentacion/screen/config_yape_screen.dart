@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/ajustes/dominio/entidades/datos_negocio.dart';
 import 'package:xnox_app/features/ajustes/presentacion/controlador/controlador_ajustes.dart';
@@ -56,8 +58,11 @@ class _ConfigYapeScreenState extends State<ConfigYapeScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      mostrarMensaje(context, 'No se pudo cargar la configuración',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudo cargar la configuración',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
@@ -78,8 +83,11 @@ class _ConfigYapeScreenState extends State<ConfigYapeScreen> {
     if (!_formKey.currentState!.validate()) return;
     final id = _datos?.id;
     if (id == null) {
-      mostrarMensaje(context, 'No se encontró el id del negocio',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se encontró el id del negocio',
+        tipo: TipoMensaje.error,
+      );
       return;
     }
 
@@ -100,8 +108,11 @@ class _ConfigYapeScreenState extends State<ConfigYapeScreen> {
     setState(() => _isSaving = false);
 
     if (error == null) {
-      mostrarMensaje(context, 'Configuración de Yape guardada',
-          tipo: TipoMensaje.exito);
+      mostrarMensaje(
+        context,
+        'Configuración de Yape guardada',
+        tipo: TipoMensaje.exito,
+      );
       Navigator.of(context).pop(true);
     } else {
       mostrarMensaje(context, error, tipo: TipoMensaje.error);
@@ -112,105 +123,117 @@ class _ConfigYapeScreenState extends State<ConfigYapeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Pago por Yape')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppEspaciado.md),
-              child: Form(
+      bottomNavigationBar: _isLoading
+          ? null
+          : PieBoton(
+              texto: 'Guardar configuración',
+              icono: Icons.check_rounded,
+              cargando: _isSaving,
+              onPressed: _guardar,
+            ),
+      body: SafeArea(
+        bottom: false,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Form(
                 key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: ListView(
+                  padding: const EdgeInsets.all(AppEspaciado.md),
                   children: [
+                    const CabeceraApp(
+                      titulo: 'Pago por Yape',
+                      subtitulo: 'Cobra pedidos y membresías desde la app',
+                    ),
+                    const SizedBox(height: AppEspaciado.md + 4),
                     _tarjetaInfo(),
                     const SizedBox(height: AppEspaciado.lg),
-                    _qrPreview(),
-                    const SizedBox(height: AppEspaciado.md),
-                    OutlinedButton.icon(
-                      onPressed: _elegirQr,
-                      icon: const Icon(Icons.image_outlined),
-                      label: Text(_tieneQr ? 'Cambiar imagen del QR' : 'Subir imagen del QR'),
+                    const TituloSeccion(
+                      icono: Icons.qr_code_2_rounded,
+                      titulo: 'Tu QR de Yape',
+                    ),
+                    TarjetaPlana(
+                      child: Column(
+                        children: [
+                          _qrPreview(),
+                          const SizedBox(height: AppEspaciado.md),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: _elegirQr,
+                              icon: const Icon(Icons.image_outlined),
+                              label: Text(
+                                _tieneQr
+                                    ? 'Cambiar imagen del QR'
+                                    : 'Subir imagen del QR',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: AppEspaciado.lg),
-                    _etiqueta('Número de Yape'),
-                    TextFormField(
-                      controller: _numeroController,
-                      keyboardType: TextInputType.phone,
-                      maxLength: 9,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      decoration: const InputDecoration(
-                        hintText: 'Ej. 987654321',
-                        prefixIcon: Icon(Icons.phone_iphone),
-                        counterText: '',
-                      ),
-                      validator: (v) {
-                        final t = v?.trim() ?? '';
-                        if (t.isEmpty) return 'Ingresa el número de Yape';
-                        if (t.length != 9) return 'El número debe tener 9 dígitos';
-                        return null;
-                      },
+                    const TituloSeccion(
+                      icono: Icons.account_balance_wallet_rounded,
+                      titulo: 'Cuenta',
                     ),
-                    const SizedBox(height: AppEspaciado.md),
-                    _etiqueta('Titular de la cuenta'),
-                    TextFormField(
-                      controller: _titularController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        hintText: 'Ej. Gimnasio XNOX',
-                        prefixIcon: Icon(Icons.person_outline),
+                    TarjetaPlana(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _etiqueta('Número de Yape'),
+                          TextFormField(
+                            controller: _numeroController,
+                            keyboardType: TextInputType.phone,
+                            maxLength: 9,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            decoration: const InputDecoration(
+                              hintText: 'Ej. 987654321',
+                              prefixIcon: Icon(Icons.phone_iphone),
+                              counterText: '',
+                            ),
+                            validator: (v) {
+                              final t = v?.trim() ?? '';
+                              if (t.isEmpty) return 'Ingresa el número de Yape';
+                              if (t.length != 9) {
+                                return 'El número debe tener 9 dígitos';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: AppEspaciado.md),
+                          _etiqueta('Titular de la cuenta'),
+                          TextFormField(
+                            controller: _titularController,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              hintText: 'Ej. Gimnasio XNOX',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: AppEspaciado.xl),
-                    ElevatedButton.icon(
-                      onPressed: _isSaving ? null : _guardar,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColores.morado,
-                      ),
-                      icon: _isSaving
-                          ? const SizedBox.shrink()
-                          : const Icon(Icons.save_outlined),
-                      label: _isSaving
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2.5),
-                            )
-                          : const Text('Guardar configuración'),
                     ),
                   ],
                 ),
               ),
-            ),
+      ),
     );
   }
 
   bool get _tieneQr => _qrNuevo != null || (_datos?.yapeQrUrl != null);
 
   Widget _tarjetaInfo() {
-    return TarjetaApp(
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColores.morado.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-            ),
-            child: const Icon(Icons.qr_code_2, color: AppColores.morado, size: 26),
-          ),
-          const SizedBox(width: AppEspaciado.md),
-          const Expanded(
-            child: Text(
-              'Los clientes verán este QR y número en la app para pagarte por '
-              'Yape sus pedidos y su membresía.',
-              style: TextStyle(fontSize: 13, color: AppColores.textoSecundario),
-            ),
-          ),
-        ],
-      ),
+    return const PortadaFoto(
+      foto: FotosApp.tienda,
+      alineacion: Alignment(0.4, 0.2),
+      altura: 140,
+      etiqueta: 'Yape en la app',
+      titulo: 'Cobra al instante',
+      texto:
+          'Tus socios verán este QR y número para pagarte sus pedidos '
+          'y su membresía.',
     );
   }
 
@@ -253,8 +276,10 @@ class _ConfigYapeScreenState extends State<ConfigYapeScreen> {
         children: [
           Icon(Icons.qr_code_2_outlined, size: 56, color: AppColores.vencido),
           SizedBox(height: 8),
-          Text('Sin QR de Yape',
-              style: TextStyle(color: AppColores.textoSecundario, fontSize: 12)),
+          Text(
+            'Sin QR de Yape',
+            style: TextStyle(color: AppColores.textoSecundario, fontSize: 12),
+          ),
         ],
       ),
     );

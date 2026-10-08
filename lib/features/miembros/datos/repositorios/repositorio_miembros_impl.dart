@@ -20,8 +20,10 @@ class RepositorioMiembrosImpl implements RepositorioMiembros {
       'filtros': <String, dynamic>{},
     };
 
-    final response =
-        await _httpService.obtenerConDatos(payload, 'miembros.php');
+    final response = await _httpService.obtenerConDatos(
+      payload,
+      'miembros.php',
+    );
 
     // El endpoint `buscar` responde con un arreglo JSON de miembros.
     if (response is List) {
@@ -35,5 +37,39 @@ class RepositorioMiembrosImpl implements RepositorioMiembros {
         ? response['error'].toString()
         : 'No se pudieron cargar los miembros';
     throw Exception(mensaje);
+  }
+
+  @override
+  Future<List<MiembroAlerta>> proximosVencer({int dias = 7}) =>
+      _reporte('proximos_vencer', dias, 'dias_restantes');
+
+  @override
+  Future<List<MiembroAlerta>> vencidosRecuperar({int dias = 30}) =>
+      _reporte('vencidos_recuperar', dias, 'dias_vencido');
+
+  /// Reportes de vencimientos del panel web (mismos stored procedures).
+  Future<List<MiembroAlerta>> _reporte(
+    String metodo,
+    int dias,
+    String campoDias,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final sucursalId = int.tryParse(prefs.getString('idSucursal') ?? '') ?? 0;
+    final response = await _httpService.obtenerConDatos({
+      'metodo': metodo,
+      'sucursal_id': sucursalId,
+      'dias': dias,
+    }, 'reportes.php');
+    final filas = response is Map ? response['response'] : null;
+    if (filas is List) {
+      return filas
+          .whereType<Map>()
+          .map(
+            (e) =>
+                MiembroAlerta.fromJson(Map<String, dynamic>.from(e), campoDias),
+          )
+          .toList();
+    }
+    throw Exception('No se pudo cargar el reporte de vencimientos');
   }
 }

@@ -30,7 +30,10 @@ class VerificadorEmpresa {
 
   static const Duration _espera = Duration(seconds: 8);
 
-  Future<ResultadoVerificacion> verificar(String rutaGlobal, String codigo) async {
+  Future<ResultadoVerificacion> verificar(
+    String rutaGlobal,
+    String codigo,
+  ) async {
     final dio = _cliente(rutaGlobal);
     try {
       final sucursales = await _sucursales(dio, codigo);
@@ -76,22 +79,24 @@ class VerificadorEmpresa {
     }
   }
 
-  Dio _cliente(String rutaGlobal) => Dio(BaseOptions(
-        baseUrl: rutaGlobal,
-        connectTimeout: _espera,
-        receiveTimeout: _espera,
-        contentType: Headers.jsonContentType,
-        // Un 404 no debe lanzar: lo tratamos como "no es nuestra API".
-        validateStatus: (_) => true,
-      ));
+  Dio _cliente(String rutaGlobal) => Dio(
+    BaseOptions(
+      baseUrl: rutaGlobal,
+      connectTimeout: _espera,
+      receiveTimeout: _espera,
+      contentType: Headers.jsonContentType,
+      // Un 404 no debe lanzar: lo tratamos como "no es nuestra API".
+      validateStatus: (_) => true,
+    ),
+  );
 
   /// Sucursales que devuelve el gimnasio para [codigo] (lista vacía si ese no es
   /// su código), o `null` si lo que responde no es nuestra API.
   Future<List<dynamic>?> _sucursales(Dio dio, String codigo) async {
-    final respuesta = await dio.post('sucursal.php', data: {
-      'metodo': 'por_codigo_gimnasio',
-      'codigo_gimnasio': codigo,
-    });
+    final respuesta = await dio.post(
+      'sucursal.php',
+      data: {'metodo': 'por_codigo_gimnasio', 'codigo_gimnasio': codigo},
+    );
     final cuerpo = respuesta.data;
     final datos = cuerpo is Map ? cuerpo['datos'] : null;
     return datos is List ? datos : null;

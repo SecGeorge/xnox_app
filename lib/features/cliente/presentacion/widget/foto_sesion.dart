@@ -14,43 +14,82 @@ class FotoSesion {
 
   static const _base = 'assets/imagenes/sesiones';
 
-  static const piernas =
-      FotoSesion._('$_base/piernas.jpg', Alignment(0.2, -0.2));
-  static const gluteos =
-      FotoSesion._('$_base/gluteos.jpg', Alignment(0.0, 0.3));
+  static const piernas = FotoSesion._(
+    '$_base/piernas.jpg',
+    Alignment(0.2, -0.2),
+  );
+  static const gluteos = FotoSesion._(
+    '$_base/gluteos.jpg',
+    Alignment(0.0, 0.3),
+  );
   static const pecho = FotoSesion._('$_base/pecho.jpg', Alignment(0.4, -0.3));
-  static const espalda =
-      FotoSesion._('$_base/espalda.jpg', Alignment(0.0, -0.5));
-  static const hombros =
-      FotoSesion._('$_base/hombros.jpg', Alignment(0.3, -0.4));
-  static const brazos =
-      FotoSesion._('$_base/brazos.jpg', Alignment(0.6, -0.4));
+  static const espalda = FotoSesion._(
+    '$_base/espalda.jpg',
+    Alignment(0.0, -0.5),
+  );
+  static const hombros = FotoSesion._(
+    '$_base/hombros.jpg',
+    Alignment(0.3, -0.4),
+  );
+  static const brazos = FotoSesion._('$_base/brazos.jpg', Alignment(0.6, -0.4));
   static const core = FotoSesion._('$_base/core.jpg', Alignment(0.3, 0.2));
-  static const descanso =
-      FotoSesion._('$_base/descanso.jpg', Alignment(0.2, 0.0));
+  static const descanso = FotoSesion._(
+    '$_base/descanso.jpg',
+    Alignment(0.2, 0.0),
+  );
   static const general = FotoSesion._(
-      'assets/imagenes/inicio/rutina_hoy.jpg', Alignment(0.6, -0.4));
+    'assets/imagenes/inicio/rutina_hoy.jpg',
+    Alignment(0.6, -0.4),
+  );
 
   /// Grupos que se reconocen (sin tildes, en minúsculas). Si dos palabras
   /// aparecen en la misma posición gana la que va antes en la lista: por eso
   /// "curl femoral" va antes que el "curl" de bíceps.
   static const _grupos = <_Grupo>[
-    _Grupo('Glúteos', gluteos,
-        ['glute', 'hip t', 'peso muerto', 'cadena posterior']),
+    _Grupo('Glúteos', gluteos, [
+      'glute',
+      'hip t',
+      'peso muerto',
+      'cadena posterior',
+    ]),
     _Grupo('Femoral', gluteos, ['curl femoral', 'femoral']),
     _Grupo('Piernas', piernas, [
-      'pierna', 'cuadricep', 'sentadilla', 'prensa', 'zancada', 'bulgara',
-      'pantorrilla', 'gemelo', 'talon', 'tren inferior',
+      'pierna',
+      'cuadricep',
+      'sentadilla',
+      'prensa',
+      'zancada',
+      'bulgara',
+      'pantorrilla',
+      'gemelo',
+      'talon',
+      'tren inferior',
     ]),
-    _Grupo('Espalda', espalda,
-        ['espalda', 'jalon', 'remo', 'dominada', 'traccion']),
-    _Grupo('Pecho', pecho,
-        ['pecho', 'banca', 'flexion', 'pectoral', 'apertura']),
+    _Grupo('Espalda', espalda, [
+      'espalda',
+      'jalon',
+      'remo',
+      'dominada',
+      'traccion',
+    ]),
+    _Grupo('Pecho', pecho, [
+      'pecho',
+      'banca',
+      'flexion',
+      'pectoral',
+      'apertura',
+    ]),
     _Grupo('Hombros', hombros, ['hombro', 'militar', 'lateral', 'deltoide']),
     _Grupo('Bíceps', brazos, ['bicep', 'curl']),
     _Grupo('Tríceps', brazos, ['tricep', 'fondos']),
-    _Grupo('Core', core,
-        ['abdomen', 'abdominal', 'core', 'plancha', 'crunch', 'oblicuo']),
+    _Grupo('Core', core, [
+      'abdomen',
+      'abdominal',
+      'core',
+      'plancha',
+      'crunch',
+      'oblicuo',
+    ]),
   ];
 
   static String _normalizar(String t) => t

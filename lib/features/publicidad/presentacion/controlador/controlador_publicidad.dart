@@ -11,8 +11,8 @@ class ControladorPublicidad {
   final CrearPublicidad _crearPublicidad;
 
   ControladorPublicidad._(this._repositorio)
-      : _obtenerPublicidades = ObtenerPublicidades(_repositorio),
-        _crearPublicidad = CrearPublicidad(_repositorio);
+    : _obtenerPublicidades = ObtenerPublicidades(_repositorio),
+      _crearPublicidad = CrearPublicidad(_repositorio);
 
   factory ControladorPublicidad() =>
       ControladorPublicidad._(RepositorioPublicidadImpl(HttpService()));
@@ -27,7 +27,10 @@ class ControladorPublicidad {
     return await _repositorio.obtenerPublicidadesActivas();
   }
 
-  Future<bool> addPublicidad(Publicidad publicidad, String? imagenBase64) async {
+  Future<bool> addPublicidad(
+    Publicidad publicidad,
+    String? imagenBase64,
+  ) async {
     return await _crearPublicidad.ejecutar(publicidad, imagenBase64);
   }
 

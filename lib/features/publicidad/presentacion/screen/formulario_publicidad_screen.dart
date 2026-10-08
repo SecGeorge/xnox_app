@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -14,10 +16,12 @@ class FormularioPublicidadScreen extends StatefulWidget {
   const FormularioPublicidadScreen({super.key, this.publicidad});
 
   @override
-  State<FormularioPublicidadScreen> createState() => _FormularioPublicidadScreenState();
+  State<FormularioPublicidadScreen> createState() =>
+      _FormularioPublicidadScreenState();
 }
 
-class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen> {
+class _FormularioPublicidadScreenState
+    extends State<FormularioPublicidadScreen> {
   final _formKey = GlobalKey<FormState>();
   final _controlador = ControladorPublicidad();
 
@@ -54,7 +58,10 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
     }
   }
 
-  Future<void> _selectDate(BuildContext context, TextEditingController controller) async {
+  Future<void> _selectDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -129,9 +136,8 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -141,87 +147,44 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-          title: Text(_esEdicion ? 'Editar Publicidad' : 'Nueva Publicidad')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppEspaciado.md),
+      backgroundColor: AppColores.fondo,
+      bottomNavigationBar: PieBoton(
+        texto: _esEdicion ? 'Guardar cambios' : 'Publicar campaña',
+        icono: Icons.check_rounded,
+        cargando: _isSaving,
+        onPressed: _save,
+      ),
+      body: SafeArea(
+        bottom: false,
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: ListView(
+            padding: const EdgeInsets.all(AppEspaciado.md),
             children: [
-              _etiqueta('Título'),
-              TextFormField(
-                controller: _tituloController,
-                decoration: const InputDecoration(hintText: 'Ej. Promoción de verano'),
-                validator: (value) => value == null || value.isEmpty ? 'Campo requerido' : null,
-              ),
-              const SizedBox(height: AppEspaciado.md),
-              _etiqueta('Descripción'),
-              TextFormField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(hintText: 'Detalle de la campaña'),
-                maxLines: 3,
-                validator: (value) => value == null || value.isEmpty ? 'Campo requerido' : null,
-              ),
-              const SizedBox(height: AppEspaciado.md),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _etiqueta('Fecha Inicio'),
-                        TextFormField(
-                          controller: _fechaInicioController,
-                          decoration: const InputDecoration(
-                            hintText: 'Seleccionar',
-                            prefixIcon: Icon(Icons.event),
-                          ),
-                          readOnly: true,
-                          onTap: () => _selectDate(context, _fechaInicioController),
-                          validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: AppEspaciado.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _etiqueta('Fecha Fin'),
-                        TextFormField(
-                          controller: _fechaFinController,
-                          decoration: const InputDecoration(
-                            hintText: 'Seleccionar',
-                            prefixIcon: Icon(Icons.event),
-                          ),
-                          readOnly: true,
-                          onTap: () => _selectDate(context, _fechaFinController),
-                          validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              CabeceraApp(
+                titulo: _esEdicion ? 'Editar publicidad' : 'Nueva publicidad',
+                subtitulo: 'Se mostrará como novedad en la app del socio',
               ),
               const SizedBox(height: AppEspaciado.lg),
-              _etiqueta('Imagen'),
+              const TituloSeccion(icono: Icons.image_rounded, titulo: 'Imagen'),
               _selectorImagen(),
               if (_tieneImagen) ...[
                 const SizedBox(height: AppEspaciado.sm),
                 Row(
                   children: [
-                    const Icon(Icons.open_with,
-                        size: 16, color: AppColores.textoSecundario),
+                    const Icon(
+                      Icons.open_with_rounded,
+                      size: 16,
+                      color: AppColores.textoSecundario,
+                    ),
                     const SizedBox(width: 6),
                     const Expanded(
                       child: Text(
-                        'Arrastra la imagen para elegir qué parte se ve en el marco',
+                        'Arrastra la imagen para elegir qué parte se ve',
                         style: TextStyle(
-                            fontSize: 12, color: AppColores.textoSecundario),
+                          fontSize: 12,
+                          color: AppColores.textoSecundario,
+                        ),
                       ),
                     ),
                     TextButton.icon(
@@ -232,22 +195,94 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
                   ],
                 ),
               ],
-              const SizedBox(height: AppEspaciado.xl),
-              ElevatedButton.icon(
-                onPressed: _isSaving ? null : _save,
-                icon: _isSaving
-                    ? const SizedBox.shrink()
-                    : const Icon(Icons.save_outlined),
-                label: _isSaving
-                    ? SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(
-                            color: AppColores.sobreRelleno, strokeWidth: 2.5),
-                      )
-                    : Text(_esEdicion
-                        ? 'Guardar Cambios'
-                        : 'Guardar Publicidad'),
+              const SizedBox(height: AppEspaciado.lg),
+              const TituloSeccion(
+                icono: Icons.edit_note_rounded,
+                titulo: 'Contenido',
+              ),
+              TarjetaPlana(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _etiqueta('Título'),
+                    TextFormField(
+                      controller: _tituloController,
+                      decoration: const InputDecoration(
+                        hintText: 'Ej. Promoción de verano',
+                      ),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Campo requerido'
+                          : null,
+                    ),
+                    const SizedBox(height: AppEspaciado.md),
+                    _etiqueta('Descripción'),
+                    TextFormField(
+                      controller: _descripcionController,
+                      decoration: const InputDecoration(
+                        hintText: 'Detalle de la campaña',
+                      ),
+                      maxLines: 3,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Campo requerido'
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppEspaciado.lg),
+              const TituloSeccion(
+                icono: Icons.date_range_rounded,
+                titulo: 'Vigencia',
+              ),
+              TarjetaPlana(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _etiqueta('Desde'),
+                          TextFormField(
+                            controller: _fechaInicioController,
+                            decoration: const InputDecoration(
+                              hintText: 'Seleccionar',
+                              prefixIcon: Icon(Icons.event_rounded),
+                            ),
+                            readOnly: true,
+                            onTap: () =>
+                                _selectDate(context, _fechaInicioController),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Requerido'
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppEspaciado.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _etiqueta('Hasta'),
+                          TextFormField(
+                            controller: _fechaFinController,
+                            decoration: const InputDecoration(
+                              hintText: 'Seleccionar',
+                              prefixIcon: Icon(Icons.event_available_rounded),
+                            ),
+                            readOnly: true,
+                            onTap: () =>
+                                _selectDate(context, _fechaFinController),
+                            validator: (value) => value == null || value.isEmpty
+                                ? 'Requerido'
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -266,15 +301,17 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
         final h = w / AppEspaciado.publicidadRatio;
         return GestureDetector(
           onTap: _tieneImagen ? null : _pickImage,
-          onPanUpdate:
-              _tieneImagen ? (d) => _arrastrarEncuadre(d, w, h) : null,
+          onPanUpdate: _tieneImagen ? (d) => _arrastrarEncuadre(d, w, h) : null,
           child: Container(
             width: w,
             height: h,
             decoration: BoxDecoration(
-              color: AppColores.superficie,
-              borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-              border: Border.all(color: AppColores.borde, width: 1.4),
+              color: AppColores.primario.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(AppEspaciado.radio + 4),
+              border: Border.all(
+                color: AppColores.primario.withValues(alpha: 0.25),
+                width: 1.4,
+              ),
             ),
             clipBehavior: Clip.antiAlias,
             child: _imagenMarco(),
@@ -310,18 +347,29 @@ class _FormularioPublicidadScreenState extends State<FormularioPublicidadScreen>
   Widget _placeholderImagen() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        Icon(Icons.add_photo_alternate_outlined,
-            size: 40, color: AppColores.textoSecundario),
-        SizedBox(height: AppEspaciado.sm),
+      children: [
+        const IconoSuave(
+          Icons.add_photo_alternate_rounded,
+          tamano: 56,
+          circular: true,
+        ),
+        const SizedBox(height: AppEspaciado.sm),
         Text(
           'Toca para cargar una imagen',
-          style: TextStyle(color: AppColores.textoSecundario),
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColores.textoPrincipal,
+          ),
+        ),
+        const Text(
+          'Formato horizontal, como un banner',
+          style: TextStyle(fontSize: 12, color: AppColores.textoSecundario),
         ),
       ],
     );
   }
-  // En este apartado colocar siempre la etiqueta 
+
+  // En este apartado colocar siempre la etiqueta
   Widget _etiqueta(String texto) {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppEspaciado.sm),

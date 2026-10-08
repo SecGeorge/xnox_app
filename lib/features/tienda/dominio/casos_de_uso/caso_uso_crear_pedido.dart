@@ -6,6 +6,8 @@ class CasoUsoCrearPedido {
 
   CasoUsoCrearPedido(this.repositorio);
 
-  Future<ResultadoPedido> ejecutar(int organizadorId, List<ItemCarrito> items) =>
-      repositorio.crearPedido(organizadorId, items);
+  Future<ResultadoPedido> ejecutar(
+    int organizadorId,
+    List<ItemCarrito> items,
+  ) => repositorio.crearPedido(organizadorId, items);
 }

@@ -5,12 +5,28 @@
 // evolución mensual e ingresos por tipo de membresía.
 
 const List<String> _diasCorto = [
-  'Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb',
+  'Dom',
+  'Lun',
+  'Mar',
+  'Mié',
+  'Jue',
+  'Vie',
+  'Sáb',
 ];
 
 const List<String> _mesesCorto = [
-  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
 ];
 
 /// Un punto de una serie de barras (un día, un mes...).
@@ -61,7 +77,8 @@ class ResumenPagos {
 
     // Semana: completamos los 7 días para tener un eje X consistente.
     final porDia = <int, double>{};
-    for (final r in (json['pagosSemana'] as List? ?? const []).whereType<Map>()) {
+    for (final r
+        in (json['pagosSemana'] as List? ?? const []).whereType<Map>()) {
       final nd = aInt(r['numeroDia']); // 1 = Domingo ... 7 = Sábado (DAYOFWEEK)
       if (nd >= 1 && nd <= 7) porDia[nd] = aDouble(r['total']);
     }
@@ -81,19 +98,23 @@ class ResumenPagos {
 
     final membresias = (json['membresiasReportes'] as List? ?? const [])
         .whereType<Map>()
-        .map((r) => ItemDistribucion(
-              (r['nombre'] ?? 'Sin nombre').toString(),
-              aDouble(r['monto']),
-            ))
+        .map(
+          (r) => ItemDistribucion(
+            (r['nombre'] ?? 'Sin nombre').toString(),
+            aDouble(r['monto']),
+          ),
+        )
         .where((d) => d.valor > 0)
         .toList();
 
     final asistencias = (json['asistenciasTurnos'] as List? ?? const [])
         .whereType<Map>()
-        .map((r) => ItemDistribucion(
-              _capitalizar((r['turno'] ?? '').toString()),
-              aDouble(r['cantidad']),
-            ))
+        .map(
+          (r) => ItemDistribucion(
+            _capitalizar((r['turno'] ?? '').toString()),
+            aDouble(r['cantidad']),
+          ),
+        )
         .where((d) => d.valor > 0)
         .toList();
 

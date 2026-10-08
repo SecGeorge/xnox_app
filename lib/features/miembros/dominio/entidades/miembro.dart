@@ -63,6 +63,10 @@ class Miembro {
   final DateTime? fechaVencimiento;
   final double saldoPendiente;
 
+  /// Ruta de la foto tal como la guarda el backend (`miembros.imagen`).
+  final String imagen;
+  final String telefono;
+
   Miembro({
     this.id,
     required this.nombre,
@@ -72,12 +76,18 @@ class Miembro {
     String? etiquetaEstado,
     this.fechaVencimiento,
     this.saldoPendiente = 0,
+    this.imagen = '',
+    this.telefono = '',
   }) : etiquetaEstado = etiquetaEstado ?? estado.etiqueta;
 
+  bool get sinMembresia => etiquetaEstado == 'SIN MEMBRESÍA';
+
   /// Iniciales para el avatar.
-  String get iniciales {
+  String get iniciales => inicialesDe(nombre);
+
+  static String inicialesDe(String nombre) {
+    if (nombre.trim().isEmpty) return '?';
     final partes = nombre.trim().split(RegExp(r'\s+'));
-    if (partes.isEmpty) return '?';
     if (partes.length == 1) return partes.first.characters.first.toUpperCase();
     return (partes.first.characters.first + partes.last.characters.first)
         .toUpperCase();
@@ -86,30 +96,27 @@ class Miembro {
   /// Construye un miembro a partir de una fila del endpoint `buscar`.
   /// Deriva el estado igual que el panel web (estado_membresia + deuda).
   factory Miembro.fromJson(Map<String, dynamic> json) {
-    final nombreCompleto = [
-      json['nombre'],
-      json['apellidoPaterno'],
-      json['apellidoMaterno'],
-    ]
-        .where((e) => e != null && e.toString().trim().isNotEmpty)
-        .map((e) => e.toString().trim())
-        .join(' ')
-        .trim();
+    final nombreCompleto =
+        [json['nombre'], json['apellidoPaterno'], json['apellidoMaterno']]
+            .where((e) => e != null && e.toString().trim().isNotEmpty)
+            .map((e) => e.toString().trim())
+            .join(' ')
+            .trim();
 
     final estadoNum =
         int.tryParse(json['estado_membresia']?.toString() ?? '0') ?? 0;
     final debe = double.tryParse(json['debe']?.toString() ?? '0') ?? 0;
     final fechaFin = DateTime.tryParse(json['fecha_fin']?.toString() ?? '');
-    final fechaLimiteNueva =
-        DateTime.tryParse(json['fecha_limite_nueva']?.toString() ?? '');
+    final fechaLimiteNueva = DateTime.tryParse(
+      json['fecha_limite_nueva']?.toString() ?? '',
+    );
     final ahora = DateTime.now();
     final hoy = DateTime(ahora.year, ahora.month, ahora.day);
 
     EstadoMiembro estado;
     String etiqueta;
-    final esMorosoPorFecha = debe > 0 &&
-        fechaLimiteNueva != null &&
-        fechaLimiteNueva.isBefore(hoy);
+    final esMorosoPorFecha =
+        debe > 0 && fechaLimiteNueva != null && fechaLimiteNueva.isBefore(hoy);
 
     if (estadoNum == 0) {
       estado = EstadoMiembro.vencido;
@@ -144,6 +151,50 @@ class Miembro {
       etiquetaEstado: etiqueta,
       fechaVencimiento: fechaFin,
       saldoPendiente: debe,
+      imagen: json['imagen']?.toString() ?? '',
+      telefono: json['telefono']?.toString() ?? '',
+    );
+  }
+}
+
+/// Fila de los reportes "Próximos a vencer" y "Vencidos a recuperar"
+/// (`reportes.php`). [dias] son los que faltan para vencer o los que lleva
+/// vencido, según el reporte.
+class MiembroAlerta {
+  final int miembroId;
+  final String nombre;
+  final String codigo;
+  final String telefono;
+  final String membresia;
+  final DateTime? fechaFin;
+  final int dias;
+  final double deuda;
+
+  const MiembroAlerta({
+    required this.miembroId,
+    required this.nombre,
+    required this.codigo,
+    required this.telefono,
+    required this.membresia,
+    required this.fechaFin,
+    required this.dias,
+    required this.deuda,
+  });
+
+  String get iniciales => Miembro.inicialesDe(nombre);
+
+  factory MiembroAlerta.fromJson(Map<String, dynamic> json, String campoDias) {
+    return MiembroAlerta(
+      miembroId: int.tryParse(json['miembro_id']?.toString() ?? '') ?? 0,
+      nombre: (json['nombreCompleto']?.toString() ?? '')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim(),
+      codigo: json['codigo']?.toString() ?? '',
+      telefono: json['telefono']?.toString() ?? '',
+      membresia: json['membresia']?.toString() ?? '',
+      fechaFin: DateTime.tryParse(json['fecha_fin']?.toString() ?? ''),
+      dias: int.tryParse(json[campoDias]?.toString() ?? '') ?? 0,
+      deuda: double.tryParse(json['deuda']?.toString() ?? '') ?? 0,
     );
   }
 }

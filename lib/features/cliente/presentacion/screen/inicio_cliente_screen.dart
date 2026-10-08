@@ -14,7 +14,8 @@ import 'package:xnox_app/features/cliente/presentacion/screen/cliente_publicidad
 import 'package:xnox_app/features/cliente/presentacion/screen/dia_rutina_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/avatar_socio.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/foto_sesion.dart';
-import 'package:xnox_app/features/cliente/presentacion/widget/foto_tarjeta.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/modal_vencimiento.dart';
+import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
 
 /// Secciones del cliente a las que se puede saltar desde el inicio.
 enum DestinoCliente { rutinas, qr, tienda, membresia, reporte }
@@ -56,6 +57,10 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
   MembresiaCliente? _contrato;
   int? _puntos;
   int _novedades = 0;
+
+  /// El modal de novedades ya se cerró (o no había): recién entonces puede
+  /// salir el aviso de vencimiento.
+  bool _novedadesListas = false;
   _RutinaDeHoy? _hoy;
 
   @override
@@ -118,9 +123,24 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
     try {
       final m = await _membresia.obtenerMembresia();
       if (mounted) setState(() => _contrato = m);
+      _intentarAvisoVencimiento();
     } catch (_) {
       /* sin red */
     }
+  }
+
+  /// Avisa al socio al que le quedan 7 días o menos, después de las novedades.
+  void _intentarAvisoVencimiento() {
+    final m = _contrato;
+    if (!_novedadesListas || m == null) return;
+    if (!debeAvisarVencimiento(m) || !mounted) return;
+    mostrarAvisoVencimiento(
+      context,
+      membresia: m,
+      novedades: _novedadesKey.currentState?.novedades ?? const [],
+      onRenovar: () => widget.onIrA(DestinoCliente.membresia),
+      onVerNovedades: () => _novedadesKey.currentState?.mostrarNovedades(),
+    );
   }
 
   Future<void> _cargarPuntos() async {
@@ -247,6 +267,10 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
                   if (mounted && n != _novedades) {
                     setState(() => _novedades = n);
                   }
+                },
+                onListo: () {
+                  _novedadesListas = true;
+                  _intentarAvisoVencimiento();
                 },
               ),
             ],

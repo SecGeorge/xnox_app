@@ -43,21 +43,13 @@ class DatosNegocio {
     this.paletaApp,
   });
 
-  factory DatosNegocio.vacio() => const DatosNegocio(
-        nombre: '',
-        telefono: '',
-        direccion: '',
-        logo: '',
-      );
+  factory DatosNegocio.vacio() =>
+      const DatosNegocio(nombre: '', telefono: '', direccion: '', logo: '');
 
   /// `true` si el negocio ya configuró un número de Yape para cobrar.
   bool get tieneYape => yapeNumero.trim().isNotEmpty;
 
-  DatosNegocio copyWith({
-    String? nombre,
-    String? telefono,
-    String? direccion,
-  }) {
+  DatosNegocio copyWith({String? nombre, String? telefono, String? direccion}) {
     return DatosNegocio(
       id: id,
       nombre: nombre ?? this.nombre,

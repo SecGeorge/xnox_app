@@ -15,8 +15,8 @@ class ControladorVentas {
   final ControladorTienda _tienda;
 
   ControladorVentas({RepositorioVentas? repositorio, ControladorTienda? tienda})
-      : _repositorio = repositorio ?? RepositorioVentas(),
-        _tienda = tienda ?? ControladorTienda();
+    : _repositorio = repositorio ?? RepositorioVentas(),
+      _tienda = tienda ?? ControladorTienda();
 
   // Catálogo (compartido con la tienda del cliente).
   Future<CatalogoTienda> obtenerCatalogo() => _tienda.obtenerCatalogo();
@@ -40,24 +40,22 @@ class ControladorVentas {
     required double montoEntregado,
     required List<ItemCarrito> items,
     int? cajaSesionId,
-  }) =>
-      _repositorio.registrarVenta(
-        clienteId: clienteId,
-        organizadorId: organizadorId,
-        tipoPagoId: tipoPagoId,
-        tipoComprobante: tipoComprobante,
-        totalPagar: totalPagar,
-        montoEntregado: montoEntregado,
-        items: items,
-        cajaSesionId: cajaSesionId,
-      );
+  }) => _repositorio.registrarVenta(
+    clienteId: clienteId,
+    organizadorId: organizadorId,
+    tipoPagoId: tipoPagoId,
+    tipoComprobante: tipoComprobante,
+    totalPagar: totalPagar,
+    montoEntregado: montoEntregado,
+    items: items,
+    cajaSesionId: cajaSesionId,
+  );
 
   // Historial de ventas ya registradas.
   Future<List<VentaRealizada>> obtenerVentas({
     DateTime? desde,
     DateTime? hasta,
-  }) =>
-      _repositorio.obtenerVentas(desde: desde, hasta: hasta);
+  }) => _repositorio.obtenerVentas(desde: desde, hasta: hasta);
 
   // Pedidos hechos desde la app.
   Future<List<PedidoPendiente>> obtenerPedidos() =>

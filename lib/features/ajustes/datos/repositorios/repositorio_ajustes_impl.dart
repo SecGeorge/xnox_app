@@ -29,10 +29,10 @@ class RepositorioAjustesImpl {
 
   // ----------------------------------------------------------------- Perfil
   Future<PerfilUsuario?> obtenerPerfil() async {
-    final resp = await _httpService.obtenerConDatos(
-      {'metodo': 'informacion_perfil', 'idUsuario': await _usuarioId()},
-      'usuarios.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'informacion_perfil',
+      'idUsuario': await _usuarioId(),
+    }, 'usuarios.php');
     if (resp is Map) {
       return PerfilUsuario.fromJson(Map<String, dynamic>.from(resp));
     }
@@ -41,10 +41,9 @@ class RepositorioAjustesImpl {
 
   // -------------------------------------------------------- Datos del negocio
   Future<DatosNegocio> obtenerDatosNegocio() async {
-    final resp = await _httpService.obtenerConDatos(
-      {'metodo': 'obtener'},
-      'ajustes.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'obtener',
+    }, 'ajustes.php');
 
     if (resp is! Map) return DatosNegocio.vacio();
     final json = Map<String, dynamic>.from(resp);
@@ -70,10 +69,10 @@ class RepositorioAjustesImpl {
   /// todos los dispositivos del gimnasio. Devuelve `null` si todo salió bien o
   /// un mensaje de error legible.
   Future<String?> guardarPaleta(String paleta) async {
-    final resp = await _httpService.registrar(
-      {'metodo': 'guardar_paleta', 'paleta': paleta},
-      'ajustes.php',
-    );
+    final resp = await _httpService.registrar({
+      'metodo': 'guardar_paleta',
+      'paleta': paleta,
+    }, 'ajustes.php');
 
     if (resp is Map && resp['error'] != null) {
       return resp['error'].toString();
@@ -97,19 +96,16 @@ class RepositorioAjustesImpl {
     required String titular,
     String? qrBase64,
   }) async {
-    final resp = await _httpService.registrar(
-      {
-        'metodo': 'guardar_yape',
-        'yape': {
-          'id': id,
-          'yape_numero': numero,
-          'yape_titular': titular,
-          'yape_qr': qrBase64 ?? '',
-          'yapeQrCambia': qrBase64 != null,
-        },
+    final resp = await _httpService.registrar({
+      'metodo': 'guardar_yape',
+      'yape': {
+        'id': id,
+        'yape_numero': numero,
+        'yape_titular': titular,
+        'yape_qr': qrBase64 ?? '',
+        'yapeQrCambia': qrBase64 != null,
       },
-      'ajustes.php',
-    );
+    }, 'ajustes.php');
 
     if (resp is Map && resp['error'] != null) {
       return resp['error'].toString();
@@ -129,21 +125,18 @@ class RepositorioAjustesImpl {
   /// Guarda los datos del negocio. Devuelve `null` si todo salió bien o un
   /// mensaje de error legible para mostrar al usuario.
   Future<String?> guardarDatosNegocio(DatosNegocio datos) async {
-    final resp = await _httpService.registrar(
-      {
-        'metodo': 'registrar',
-        'ajustes': {
-          'id': datos.id,
-          // Mantenemos el logo actual: no se edita desde la app.
-          'logo': datos.logo,
-          'logoCambia': false,
-          'nombre': datos.nombre,
-          'direccion': datos.direccion,
-          'telefono': datos.telefono,
-        },
+    final resp = await _httpService.registrar({
+      'metodo': 'registrar',
+      'ajustes': {
+        'id': datos.id,
+        // Mantenemos el logo actual: no se edita desde la app.
+        'logo': datos.logo,
+        'logoCambia': false,
+        'nombre': datos.nombre,
+        'direccion': datos.direccion,
+        'telefono': datos.telefono,
       },
-      'ajustes.php',
-    );
+    }, 'ajustes.php');
 
     // Error lanzado por el dominio/controlador del backend.
     if (resp is Map && resp['error'] != null) {
@@ -165,24 +158,22 @@ class RepositorioAjustesImpl {
   // --------------------------------------------------------------- Seguridad
   /// Verifica que [actual] coincida con la contraseña vigente del usuario.
   Future<bool> verificarPassword(String actual) async {
-    final resp = await _httpService.obtenerConDatos(
-      {'metodo': 'verifica_pass', 'password': actual, 'id': await _usuarioId()},
-      'usuarios.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'verifica_pass',
+      'password': actual,
+      'id': await _usuarioId(),
+    }, 'usuarios.php');
     return resp == true;
   }
 
   /// Cambia la contraseña del usuario. Devuelve `null` si salió bien o un
   /// mensaje de error legible.
   Future<String?> cambiarPassword(String nueva) async {
-    final resp = await _httpService.obtenerConDatos(
-      {
-        'metodo': 'cambiar_pass',
-        'password': nueva,
-        'idUsuario': await _usuarioId(),
-      },
-      'usuarios.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'cambiar_pass',
+      'password': nueva,
+      'idUsuario': await _usuarioId(),
+    }, 'usuarios.php');
 
     if (resp == true) return null;
     if (resp is Map && resp['error'] != null) return resp['error'].toString();

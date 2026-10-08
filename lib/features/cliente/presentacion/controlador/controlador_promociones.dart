@@ -18,8 +18,12 @@ class ResumenPuntos {
     required this.canje,
   });
 
-  static const ResumenPuntos vacio =
-      ResumenPuntos(saldo: 0, movimientos: [], gana: [], canje: []);
+  static const ResumenPuntos vacio = ResumenPuntos(
+    saldo: 0,
+    movimientos: [],
+    gana: [],
+    canje: [],
+  );
 }
 
 class MovimientoPuntos {
@@ -96,14 +100,11 @@ class ControladorPromociones {
     final (miembroId, sucursalId) = await _sesion();
     if (miembroId == 0) return ResumenPuntos.vacio;
 
-    final resp = await _httpService.obtenerConDatos(
-      {
-        'metodo': 'mis_puntos',
-        'miembro_id': miembroId,
-        'sucursal_id': sucursalId,
-      },
-      'promociones.php',
-    );
+    final resp = await _httpService.obtenerConDatos({
+      'metodo': 'mis_puntos',
+      'miembro_id': miembroId,
+      'sucursal_id': sucursalId,
+    }, 'promociones.php');
 
     if (resp is! Map || resp['success'] != true || resp['datos'] is! Map) {
       return ResumenPuntos.vacio;
@@ -116,12 +117,14 @@ class ControladorPromociones {
     if (datos['movimientos'] is List) {
       for (final m in (datos['movimientos'] as List)) {
         final mp = Map<String, dynamic>.from(m as Map);
-        movimientos.add(MovimientoPuntos(
-          tipo: int.tryParse(mp['tipo']?.toString() ?? '1') ?? 1,
-          puntos: int.tryParse(mp['puntos']?.toString() ?? '0') ?? 0,
-          concepto: mp['concepto']?.toString() ?? 'Movimiento de puntos',
-          fecha: mp['fecha']?.toString() ?? '',
-        ));
+        movimientos.add(
+          MovimientoPuntos(
+            tipo: int.tryParse(mp['tipo']?.toString() ?? '1') ?? 1,
+            puntos: int.tryParse(mp['puntos']?.toString() ?? '0') ?? 0,
+            concepto: mp['concepto']?.toString() ?? 'Movimiento de puntos',
+            fecha: mp['fecha']?.toString() ?? '',
+          ),
+        );
       }
     }
 
@@ -138,18 +141,17 @@ class ControladorPromociones {
     final (miembroId, sucursalId) = await _sesion();
     if (miembroId == 0) {
       return const ResultadoCanje(
-          exito: false, mensaje: 'Debes iniciar sesión para canjear');
+        exito: false,
+        mensaje: 'Debes iniciar sesión para canjear',
+      );
     }
 
-    final resp = await _httpService.registrar(
-      {
-        'metodo': 'canjear',
-        'miembro_id': miembroId,
-        'sucursal_id': sucursalId,
-        'canje_id': canjeId,
-      },
-      'promociones.php',
-    );
+    final resp = await _httpService.registrar({
+      'metodo': 'canjear',
+      'miembro_id': miembroId,
+      'sucursal_id': sucursalId,
+      'canje_id': canjeId,
+    }, 'promociones.php');
 
     if (resp is! Map) {
       return const ResultadoCanje(exito: false, mensaje: 'No se pudo canjear');
@@ -160,13 +162,17 @@ class ControladorPromociones {
     int? saldo;
 
     if (resp['datos'] is List && (resp['datos'] as List).isNotEmpty) {
-      final row = Map<String, dynamic>.from((resp['datos'] as List).first as Map);
-      mensaje = row['voit_message']?.toString() ??
+      final row = Map<String, dynamic>.from(
+        (resp['datos'] as List).first as Map,
+      );
+      mensaje =
+          row['voit_message']?.toString() ??
           resp['mensaje']?.toString() ??
           (exito ? 'Canje realizado' : 'No se pudo canjear');
       saldo = int.tryParse(row['saldo']?.toString() ?? '');
     } else {
-      mensaje = resp['mensaje']?.toString() ??
+      mensaje =
+          resp['mensaje']?.toString() ??
           (exito ? 'Canje realizado' : 'No se pudo canjear');
     }
 
@@ -178,11 +184,13 @@ class ControladorPromociones {
     if (lista is List) {
       for (final g in lista) {
         final gm = Map<String, dynamic>.from(g as Map);
-        out.add(LineaGana(
-          productoId: int.tryParse(gm['producto_id']?.toString() ?? '0') ?? 0,
-          nombre: gm['producto_nombre']?.toString() ?? 'Producto',
-          puntos: int.tryParse(gm['puntos']?.toString() ?? '0') ?? 0,
-        ));
+        out.add(
+          LineaGana(
+            productoId: int.tryParse(gm['producto_id']?.toString() ?? '0') ?? 0,
+            nombre: gm['producto_nombre']?.toString() ?? 'Producto',
+            puntos: int.tryParse(gm['puntos']?.toString() ?? '0') ?? 0,
+          ),
+        );
       }
     }
     return out;
@@ -197,12 +205,14 @@ class ControladorPromociones {
         final nombre = tipo == 2
             ? (cm['membresia_nombre']?.toString() ?? 'Membresía')
             : (cm['producto_nombre']?.toString() ?? 'Producto');
-        out.add(LineaCanje(
-          id: int.tryParse(cm['id']?.toString() ?? '0') ?? 0,
-          nombre: nombre,
-          puntos: int.tryParse(cm['puntos']?.toString() ?? '0') ?? 0,
-          tipo: tipo,
-        ));
+        out.add(
+          LineaCanje(
+            id: int.tryParse(cm['id']?.toString() ?? '0') ?? 0,
+            nombre: nombre,
+            puntos: int.tryParse(cm['puntos']?.toString() ?? '0') ?? 0,
+            tipo: tipo,
+          ),
+        );
       }
     }
     return out;

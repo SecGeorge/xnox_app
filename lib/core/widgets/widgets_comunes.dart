@@ -18,19 +18,21 @@ class TarjetaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Mismo estilo que las pantallas nuevas: plana, borde fino, esquinas
+    // amplias (ver TarjetaPlana en diseno_app.dart).
+    final radio = BorderRadius.circular(AppEspaciado.radio + 2);
     return Material(
       color: AppColores.superficie,
-      borderRadius: BorderRadius.circular(AppEspaciado.radio),
+      borderRadius: radio,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        borderRadius: radio,
         child: Ink(
           padding: padding,
           decoration: BoxDecoration(
             color: AppColores.superficie,
-            borderRadius: BorderRadius.circular(AppEspaciado.radio),
+            borderRadius: radio,
             border: Border.all(color: AppColores.borde),
-            boxShadow: AppSombras.tarjeta,
           ),
           child: child,
         ),
@@ -345,14 +347,26 @@ class EstadoVacio extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icono, size: 56, color: AppColores.vencido),
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColores.primario.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icono, size: 34, color: AppColores.primario),
+          ),
           const SizedBox(height: AppEspaciado.md),
-          Text(
-            mensaje,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColores.textoSecundario,
-              fontSize: 15,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppEspaciado.lg),
+            child: Text(
+              mensaje,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColores.textoPrincipal,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],

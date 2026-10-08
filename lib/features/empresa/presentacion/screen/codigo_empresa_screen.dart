@@ -61,8 +61,10 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
     // valida y se navega contra la ruta en uso (en debug puede ser el servidor
     // de desarrollo), pero lo que se guarda es siempre la URL real.
     final guardado = await EmpresaDao.instancia.porCodigo(codigo);
-    final rutaReal =
-        CodigoEmpresa.rutaReal(codigo, rutaGuardada: guardado?.rutaGlobal);
+    final rutaReal = CodigoEmpresa.rutaReal(
+      codigo,
+      rutaGuardada: guardado?.rutaGlobal,
+    );
     final ruta = CodigoEmpresa.rutaEnUso(codigo, rutaReal);
     final resultado = await const VerificadorEmpresa().verificar(ruta, codigo);
     if (!mounted) return;
@@ -79,7 +81,8 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
 
     // Qué código reconoce ese servidor dentro de sus peticiones: se guarda para
     // que el registro de clientes no tenga que volver a pedirlo.
-    final codigoBackend = await const VerificadorEmpresa().codigoQueReconoce(
+    final codigoBackend =
+        await const VerificadorEmpresa().codigoQueReconoce(
           ruta,
           CodigoEmpresa.candidatosParaBackend(codigo),
         ) ??
@@ -154,11 +157,12 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
                     autofocus: true,
                     maxLength: CodigoEmpresa.maxCaracteres,
                     // El contador 0/200 solo estorba en un campo de código.
-                    buildCounter: (_,
-                            {required currentLength,
-                            required isFocused,
-                            maxLength}) =>
-                        null,
+                    buildCounter: (
+                      _, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
                     textInputAction: TextInputAction.go,
                     textCapitalization: TextCapitalization.none,
                     autocorrect: false,
@@ -169,16 +173,17 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
                       // El código se guarda y se envía en mayúsculas: que se
                       // vea así mientras se escribe evita sorpresas.
                       TextInputFormatter.withFunction(
-                        (anterior, nuevo) => nuevo.copyWith(
-                          text: nuevo.text.toUpperCase(),
-                        ),
+                        (anterior, nuevo) =>
+                            nuevo.copyWith(text: nuevo.text.toUpperCase()),
                       ),
                     ],
                     onSubmitted: (_) => _continuar(),
                     decoration: InputDecoration(
                       labelText: 'Código de gimnasio',
-                      prefixIcon: const Icon(Icons.business_outlined,
-                          color: _azul),
+                      prefixIcon: const Icon(
+                        Icons.business_outlined,
+                        color: _azul,
+                      ),
                       filled: true,
                       fillColor: const Color(0xFFF1F3F8),
                       border: OutlineInputBorder(

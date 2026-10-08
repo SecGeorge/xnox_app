@@ -38,8 +38,7 @@ class Rutina {
   bool get esGeneral => esSugerida && !personalizada;
 
   /// Todos los ejercicios de todos los días (para reportes y conteos).
-  List<Ejercicio> get ejercicios =>
-      [for (final d in dias) ...d.ejercicios];
+  List<Ejercicio> get ejercicios => [for (final d in dias) ...d.ejercicios];
 
   int get totalEjercicios => ejercicios.length;
 

@@ -7,8 +7,9 @@ class ControladorPagos {
   final CasoUsoResumenPagos _casoUsoResumen;
 
   ControladorPagos()
-      : _casoUsoResumen =
-            CasoUsoResumenPagos(RepositorioPagosImpl(HttpService()));
+    : _casoUsoResumen = CasoUsoResumenPagos(
+        RepositorioPagosImpl(HttpService()),
+      );
 
   Future<ResumenPagos> obtenerResumen() {
     return _casoUsoResumen.ejecutar();

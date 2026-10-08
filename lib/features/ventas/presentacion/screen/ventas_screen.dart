@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/permisos/permisos.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
-import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/core/widgets/campana_avisos.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/features/ventas/presentacion/widget/pedidos_pendientes_view.dart';
 import 'package:xnox_app/features/ventas/presentacion/widget/punto_venta_view.dart';
 import 'package:xnox_app/features/ventas/presentacion/widget/ventas_realizadas_view.dart';
@@ -35,22 +36,18 @@ class _VentasScreenState extends State<VentasScreen> {
         // Una sola palabra por pestaña: con tres segmentos en pantallas
         // angostas, los textos largos se amontonaban.
         if (p.tiene(PermisosMovil.ventas))
-          const _SeccionVentas(
-            'Vender',
-            Icons.point_of_sale,
-            PuntoVentaView(),
-          ),
+          const _SeccionVentas('Vender', Icons.point_of_sale, _Vista.vender),
         if (p.tiene(PermisosMovil.pedidos))
           const _SeccionVentas(
             'Pedidos',
             Icons.shopping_basket_outlined,
-            PedidosPendientesView(),
+            _Vista.pedidos,
           ),
         if (p.tiene(PermisosMovil.ventasHistorial))
           const _SeccionVentas(
             'Historial',
             Icons.receipt_long_outlined,
-            VentasRealizadasView(),
+            _Vista.historial,
           ),
       ];
       _cargado = true;
@@ -69,80 +66,82 @@ class _VentasScreenState extends State<VentasScreen> {
     if (_secciones.isEmpty) {
       return Scaffold(
         backgroundColor: AppColores.fondo,
-        appBar: AppBar(title: const Text('Ventas')),
-        body: const EstadoVacio(
-          icono: Icons.lock_outline,
-          mensaje: 'Tu rol no tiene acceso a las ventas de la app',
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppEspaciado.md),
+            child: Column(
+              children: [
+                CabeceraApp(titulo: 'Ventas'),
+                SizedBox(height: AppEspaciado.lg),
+                VacioApp(
+                  icono: Icons.lock_outline_rounded,
+                  titulo: 'Sin acceso a las ventas',
+                  texto: 'Tu rol no tiene acceso a las ventas de la app.',
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
 
     final indice = _seccion.clamp(0, _secciones.length - 1);
-    return Scaffold(
-      backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Ventas')),
-      body: Column(
-        children: [
-          // Con un solo permiso no hace falta selector: se muestra directo.
-          if (_secciones.length > 1)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(AppEspaciado.md,
-                  AppEspaciado.md, AppEspaciado.md, AppEspaciado.sm),
-              child: SegmentedButton<int>(
-                segments: [
-                  for (var i = 0; i < _secciones.length; i++)
-                    ButtonSegment(
-                      value: i,
-                      label: Text(
-                        _secciones[i].titulo,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      icon: Icon(_secciones[i].icono, size: 17),
-                    ),
-                ],
-                selected: {indice},
-                onSelectionChanged: (s) => setState(() => _seccion = s.first),
-                // Sin el check de "seleccionado" queda más aire para el texto.
-                showSelectedIcon: false,
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? AppColores.primario
-                        : AppColores.superficie,
-                  ),
-                  foregroundColor: WidgetStateProperty.resolveWith(
-                    (states) => states.contains(WidgetState.selected)
-                        ? Colors.white
-                        : AppColores.textoSecundario,
-                  ),
-                  textStyle: const WidgetStatePropertyAll(
-                    TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                  padding: const WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: AppEspaciado.sm),
-                  ),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ),
-            ),
-          Expanded(
-            // IndexedStack para no perder el carrito armado al mirar los
-            // pedidos y volver al punto de venta.
-            child: IndexedStack(
-              index: indice,
-              children: [for (final s in _secciones) s.vista],
-            ),
+    // La cabecera va dentro del desplazamiento de cada vista, como en la
+    // tienda del socio: al bajar se va y deja todo el alto a los productos.
+    final cabecera = Column(
+      children: [
+        const CabeceraApp(
+          titulo: 'Ventas',
+          subtitulo: 'Punto de venta y pedidos de la app',
+          acciones: [CampanaAvisos(redonda: true)],
+        ),
+        // Con un solo permiso no hace falta selector.
+        if (_secciones.length > 1) ...[
+          const SizedBox(height: AppEspaciado.sm),
+          PestanasApp(
+            textos: [for (final s in _secciones) s.titulo],
+            activa: indice,
+            onCambio: (i) => setState(() => _seccion = i),
           ),
         ],
+      ],
+    );
+    return Scaffold(
+      backgroundColor: AppColores.fondo,
+      body: SafeArea(
+        bottom: false,
+        // IndexedStack para no perder el carrito armado al mirar los pedidos
+        // y volver al punto de venta.
+        child: IndexedStack(
+          index: indice,
+          children: [
+            for (final (i, s) in _secciones.indexed)
+              switch (s.vista) {
+                _Vista.vender => PuntoVentaView(
+                  cabecera: cabecera,
+                  activa: i == indice,
+                ),
+                _Vista.pedidos => PedidosPendientesView(
+                  cabecera: cabecera,
+                  activa: i == indice,
+                ),
+                _Vista.historial => VentasRealizadasView(
+                  cabecera: cabecera,
+                  activa: i == indice,
+                ),
+              },
+          ],
+        ),
       ),
     );
   }
 }
 
+enum _Vista { vender, pedidos, historial }
+
 class _SeccionVentas {
   final String titulo;
   final IconData icono;
-  final Widget vista;
+  final _Vista vista;
   const _SeccionVentas(this.titulo, this.icono, this.vista);
 }

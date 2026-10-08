@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
-import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
+import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
 import 'package:xnox_app/features/login/dominio/entidades/tipo_usuario.dart';
 
 /// "Mi perfil": muestra únicamente el nombre del usuario y el perfil (rol)
@@ -36,71 +37,104 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Mi perfil')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(AppEspaciado.md),
-              children: [
-                _buildTarjeta(),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildTarjeta() {
-    final inicial =
-        _nombre.trim().isNotEmpty ? _nombre.trim()[0].toUpperCase() : '?';
-    return TarjetaApp(
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: AppColores.primario.withValues(alpha: 0.10),
-            child: Text(
-              inicial,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: AppColores.primario,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppEspaciado.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _nombre.isEmpty ? 'Usuario' : _nombre,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColores.textoPrincipal,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
+    final inicial = _nombre.trim().isNotEmpty
+        ? _nombre.trim()[0].toUpperCase()
+        : '?';
+    return PantallaApp(
+      children: [
+        const CabeceraApp(titulo: 'Mi perfil', subtitulo: 'Datos de tu cuenta'),
+        const SizedBox(height: AppEspaciado.md + 4),
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 60),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else ...[
+          SizedBox(
+            height: 190,
+            child: FotoTarjeta(
+              foto: FotosApp.hombros,
+              alineacion: const Alignment(0.4, -0.4),
+              radio: AppEspaciado.radio + 6,
+              degradadoHorizontal: true,
+              child: Padding(
+                padding: const EdgeInsets.all(AppEspaciado.md + 2),
+                child: Row(
                   children: [
-                    Icon(_tipo.icono,
-                        size: 16, color: AppColores.textoSecundario),
-                    const SizedBox(width: 4),
-                    Text(
-                      _tipo.etiqueta,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        color: AppColores.textoSecundario,
+                    Container(
+                      width: 76,
+                      height: 76,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          width: 2,
+                        ),
+                      ),
+                      child: Text(
+                        inicial,
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppEspaciado.md),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'USUARIO',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              letterSpacing: 1.3,
+                              fontWeight: FontWeight.w800,
+                              color: AppColores.destacado,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _nombre.isEmpty ? 'Usuario' : _nombre,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              height: 1.1,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
+          const SizedBox(height: AppEspaciado.lg),
+          const TituloSeccion(icono: Icons.badge_rounded, titulo: 'Cuenta'),
+          GrupoFilas(
+            filas: [
+              FilaApp(
+                inicio: const IconoSuave(Icons.person_rounded),
+                titulo: _nombre.isEmpty ? 'Usuario' : _nombre,
+                subtitulo: 'Nombre de usuario',
+              ),
+              FilaApp(
+                inicio: IconoSuave(_tipo.icono),
+                titulo: _tipo.etiqueta,
+                subtitulo: 'Perfil con el que iniciaste sesión',
+              ),
+            ],
+          ),
         ],
-      ),
+      ],
     );
   }
 }

@@ -202,7 +202,9 @@ class _TarjetaQrYapeState extends State<TarjetaQrYape> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontSize: 12, color: AppColores.textoSecundario),
+                    fontSize: 12,
+                    color: AppColores.textoSecundario,
+                  ),
                 ),
             ],
           ),
@@ -233,7 +235,10 @@ class _TarjetaQrYapeState extends State<TarjetaQrYape> {
             child: Text(
               'Configura tu número y QR en Ajustes > Pago por Yape para '
               'mostrárselo al cliente.',
-              style: TextStyle(fontSize: 12.5, color: AppColores.textoSecundario),
+              style: TextStyle(
+                fontSize: 12.5,
+                color: AppColores.textoSecundario,
+              ),
             ),
           ),
         ],

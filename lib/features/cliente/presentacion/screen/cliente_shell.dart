@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/core/widgets/dialogo_cerrar_sesion.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/hoja_moderna.dart';
 import 'package:xnox_app/core/widgets/logo_gimnasio.dart';
-import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/cliente/dominio/entidades/membresia_cliente.dart';
+import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_membresia.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/cliente_publicidad_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/inicio_cliente_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/membresia_screen.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/modal_vencimiento.dart';
+import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
+import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/qr_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/reporte_ejercicios_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/rutinas_screen.dart';
@@ -52,6 +58,7 @@ class _ClienteShellState extends State<ClienteShell> {
   final _logout = CasoUsoLogout(RepositorioAuthImpl(HttpService()));
 
   final _notificaciones = ControladorNotificaciones();
+  final _membresia = ControladorMembresia();
 
   /// Avisos sin leer del socio. La campana es la red de seguridad para cuando
   /// el push no llega (teléfono apagado, sin red, permiso denegado): el aviso
@@ -76,11 +83,47 @@ class _ClienteShellState extends State<ClienteShell> {
   }
 
   /// Abre la lista de avisos y refresca el contador al volver, porque el socio
-  /// pudo descartar alguno deslizándolo.
+  /// pudo descartar alguno deslizándolo. Al cerrar, si su membresía está por
+  /// vencer (o ya venció) se lo recuerda con un modal aparte.
   Future<void> _abrirAvisos() async {
     await Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => const NotificacionesScreen()));
     await _cargarAvisos();
+    await _revisarVencimiento();
+  }
+
+  /// Si el socio tiene contrato y le quedan 7 días o menos, se lo avisa en un
+  /// modal que también lo invita a mirar las novedades: puede haber una
+  /// promoción que le interese justo ahora que va a renovar.
+  Future<void> _revisarVencimiento() async {
+    MembresiaCliente? membresia;
+    try {
+      membresia = await _membresia.obtenerMembresia();
+    } catch (_) {
+      return; // Sin red: no interrumpe al socio.
+    }
+    if (!mounted || membresia == null || membresia.contratoId == null) return;
+    if (!debeAvisarVencimiento(membresia)) return;
+
+    List<Publicidad> novedades = const [];
+    try {
+      final hoy = DateTime.now();
+      novedades = (await ControladorPublicidad().fetchPublicidadesActivas())
+          .where(
+            (p) => !hoy.isBefore(p.fechaInicio) && !hoy.isAfter(p.fechaFin),
+          )
+          .toList();
+    } catch (_) {
+      // Sin novedades el aviso sale igual, solo sin la invitación.
+    }
+    if (!mounted) return;
+    await mostrarAvisoVencimiento(
+      context,
+      membresia: membresia,
+      novedades: novedades,
+      onRenovar: () => setState(() => _selectedIndex = _iMembresia),
+      onVerNovedades: () => abrirNovedades(context, lista: novedades),
+    );
   }
 
   /// Campanita con el número de avisos sin leer. Mismo tratamiento visual que
@@ -208,13 +251,11 @@ class _ClienteShellState extends State<ClienteShell> {
   }
 
   Future<void> _cerrarSesion() async {
-    final confirmar = await confirmarDialog(
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    final confirmar = await confirmarCerrarSesion(
       context,
-      titulo: 'Cerrar sesión',
-      mensaje: '¿Seguro que deseas cerrar tu sesión?',
-      icono: Icons.logout,
-      textoConfirmar: 'Cerrar sesión',
-      peligro: true,
+      nombre: (prefs.getString('nombreCliente') ?? '').trim(),
     );
 
     if (!confirmar) return;
@@ -505,12 +546,14 @@ class _ClienteShellState extends State<ClienteShell> {
 
   @override
   Widget build(BuildContext context) {
-    // Inicio y Rutinas traen su propia cabecera.
-    // Inicio, Rutinas y Tienda traen su propia cabecera.
+    // Inicio, Rutinas, Tienda y Membresía traen su propia cabecera.
     final enInicio =
         _selectedIndex == _iInicio ||
         _selectedIndex == _iRutinas ||
-        _selectedIndex == _iTienda;
+        _selectedIndex == _iTienda ||
+        _selectedIndex == _iMembresia ||
+        _selectedIndex == _iQr ||
+        _selectedIndex == _iReporte;
     return Scaffold(
       backgroundColor: AppColores.fondo,
       extendBody: true,
@@ -541,7 +584,11 @@ class _ClienteShellState extends State<ClienteShell> {
           for (var i = 0; i < _secciones.length; i++)
             // Las secciones con la barra flotante encima necesitan aire abajo;
             // el inicio ya lo reserva en su propia lista.
-            i == _iRutinas || i == _iTienda
+            i == _iRutinas ||
+                    i == _iTienda ||
+                    i == _iMembresia ||
+                    i == _iQr ||
+                    i == _iReporte
                 ? _secciones[i].pantalla
                 : i == _iInicio
                 ? InicioClienteScreen(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/marketing/dominio/entidades/campania.dart';
 import 'package:xnox_app/features/marketing/presentacion/controlador/controlador_mensajeria.dart';
@@ -51,25 +52,31 @@ class _HistorialCampanasScreenState extends State<HistorialCampanasScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Historial de campañas')),
-      body: _cargando
-          ? const Center(child: CircularProgressIndicator())
-          : _campanias.isEmpty
-              ? const EstadoVacio(
-                  icono: Icons.history,
-                  mensaje: 'Aún no se han registrado campañas.',
-                )
-              : RefreshIndicator(
-                  onRefresh: _cargar,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(AppEspaciado.md),
-                    itemCount: _campanias.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: AppEspaciado.sm + 4),
-                    itemBuilder: (_, i) => _tarjeta(_campanias[i]),
-                  ),
-                ),
+    return PantallaApp(
+      onRefresh: _cargar,
+      children: [
+        const CabeceraApp(
+          titulo: 'Historial',
+          subtitulo: 'Campañas de WhatsApp enviadas',
+        ),
+        const SizedBox(height: AppEspaciado.lg),
+        if (_cargando)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 60),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_campanias.isEmpty)
+          const VacioApp(
+            icono: Icons.history_rounded,
+            titulo: 'Aún no hay campañas',
+            texto: 'Las que envíes quedarán registradas aquí.',
+          )
+        else
+          for (final c in _campanias) ...[
+            _tarjeta(c),
+            const SizedBox(height: AppEspaciado.sm + 4),
+          ],
+      ],
     );
   }
 
@@ -81,11 +88,14 @@ class _HistorialCampanasScreenState extends State<HistorialCampanasScreen> {
           Row(
             children: [
               Expanded(
-                child: Text(c.plantillaNombre,
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColores.textoPrincipal)),
+                child: Text(
+                  c.plantillaNombre,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
               ),
               EtiquetaEstado(texto: c.estado, color: _colorEstado(c.estado)),
             ],
@@ -93,20 +103,34 @@ class _HistorialCampanasScreenState extends State<HistorialCampanasScreen> {
           const SizedBox(height: 6),
           Row(
             children: [
-              const Icon(Icons.calendar_today,
-                  size: 14, color: AppColores.textoSecundario),
+              const Icon(
+                Icons.calendar_today,
+                size: 14,
+                color: AppColores.textoSecundario,
+              ),
               const SizedBox(width: 4),
-              Text(c.fechaCreacion,
-                  style: const TextStyle(
-                      fontSize: 12.5, color: AppColores.textoSecundario)),
+              Text(
+                c.fechaCreacion,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColores.textoSecundario,
+                ),
+              ),
               const SizedBox(width: AppEspaciado.md),
-              const Icon(Icons.person_outline,
-                  size: 14, color: AppColores.textoSecundario),
+              const Icon(
+                Icons.person_outline,
+                size: 14,
+                color: AppColores.textoSecundario,
+              ),
               const SizedBox(width: 4),
               Expanded(
-                child: Text(c.administrador.isEmpty ? '—' : c.administrador,
-                    style: const TextStyle(
-                        fontSize: 12.5, color: AppColores.textoSecundario)),
+                child: Text(
+                  c.administrador.isEmpty ? '—' : c.administrador,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColores.textoSecundario,
+                  ),
+                ),
               ),
             ],
           ),
@@ -115,14 +139,20 @@ class _HistorialCampanasScreenState extends State<HistorialCampanasScreen> {
             children: [
               EtiquetaEstado(texto: c.filtro, color: AppColores.acento),
               const Spacer(),
-              Icon(Icons.people_outline,
-                  size: 16, color: AppColores.textoSecundario),
+              Icon(
+                Icons.people_outline,
+                size: 16,
+                color: AppColores.textoSecundario,
+              ),
               const SizedBox(width: 4),
-              Text('${c.totalClientes} clientes',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColores.textoPrincipal)),
+              Text(
+                '${c.totalClientes} clientes',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColores.textoPrincipal,
+                ),
+              ),
             ],
           ),
         ],

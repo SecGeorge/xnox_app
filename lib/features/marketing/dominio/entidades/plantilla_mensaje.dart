@@ -62,11 +62,11 @@ class PlantillaMensaje {
   }
 
   Map<String, dynamic> toJson() => {
-        if (id != null) 'id': id,
-        'nombre': nombre,
-        'contenido': contenido,
-        'tipo': tipo,
-      };
+    if (id != null) 'id': id,
+    'nombre': nombre,
+    'contenido': contenido,
+    'tipo': tipo,
+  };
 
   PlantillaMensaje copyWith({
     int? id,

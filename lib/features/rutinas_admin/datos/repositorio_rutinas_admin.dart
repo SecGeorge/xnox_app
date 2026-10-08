@@ -17,29 +17,29 @@ class RepositorioRutinasAdmin {
 
   /// Rutinas personalizadas de un miembro (metadata).
   Future<List<RutinaResumen>> listarDeMiembro(int miembroId) async {
-    final resp = await _http.obtenerConDatos(
-      {'metodo': 'listar_miembro', 'miembro_id': miembroId},
-      'rutinas.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'listar_miembro',
+      'miembro_id': miembroId,
+    }, 'rutinas.php');
     return _listaResumen(resp);
   }
 
   /// Plantillas generales de la sucursal, para asignarlas a un miembro.
   Future<List<RutinaResumen>> listarPlantillas() async {
-    final resp = await _http.obtenerConDatos(
-      {'metodo': 'listar_plantillas', 'sucursal_id': await _sucursalId()},
-      'rutinas.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'listar_plantillas',
+      'sucursal_id': await _sucursalId(),
+    }, 'rutinas.php');
     return _listaResumen(resp);
   }
 
   /// Árbol completo de una rutina (para ver/editar). Las imágenes se vuelven
   /// URLs absolutas.
   Future<RutinaAdmin?> obtener(int id) async {
-    final resp = await _http.obtenerConDatos(
-      {'metodo': 'obtener', 'id': id},
-      'rutinas.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'obtener',
+      'id': id,
+    }, 'rutinas.php');
     if (resp is Map && resp['resultado'] == true && resp['datos'] is Map) {
       final r = RutinaAdmin.fromJson(Map<String, dynamic>.from(resp['datos']));
       for (final d in r.dias) {
@@ -55,23 +55,21 @@ class RepositorioRutinasAdmin {
   /// Crea (sin id) o edita (con id) una rutina completa. Devuelve `null` si todo
   /// salió bien, o un mensaje de error legible.
   Future<String?> guardar(RutinaAdmin rutina) async {
-    final resp = await _http.obtenerConDatos(
-      {
-        'metodo': 'guardar',
-        'sucursal_id': await _sucursalId(),
-        'rutina': rutina.toJson(),
-      },
-      'rutinas.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'guardar',
+      'sucursal_id': await _sucursalId(),
+      'rutina': rutina.toJson(),
+    }, 'rutinas.php');
     return _resultado(resp, 'No se pudo guardar la rutina');
   }
 
   /// Copia una plantilla como rutina personalizada del miembro.
   Future<String?> asignarPlantilla(int rutinaId, int miembroId) async {
-    final resp = await _http.obtenerConDatos(
-      {'metodo': 'asignar', 'rutina_id': rutinaId, 'miembro_id': miembroId},
-      'rutinas.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'asignar',
+      'rutina_id': rutinaId,
+      'miembro_id': miembroId,
+    }, 'rutinas.php');
     return _resultado(resp, 'No se pudo asignar la rutina');
   }
 
@@ -80,10 +78,10 @@ class RepositorioRutinasAdmin {
   Future<String?> eliminar(int id) => _estado('eliminar', id);
 
   Future<String?> _estado(String metodo, int id) async {
-    final resp = await _http.obtenerConDatos(
-      {'metodo': metodo, 'id': id},
-      'rutinas.php',
-    );
+    final resp = await _http.obtenerConDatos({
+      'metodo': metodo,
+      'id': id,
+    }, 'rutinas.php');
     return _resultado(resp, 'No se pudo actualizar la rutina');
   }
 

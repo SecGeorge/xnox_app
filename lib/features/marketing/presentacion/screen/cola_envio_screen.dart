@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/marketing/dominio/entidades/cliente_destinatario.dart';
 import 'package:xnox_app/features/marketing/dominio/entidades/plantilla_mensaje.dart';
@@ -42,17 +43,24 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
 
   Future<void> _abrirWhatsApp() async {
     final url = Uri.parse(
-        'https://wa.me/${_actual.telefonoWhatsApp}?text=${Uri.encodeComponent(_mensajeActual)}');
+      'https://wa.me/${_actual.telefonoWhatsApp}?text=${Uri.encodeComponent(_mensajeActual)}',
+    );
     try {
       final ok = await launchUrl(url, mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
-        mostrarMensaje(context, 'No se pudo abrir WhatsApp',
-            tipo: TipoMensaje.error);
+        mostrarMensaje(
+          context,
+          'No se pudo abrir WhatsApp',
+          tipo: TipoMensaje.error,
+        );
       }
     } catch (_) {
       if (mounted) {
-        mostrarMensaje(context, 'No se pudo abrir WhatsApp',
-            tipo: TipoMensaje.error);
+        mostrarMensaje(
+          context,
+          'No se pudo abrir WhatsApp',
+          tipo: TipoMensaje.error,
+        );
       }
     }
   }
@@ -87,8 +95,7 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
       plantillaId: widget.plantilla?.id,
       plantillaNombre: widget.plantilla?.nombre ?? 'Mensaje personalizado',
       filtro: widget.filtroEtiqueta,
-      totalClientes:
-          estado == 'Cancelado' ? _indice : widget.clientes.length,
+      totalClientes: estado == 'Cancelado' ? _indice : widget.clientes.length,
       estado: estado,
     );
   }
@@ -97,12 +104,28 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
   Widget build(BuildContext context) {
     final total = widget.clientes.length;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Enviando mensajes'),
-        automaticallyImplyLeading: false,
-      ),
+      backgroundColor: AppColores.fondo,
       body: SafeArea(
-        child: _finalizado ? _vistaFinal(total) : _vistaEnvio(total),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppEspaciado.md,
+                AppEspaciado.md,
+                AppEspaciado.md,
+                0,
+              ),
+              child: CabeceraApp(
+                titulo: _finalizado ? 'Envío terminado' : 'Enviando mensajes',
+                subtitulo: '$total destinatarios',
+                atras: false,
+              ),
+            ),
+            Expanded(
+              child: _finalizado ? _vistaFinal(total) : _vistaEnvio(total),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -124,9 +147,13 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
             ),
           ),
           const SizedBox(height: 6),
-          Text('${_indice + 1} de $total',
-              style: TextStyle(
-                  fontWeight: FontWeight.w700, color: AppColores.primario)),
+          Text(
+            '${_indice + 1} de $total',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColores.primario,
+            ),
+          ),
           const SizedBox(height: AppEspaciado.lg),
 
           // Tarjeta del cliente
@@ -151,30 +178,43 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
                       CircleAvatar(
                         radius: 22,
                         backgroundColor: AppColores.sobreRelleno,
-                        child: Text(_actual.iniciales,
-                            style: TextStyle(
-                                color: AppColores.relleno,
-                                fontWeight: FontWeight.bold)),
+                        child: Text(
+                          _actual.iniciales,
+                          style: TextStyle(
+                            color: AppColores.relleno,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: AppEspaciado.sm + 4),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(_actual.nombre,
-                                style: TextStyle(
-                                    color: AppColores.sobreRelleno,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700)),
+                            Text(
+                              _actual.nombre,
+                              style: TextStyle(
+                                color: AppColores.sobreRelleno,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                             const SizedBox(height: 2),
                             Row(
                               children: [
-                                Icon(Icons.phone,
-                                    color: AppColores.sobreRellenoSuave, size: 14),
+                                Icon(
+                                  Icons.phone,
+                                  color: AppColores.sobreRellenoSuave,
+                                  size: 14,
+                                ),
                                 const SizedBox(width: 4),
-                                Text(_actual.telefono,
-                                    style: TextStyle(
-                                        color: AppColores.sobreRellenoSuave, fontSize: 13)),
+                                Text(
+                                  _actual.telefono,
+                                  style: TextStyle(
+                                    color: AppColores.sobreRellenoSuave,
+                                    fontSize: 13,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -188,24 +228,30 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('MENSAJE',
-                          style: TextStyle(
-                              fontSize: 11,
-                              letterSpacing: 0.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColores.textoSecundario)),
+                      const Text(
+                        'MENSAJE',
+                        style: TextStyle(
+                          fontSize: 11,
+                          letterSpacing: 0.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColores.textoSecundario,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(AppEspaciado.sm + 4),
                         decoration: BoxDecoration(
                           color: AppColores.fondo,
-                          borderRadius:
-                              BorderRadius.circular(AppEspaciado.radioSm),
+                          borderRadius: BorderRadius.circular(
+                            AppEspaciado.radioSm,
+                          ),
                           border: Border.all(color: AppColores.borde),
                         ),
-                        child: Text(_mensajeActual,
-                            style: const TextStyle(fontSize: 14, height: 1.35)),
+                        child: Text(
+                          _mensajeActual,
+                          style: const TextStyle(fontSize: 14, height: 1.35),
+                        ),
                       ),
                     ],
                   ),
@@ -229,8 +275,9 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
               icon: const Icon(Icons.chat),
               label: const Text('Abrir WhatsApp'),
               style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF25D366),
-                  foregroundColor: Colors.white),
+                backgroundColor: const Color(0xFF25D366),
+                foregroundColor: Colors.white,
+              ),
             ),
           ),
           const SizedBox(height: AppEspaciado.sm),
@@ -273,14 +320,19 @@ class _ColaEnvioScreenState extends State<ColaEnvioScreen> {
           children: [
             const Icon(Icons.check_circle, color: AppColores.exito, size: 84),
             const SizedBox(height: AppEspaciado.md),
-            Text('¡Envío finalizado!',
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColores.textoPrincipal)),
+            Text(
+              '¡Envío finalizado!',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColores.textoPrincipal,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text('Se procesaron $_indice de $total clientes.',
-                style: const TextStyle(color: AppColores.textoSecundario)),
+            Text(
+              'Se procesaron $_indice de $total clientes.',
+              style: const TextStyle(color: AppColores.textoSecundario),
+            ),
             const SizedBox(height: AppEspaciado.lg),
             SizedBox(
               width: double.infinity,

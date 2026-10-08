@@ -44,12 +44,12 @@ class ItemCarrito {
   }
 
   Map<String, dynamic> aJsonPedido() => {
-        'id': productoId,
-        'producto_nombre': nombre,
-        'codigo': codigo,
-        'unidad_medida_id': unidadMedidaId,
-        'unidad_nombre': unidadNombre,
-        'cantidad': cantidad,
-        'precio': precio,
-      };
+    'id': productoId,
+    'producto_nombre': nombre,
+    'codigo': codigo,
+    'unidad_medida_id': unidadMedidaId,
+    'unidad_nombre': unidadNombre,
+    'cantidad': cantidad,
+    'precio': precio,
+  };
 }

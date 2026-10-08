@@ -41,18 +41,18 @@ class _Sonidos {
   );
 
   static Future<void> _preparar() => _preparando ??= () async {
-        try {
-          for (final p in [_tic, _fin]) {
-            await p.setAudioContext(_contexto);
-            await p.setPlayerMode(PlayerMode.lowLatency);
-            await p.setReleaseMode(ReleaseMode.stop);
-          }
-          await _tic.setSource(AssetSource('sonidos/tic.wav'));
-          await _fin.setSource(AssetSource('sonidos/descanso_fin.wav'));
-        } catch (e) {
-          debugPrint('[DESCANSO] no se pudo preparar el sonido: $e');
-        }
-      }();
+    try {
+      for (final p in [_tic, _fin]) {
+        await p.setAudioContext(_contexto);
+        await p.setPlayerMode(PlayerMode.lowLatency);
+        await p.setReleaseMode(ReleaseMode.stop);
+      }
+      await _tic.setSource(AssetSource('sonidos/tic.wav'));
+      await _fin.setSource(AssetSource('sonidos/descanso_fin.wav'));
+    } catch (e) {
+      debugPrint('[DESCANSO] no se pudo preparar el sonido: $e');
+    }
+  }();
 
   static Future<void> _sonar(AudioPlayer p, String archivo) async {
     try {
@@ -140,15 +140,19 @@ class _TemporizadorDescansoState extends State<TemporizadorDescanso> {
           _personalizado = guardado != _delGimnasio;
         });
       }
-    } catch (_) {/* sin preferencias: se queda el valor por defecto */}
+    } catch (_) {
+      /* sin preferencias: se queda el valor por defecto */
+    }
   }
 
   Future<void> _cambiarDuracion() async {
     if (_corriendo) return;
     // Siguiente opción de la lista (el valor del gimnasio puede no estar en
     // ella, p. ej. 100 s: se salta al siguiente mayor).
-    final siguiente = _opciones.firstWhere((o) => o > _segundos,
-        orElse: () => _opciones.first);
+    final siguiente = _opciones.firstWhere(
+      (o) => o > _segundos,
+      orElse: () => _opciones.first,
+    );
     setState(() {
       _segundos = siguiente;
       _personalizado = siguiente != _delGimnasio;
@@ -176,8 +180,8 @@ class _TemporizadorDescansoState extends State<TemporizadorDescanso> {
   String get _origen => _personalizado
       ? 'Tu tiempo · el gimnasio indica ${_delGimnasio}s'
       : (widget.porDefecto ?? 0) > 0
-          ? 'Indicado por tu gimnasio · toca para cambiar'
-          : 'Toca el tiempo para cambiarlo';
+      ? 'Indicado por tu gimnasio · toca para cambiar'
+      : 'Toca el tiempo para cambiarlo';
 
   void _iniciar() {
     _timer?.cancel();
@@ -192,8 +196,10 @@ class _TemporizadorDescansoState extends State<TemporizadorDescanso> {
         });
         _Sonidos.fin();
         HapticFeedback.heavyImpact();
-        Future.delayed(const Duration(milliseconds: 250),
-            HapticFeedback.heavyImpact);
+        Future.delayed(
+          const Duration(milliseconds: 250),
+          HapticFeedback.heavyImpact,
+        );
         return;
       }
       setState(() => _restante--);
@@ -234,15 +240,20 @@ class _TemporizadorDescansoState extends State<TemporizadorDescanso> {
         children: [
           boton,
           const SizedBox(width: 10),
-          const Icon(Icons.timer_outlined,
-              size: 15, color: AppColores.textoSecundario),
+          const Icon(
+            Icons.timer_outlined,
+            size: 15,
+            color: AppColores.textoSecundario,
+          ),
           const SizedBox(width: 4),
           GestureDetector(
             onTap: _cambiarDuracion,
             child: Text(
               'Descanso: ${_segundos}s',
               style: const TextStyle(
-                  fontSize: 12, color: AppColores.textoSecundario),
+                fontSize: 12,
+                color: AppColores.textoSecundario,
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -310,7 +321,9 @@ class _TemporizadorDescansoState extends State<TemporizadorDescanso> {
                     Text(
                       _corriendo ? 'Toca para detener' : _origen,
                       style: const TextStyle(
-                          fontSize: 11.5, color: AppColores.textoSecundario),
+                        fontSize: 11.5,
+                        color: AppColores.textoSecundario,
+                      ),
                     ),
                     if (_personalizado && !_corriendo)
                       GestureDetector(
@@ -341,14 +354,14 @@ class _TemporizadorDescansoState extends State<TemporizadorDescanso> {
   }
 
   Widget _barra(double avance) => ClipRRect(
-        borderRadius: BorderRadius.circular(3),
-        child: LinearProgressIndicator(
-          value: avance,
-          minHeight: 5,
-          color: AppColores.primario,
-          backgroundColor: AppColores.primario.withValues(alpha: 0.10),
-        ),
-      );
+    borderRadius: BorderRadius.circular(3),
+    child: LinearProgressIndicator(
+      value: avance,
+      minHeight: 5,
+      color: AppColores.primario,
+      backgroundColor: AppColores.primario.withValues(alpha: 0.10),
+    ),
+  );
 }
 
 class _BotonPlay extends StatelessWidget {

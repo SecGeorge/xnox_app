@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
+import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/ajustes/dominio/entidades/datos_negocio.dart';
 import 'package:xnox_app/features/ajustes/presentacion/controlador/controlador_ajustes.dart';
@@ -54,8 +56,11 @@ class _DatosNegocioScreenState extends State<DatosNegocioScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      mostrarMensaje(context, 'No se pudieron cargar los datos del negocio',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudieron cargar los datos del negocio',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
@@ -74,8 +79,11 @@ class _DatosNegocioScreenState extends State<DatosNegocioScreen> {
       if (!mounted) return;
       setState(() => _isSaving = false);
       if (error == null) {
-        mostrarMensaje(context, 'Datos del negocio actualizados',
-            tipo: TipoMensaje.exito);
+        mostrarMensaje(
+          context,
+          'Datos del negocio actualizados',
+          tipo: TipoMensaje.exito,
+        );
         Navigator.of(context).pop();
       } else {
         mostrarMensaje(context, error, tipo: TipoMensaje.error);
@@ -83,8 +91,11 @@ class _DatosNegocioScreenState extends State<DatosNegocioScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      mostrarMensaje(context, 'No se pudo guardar. Intenta nuevamente.',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudo guardar. Intenta nuevamente.',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
@@ -92,96 +103,141 @@ class _DatosNegocioScreenState extends State<DatosNegocioScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Datos del negocio')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppEspaciado.md),
-              child: Form(
+      bottomNavigationBar: _isLoading
+          ? null
+          : PieBoton(
+              texto: 'Guardar cambios',
+              icono: Icons.check_rounded,
+              cargando: _isSaving,
+              onPressed: _guardar,
+            ),
+      body: SafeArea(
+        bottom: false,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Form(
                 key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: ListView(
+                  padding: const EdgeInsets.all(AppEspaciado.md),
                   children: [
+                    const CabeceraApp(
+                      titulo: 'Datos del negocio',
+                      subtitulo: 'Así te ven tus socios en la app',
+                    ),
+                    const SizedBox(height: AppEspaciado.md + 4),
                     _buildLogo(),
                     const SizedBox(height: AppEspaciado.lg),
-                    _etiqueta('Nombre del negocio'),
-                    TextFormField(
-                      controller: _nombreController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration:
-                          const InputDecoration(hintText: 'Ej. Gimnasio XNOX'),
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'Ingresa el nombre del negocio'
-                          : null,
+                    const TituloSeccion(
+                      icono: Icons.storefront_rounded,
+                      titulo: 'Información',
                     ),
-                    const SizedBox(height: AppEspaciado.md),
-                    _etiqueta('Teléfono'),
-                    TextFormField(
-                      controller: _telefonoController,
-                      keyboardType: TextInputType.phone,
-                      decoration:
-                          const InputDecoration(hintText: 'Ej. 987654321'),
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'Ingresa el teléfono'
-                          : null,
-                    ),
-                    const SizedBox(height: AppEspaciado.md),
-                    _etiqueta('Dirección'),
-                    TextFormField(
-                      controller: _direccionController,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                          hintText: 'Ej. Av. Principal 123'),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: AppEspaciado.xl),
-                    ElevatedButton.icon(
-                      onPressed: _isSaving ? null : _guardar,
-                      icon: _isSaving
-                          ? const SizedBox.shrink()
-                          : const Icon(Icons.save_outlined),
-                      label: _isSaving
-                          ? SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                  color: AppColores.sobreRelleno, strokeWidth: 2.5),
-                            )
-                          : const Text('Guardar Cambios'),
+                    TarjetaPlana(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _etiqueta('Nombre del negocio'),
+                          TextFormField(
+                            controller: _nombreController,
+                            textCapitalization: TextCapitalization.words,
+                            decoration: const InputDecoration(
+                              hintText: 'Ej. Gimnasio XNOX',
+                              prefixIcon: Icon(Icons.badge_outlined),
+                            ),
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'Ingresa el nombre del negocio'
+                                : null,
+                          ),
+                          const SizedBox(height: AppEspaciado.md),
+                          _etiqueta('Teléfono'),
+                          TextFormField(
+                            controller: _telefonoController,
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              hintText: 'Ej. 987654321',
+                              prefixIcon: Icon(Icons.phone_outlined),
+                            ),
+                            validator: (v) => v == null || v.trim().isEmpty
+                                ? 'Ingresa el teléfono'
+                                : null,
+                          ),
+                          const SizedBox(height: AppEspaciado.md),
+                          _etiqueta('Dirección'),
+                          TextFormField(
+                            controller: _direccionController,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: const InputDecoration(
+                              hintText: 'Ej. Av. Principal 123',
+                              prefixIcon: Icon(Icons.place_outlined),
+                            ),
+                            maxLines: 2,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ),
+      ),
     );
   }
 
+  /// Portada con foto y el logo del gimnasio encima, centrado.
   Widget _buildLogo() {
     final url = _datos?.logoUrl;
-    return Center(
-      child: Container(
-        width: 110,
-        height: 110,
-        decoration: BoxDecoration(
-          color: AppColores.superficie,
-          borderRadius: BorderRadius.circular(AppEspaciado.radio),
-          border: Border.all(color: AppColores.borde),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: url != null
-            ? Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => _logoPlaceholder(),
-              )
-            : _logoPlaceholder(),
+    return SizedBox(
+      height: 196,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          const SizedBox(
+            height: 140,
+            child: FotoTarjeta(
+              foto: FotosApp.membresia,
+              alineacion: Alignment(0.3, -0.3),
+              radio: AppEspaciado.radio + 6,
+              child: SizedBox.expand(),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            child: Container(
+              width: 108,
+              height: 108,
+              decoration: BoxDecoration(
+                color: AppColores.superficie,
+                borderRadius: BorderRadius.circular(AppEspaciado.radio + 6),
+                border: Border.all(color: AppColores.superficie, width: 4),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: url != null
+                  ? Image.network(
+                      url,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => _logoPlaceholder(),
+                    )
+                  : _logoPlaceholder(),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _logoPlaceholder() {
-    return const Center(
-      child: Icon(Icons.business, size: 44, color: AppColores.vencido),
+    return Container(
+      decoration: BoxDecoration(gradient: AppColores.degradadoRelleno),
+      child: Icon(
+        Icons.storefront_rounded,
+        size: 44,
+        color: AppColores.sobreRelleno,
+      ),
     );
   }
 

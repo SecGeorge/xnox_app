@@ -43,7 +43,9 @@ class ControladorFotoPerfil {
       url.value = null;
     }
     try {
-      final r = await _http.obtenerConDatos({'metodo': 'mi_foto'}, 'miembros.php');
+      final r = await _http.obtenerConDatos({
+        'metodo': 'mi_foto',
+      }, 'miembros.php');
       if (r is Map && r.containsKey('imagen')) {
         final ruta = r['imagen']?.toString() ?? '';
         await prefs.setString(_clave, '$miembro|$ruta');

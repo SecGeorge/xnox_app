@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
-import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/grafico_linea.dart';
@@ -32,82 +32,82 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
   Widget build(BuildContext context) {
     final ejercicios = _controlador.obtenerTodosLosEjercicios();
     final conMarcas = ejercicios.where((e) => e.marcas.isNotEmpty).toList();
-    final totalMarcas =
-        ejercicios.fold<int>(0, (s, e) => s + e.marcas.length);
+    final totalMarcas = ejercicios.fold<int>(0, (s, e) => s + e.marcas.length);
+    // Lo que más subió primero: motiva ver arriba el mayor avance.
+    conMarcas.sort((a, b) => _mejora(b).compareTo(_mejora(a)));
+    final ganado = conMarcas.fold<double>(
+      0,
+      (s, e) => s + (_mejora(e) > 0 ? _mejora(e) : 0),
+    );
 
-    return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: () async => setState(() {}),
-        child: ListView(
-          padding: const EdgeInsets.all(AppEspaciado.md),
-          children: [
-            const SizedBox(height: AppEspaciado.sm),
-            Text(
-              'Reporte de Ejercicios',
-              style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColores.textoPrincipal),
+    return Scaffold(
+      backgroundColor: AppColores.fondo,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async => setState(() {}),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              AppEspaciado.md,
+              AppEspaciado.md,
+              AppEspaciado.md,
+              120,
             ),
-            const SizedBox(height: 4),
-            const Text('Tu progreso registrado',
-                style: TextStyle(
-                    fontSize: 13.5, color: AppColores.textoSecundario)),
-            const SizedBox(height: AppEspaciado.lg),
-            Row(
-              children: [
-                _resumen('Ejercicios', '${ejercicios.length}',
-                    Icons.fitness_center, AppColores.azul),
-                const SizedBox(width: AppEspaciado.sm + 4),
-                _resumen('Marcas', '$totalMarcas', Icons.show_chart,
-                    AppColores.verde),
-              ],
-            ),
-            const SizedBox(height: AppEspaciado.lg),
-            if (conMarcas.isEmpty)
-              const Padding(
-                padding: EdgeInsets.only(top: 40),
-                child: EstadoVacio(
-                  icono: Icons.insights_outlined,
-                  mensaje:
-                      'Aún no hay marcas registradas.\nRegistra marcas en tus rutinas para ver tu progreso.',
+            children: [
+              const CabeceraApp(
+                titulo: 'Mi avance',
+                subtitulo: 'Tus pesos y marcas registradas',
+                atras: false,
+              ),
+              const SizedBox(height: AppEspaciado.md + 4),
+              PortadaFoto(
+                foto: FotosApp.progreso,
+                alineacion: const Alignment(0.4, -0.2),
+                altura: 170,
+                etiqueta: 'Fuerza ganada',
+                titulo: ganado > 0 ? '+${_num(ganado)} kg' : 'Empieza hoy',
+                pie: Row(
+                  children: [
+                    DatoPortada(
+                      icono: Icons.fitness_center_rounded,
+                      valor: '${conMarcas.length}',
+                      pie: conMarcas.length == 1 ? 'ejercicio' : 'ejercicios',
+                    ),
+                    const SizedBox(width: 18),
+                    DatoPortada(
+                      icono: Icons.show_chart_rounded,
+                      valor: '$totalMarcas',
+                      pie: totalMarcas == 1 ? 'registro' : 'registros',
+                    ),
+                  ],
                 ),
-              )
-            else
-              ...conMarcas.map(_buildEjercicio),
-          ],
+              ),
+              const SizedBox(height: AppEspaciado.lg),
+              TituloSeccion(
+                icono: Icons.emoji_events_rounded,
+                titulo: 'Tus ejercicios',
+                detalle: conMarcas.isEmpty ? null : '${conMarcas.length}',
+              ),
+              if (conMarcas.isEmpty)
+                const VacioApp(
+                  icono: Icons.insights_rounded,
+                  titulo: 'Aún no hay marcas registradas',
+                  texto:
+                      'Registra la carga en tus rutinas y aquí verás '
+                      'cómo vas subiendo.',
+                )
+              else
+                ...conMarcas.map(_buildEjercicio),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _resumen(String titulo, String valor, IconData icono, Color color) {
-    return Expanded(
-      child: TarjetaApp(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-              ),
-              child: Icon(icono, color: color, size: 20),
-            ),
-            const SizedBox(height: AppEspaciado.sm),
-            Text(valor,
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppColores.textoPrincipal)),
-            Text(titulo,
-                style: const TextStyle(
-                    fontSize: 12.5, color: AppColores.textoSecundario)),
-          ],
-        ),
-      ),
-    );
+  double _mejora(Ejercicio e) {
+    if (e.marcas.isEmpty) return 0;
+    return e.mejorMarca!.peso - e.marcasOrdenadas.first.peso;
   }
 
   Widget _buildEjercicio(Ejercicio e) {
@@ -118,35 +118,124 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppEspaciado.md),
-      child: TarjetaApp(
+      child: TarjetaPlana(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: AppColores.degradadoRelleno,
+                    border: AppColores.bordeCabecera,
+                    borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+                  ),
+                  child: Icon(
+                    Icons.fitness_center_rounded,
+                    color: AppColores.sobreRelleno,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(e.nombre,
-                      style: TextStyle(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        e.nombre,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
                           fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColores.textoPrincipal)),
+                          fontWeight: FontWeight.w800,
+                          color: AppColores.textoPrincipal,
+                        ),
+                      ),
+                      Text(
+                        '${e.marcas.length} registros · desde '
+                        '${DateFormat('d MMM', 'es').format(primera.fecha)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColores.textoSecundario,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 if (mejora > 0)
-                  EtiquetaEstado(
-                      texto: '+${_num(mejora)} kg', color: AppColores.activo),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColores.activo.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.trending_up_rounded,
+                          size: 15,
+                          color: AppColores.activo,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          '+${_num(mejora)} kg',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColores.activo,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: AppEspaciado.sm),
-            GraficoLinea(valores: progreso, color: AppColores.acento),
-            const SizedBox(height: AppEspaciado.sm),
-            Text(
-              'PR ${_num(pr.peso)} kg · ${e.marcas.length} registros · desde ${DateFormat('d MMM', 'es').format(primera.fecha)}',
-              style: const TextStyle(
-                  fontSize: 12, color: AppColores.textoSecundario),
+            const SizedBox(height: AppEspaciado.md),
+            GraficoLinea(valores: progreso, color: AppColores.primario),
+            const SizedBox(height: AppEspaciado.sm + 2),
+            Row(
+              children: [
+                _datoMarca('Inicio', '${_num(primera.peso)} kg'),
+                _datoMarca(
+                  'Mejor marca',
+                  '${_num(pr.peso)} kg',
+                  destacar: true,
+                ),
+                _datoMarca('Última', '${_num(progreso.last)} kg'),
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _datoMarca(String titulo, String valor, {bool destacar = false}) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            valor,
+            style: TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w800,
+              color: destacar ? AppColores.primario : AppColores.textoPrincipal,
+            ),
+          ),
+          Text(
+            titulo,
+            style: const TextStyle(
+              fontSize: 11.5,
+              color: AppColores.textoSecundario,
+            ),
+          ),
+        ],
       ),
     );
   }

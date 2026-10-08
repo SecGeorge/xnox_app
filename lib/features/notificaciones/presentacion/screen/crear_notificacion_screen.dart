@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
 
@@ -7,11 +8,25 @@ import 'package:xnox_app/features/notificaciones/presentacion/controlador/contro
 /// columna `tipo_envio` de la tabla `notificaciones` en el backend.
 enum PublicoNotificacion {
   clientes(2, 'Clientes', 'Todos los socios con la app', Icons.people_outline),
-  personal(1, 'Personal', 'Administración', Icons.admin_panel_settings_outlined),
+  personal(
+    1,
+    'Personal',
+    'Administración',
+    Icons.admin_panel_settings_outlined,
+  ),
   colaboradores(
-      3, 'Colaboradores', 'Recepción y entrenadores', Icons.badge_outlined);
+    3,
+    'Colaboradores',
+    'Recepción y entrenadores',
+    Icons.badge_outlined,
+  );
 
-  const PublicoNotificacion(this.valor, this.etiqueta, this.detalle, this.icono);
+  const PublicoNotificacion(
+    this.valor,
+    this.etiqueta,
+    this.detalle,
+    this.icono,
+  );
 
   final int valor;
   final String etiqueta;
@@ -58,7 +73,8 @@ class _CrearNotificacionScreenState extends State<CrearNotificacionScreen> {
     final confirmado = await confirmarDialog(
       context,
       titulo: '¿Enviar la notificación?',
-      mensaje: 'Se enviará a: ${_publico.detalle.toLowerCase()}.\n\n'
+      mensaje:
+          'Se enviará a: ${_publico.detalle.toLowerCase()}.\n\n'
           'Llegará al instante a sus teléfonos y no se puede cancelar.',
       icono: Icons.send_outlined,
       textoConfirmar: 'Enviar',
@@ -75,8 +91,11 @@ class _CrearNotificacionScreenState extends State<CrearNotificacionScreen> {
       if (!mounted) return;
 
       if (ok) {
-        mostrarMensaje(context, 'Notificación enviada',
-            tipo: TipoMensaje.exito);
+        mostrarMensaje(
+          context,
+          'Notificación enviada',
+          tipo: TipoMensaje.exito,
+        );
         Navigator.of(context).pop(true);
       } else {
         setState(() => _enviando = false);
@@ -89,8 +108,11 @@ class _CrearNotificacionScreenState extends State<CrearNotificacionScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _enviando = false);
-      mostrarMensaje(context, 'No se pudo enviar la notificación',
-          tipo: TipoMensaje.error);
+      mostrarMensaje(
+        context,
+        'No se pudo enviar la notificación',
+        tipo: TipoMensaje.error,
+      );
     }
   }
 
@@ -98,83 +120,87 @@ class _CrearNotificacionScreenState extends State<CrearNotificacionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColores.fondo,
-      appBar: AppBar(title: const Text('Nueva notificación')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppEspaciado.md),
-          children: [
-            TarjetaApp(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      bottomNavigationBar: PieBoton(
+        texto: _enviando ? 'Enviando…' : 'Enviar notificación',
+        icono: Icons.send_rounded,
+        cargando: _enviando,
+        onPressed: _enviar,
+      ),
+      body: SafeArea(
+        bottom: false,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(AppEspaciado.md),
+            children: [
+              const CabeceraApp(
+                titulo: 'Nueva notificación',
+                subtitulo: 'Llega como aviso al celular',
+              ),
+              const SizedBox(height: AppEspaciado.lg),
+              const TituloSeccion(
+                icono: Icons.edit_note_rounded,
+                titulo: 'Mensaje',
+              ),
+              TarjetaPlana(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: _tituloCtrl,
+                      maxLength: 60,
+                      textCapitalization: TextCapitalization.sentences,
+                      // Refresca la vista previa mientras se escribe.
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Título',
+                        hintText: 'Ej. Cerrado por feriado',
+                        prefixIcon: Icon(Icons.title),
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Escribe un título'
+                          : null,
+                    ),
+                    const SizedBox(height: AppEspaciado.sm),
+                    TextFormField(
+                      controller: _mensajeCtrl,
+                      maxLines: 4,
+                      maxLength: 180,
+                      textCapitalization: TextCapitalization.sentences,
+                      onChanged: (_) => setState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Mensaje',
+                        hintText: 'Ej. El 28 de julio no habrá atención.',
+                        alignLabelWithHint: true,
+                      ),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Escribe el mensaje'
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppEspaciado.lg),
+              const TituloSeccion(
+                icono: Icons.groups_rounded,
+                titulo: '¿Para quién?',
+              ),
+              Column(
                 children: [
-                  const EncabezadoSeccion(titulo: 'Mensaje'),
-                  const SizedBox(height: AppEspaciado.md),
-                  TextFormField(
-                    controller: _tituloCtrl,
-                    maxLength: 60,
-                    textCapitalization: TextCapitalization.sentences,
-                    // Refresca la vista previa mientras se escribe.
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'Título',
-                      hintText: 'Ej. Cerrado por feriado',
-                      prefixIcon: Icon(Icons.title),
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Escribe un título'
-                        : null,
-                  ),
-                  const SizedBox(height: AppEspaciado.sm),
-                  TextFormField(
-                    controller: _mensajeCtrl,
-                    maxLines: 4,
-                    maxLength: 180,
-                    textCapitalization: TextCapitalization.sentences,
-                    onChanged: (_) => setState(() {}),
-                    decoration: const InputDecoration(
-                      labelText: 'Mensaje',
-                      hintText: 'Ej. El 28 de julio no habrá atención.',
-                      alignLabelWithHint: true,
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Escribe el mensaje'
-                        : null,
-                  ),
+                  for (final p in PublicoNotificacion.values) ...[
+                    _opcionPublico(p),
+                    const SizedBox(height: AppEspaciado.sm),
+                  ],
                 ],
               ),
-            ),
-            const SizedBox(height: AppEspaciado.md),
-            TarjetaApp(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const EncabezadoSeccion(titulo: '¿Para quién?'),
-                  const SizedBox(height: AppEspaciado.xs),
-                  ...PublicoNotificacion.values.map(_opcionPublico),
-                ],
+              const SizedBox(height: AppEspaciado.md),
+              const TituloSeccion(
+                icono: Icons.smartphone_rounded,
+                titulo: 'Vista previa',
               ),
-            ),
-            const SizedBox(height: AppEspaciado.md),
-            _vistaPrevia(),
-            const SizedBox(height: AppEspaciado.lg),
-            SizedBox(
-              height: 50,
-              child: FilledButton.icon(
-                onPressed: _enviando ? null : _enviar,
-                icon: _enviando
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.send),
-                label: Text(_enviando ? 'Enviando…' : 'Enviar notificación'),
-              ),
-            ),
-            const SizedBox(height: AppEspaciado.md),
-          ],
+              _vistaPrevia(),
+            ],
+          ),
         ),
       ),
     );
@@ -182,49 +208,49 @@ class _CrearNotificacionScreenState extends State<CrearNotificacionScreen> {
 
   Widget _opcionPublico(PublicoNotificacion p) {
     final seleccionado = _publico == p;
-    return InkWell(
+    return TarjetaPlana(
       onTap: _enviando ? null : () => setState(() => _publico = p),
-      borderRadius: BorderRadius.circular(AppEspaciado.radio),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            // Indicador propio en vez de un Radio: toda la fila ya es
-            // pulsable, y `Radio.groupValue` quedó obsoleto en esta versión
-            // de Flutter (ahora exige un RadioGroup por encima).
-            Icon(
-              seleccionado
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              color: seleccionado
-                  ? AppColores.acento
-                  : AppColores.textoSecundario,
+      padding: const EdgeInsets.all(12),
+      color: seleccionado ? AppColores.primario.withValues(alpha: 0.06) : null,
+      colorBorde: seleccionado ? AppColores.primario : null,
+      child: Row(
+        children: [
+          IconoSuave(
+            p.icono,
+            color: seleccionado
+                ? AppColores.primario
+                : AppColores.textoSecundario,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  p.etiqueta,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
+                Text(
+                  p.detalle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColores.textoSecundario,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: AppEspaciado.sm),
-            Icon(p.icono,
-                size: 20,
-                color: seleccionado
-                    ? AppColores.acento
-                    : AppColores.textoSecundario),
-            const SizedBox(width: AppEspaciado.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(p.etiqueta,
-                      style: TextStyle(
-                        fontWeight:
-                            seleccionado ? FontWeight.w700 : FontWeight.w500,
-                        color: AppColores.textoPrincipal,
-                      )),
-                  Text(p.detalle,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColores.textoSecundario)),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+          Icon(
+            seleccionado
+                ? Icons.check_circle_rounded
+                : Icons.radio_button_unchecked_rounded,
+            color: seleccionado ? AppColores.primario : AppColores.borde,
+          ),
+        ],
       ),
     );
   }
@@ -257,8 +283,11 @@ class _CrearNotificacionScreenState extends State<CrearNotificacionScreen> {
                     color: AppColores.primario,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.fitness_center,
-                      color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.fitness_center,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: AppEspaciado.sm),
                 Expanded(
