@@ -19,6 +19,11 @@ import 'package:xnox_app/features/pago_yape/dominio/config_pago_yape.dart';
 /// - [pedidoId]: si es un pedido de la tienda, su id (para validar el pago).
 /// - [contratoId]: si es deuda de membresía, el id del contrato (para validar
 ///   el pago y saldar la deuda). Se usa cuando [pedidoId] es null.
+/// Pago con Yape de los pedidos de la TIENDA del cliente. Mientras esté en
+/// false, la tienda muestra la opción como "Próximamente" y el pedido se paga
+/// en recepción. La membresía no depende de esto.
+const bool yapeEnTiendaDisponible = false;
+
 class PagoYapeScreen extends StatefulWidget {
   final double monto;
   final String concepto;

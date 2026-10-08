@@ -187,17 +187,48 @@ class _HojaMisPedidosState extends State<_HojaMisPedidos> {
             ),
           ),
           const SizedBox(width: 8),
-          SizedBox(
-            height: 38,
-            child: ElevatedButton.icon(
-              onPressed: () => _pagar(pedido),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+          if (!yapeEnTiendaDisponible)
+            // Pago por Yape aún no habilitado en la tienda: se paga en
+            // recepción.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColores.naranja.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
               ),
-              icon: const Icon(Icons.qr_code_2_rounded, size: 18),
-              label: const Text('Pagar', style: TextStyle(fontSize: 13)),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Yape próximamente',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColores.naranja,
+                    ),
+                  ),
+                  Text(
+                    'Paga en recepción',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: AppColores.textoSecundario,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            SizedBox(
+              height: 38,
+              child: ElevatedButton.icon(
+                onPressed: () => _pagar(pedido),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+                icon: const Icon(Icons.qr_code_2_rounded, size: 18),
+                label: const Text('Pagar', style: TextStyle(fontSize: 13)),
+              ),
             ),
-          ),
         ],
       ),
     );

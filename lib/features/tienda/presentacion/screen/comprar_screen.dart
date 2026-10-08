@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/features/pago_yape/presentacion/pago_yape_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
@@ -416,7 +417,9 @@ class _ComprarScreenState extends State<ComprarScreen> {
                       ? (puedeCanjear
                             ? 'Gana puntos con cada compra y canjéalos por premios.'
                             : 'Gana puntos con cada compra.')
-                      : 'Arma tu pedido y págalo con Yape o en recepción.',
+                      : yapeEnTiendaDisponible
+                      ? 'Arma tu pedido y págalo con Yape o en recepción.'
+                      : 'Arma tu pedido y págalo en recepción.',
                   style: TextStyle(
                     fontSize: 12.5,
                     height: 1.35,
@@ -1313,75 +1316,100 @@ class _ComprarScreenState extends State<ComprarScreen> {
       required String detalle,
       required bool principal,
       required VoidCallback onTap,
+      bool proximamente = false,
     }) {
       final radio = BorderRadius.circular(AppEspaciado.radio + 2);
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: radio,
-          onTap: onTap,
-          child: Ink(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              gradient: principal ? AppColores.degradadoRelleno : null,
-              color: principal ? null : AppColores.fondo,
-              borderRadius: radio,
-              border: principal
-                  ? AppColores.bordeCabecera
-                  : Border.all(color: AppColores.borde),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: principal
-                        ? AppColores.sobreRelleno.withValues(alpha: 0.15)
-                        : AppColores.primario.withValues(alpha: 0.10),
-                    shape: BoxShape.circle,
+      // "Próximamente": se ve atenuada y no responde al toque.
+      return Opacity(
+        opacity: proximamente ? 0.6 : 1,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: radio,
+            onTap: proximamente ? null : onTap,
+            child: Ink(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: principal ? AppColores.degradadoRelleno : null,
+                color: principal ? null : AppColores.fondo,
+                borderRadius: radio,
+                border: principal
+                    ? AppColores.bordeCabecera
+                    : Border.all(color: AppColores.borde),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: principal
+                          ? AppColores.sobreRelleno.withValues(alpha: 0.15)
+                          : AppColores.primario.withValues(alpha: 0.10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      icono,
+                      color: principal
+                          ? AppColores.sobreRelleno
+                          : AppColores.primario,
+                    ),
                   ),
-                  child: Icon(
-                    icono,
-                    color: principal
-                        ? AppColores.sobreRelleno
-                        : AppColores.primario,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          titulo,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: principal
+                                ? AppColores.sobreRelleno
+                                : AppColores.textoPrincipal,
+                          ),
+                        ),
+                        Text(
+                          detalle,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: principal
+                                ? AppColores.sobreRellenoSuave
+                                : AppColores.textoSecundario,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        titulo,
+                  if (proximamente)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColores.naranja.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Próximamente',
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w800,
-                          color: principal
-                              ? AppColores.sobreRelleno
-                              : AppColores.textoPrincipal,
+                          color: AppColores.naranja,
                         ),
                       ),
-                      Text(
-                        detalle,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: principal
-                              ? AppColores.sobreRellenoSuave
-                              : AppColores.textoSecundario,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: principal
-                      ? AppColores.sobreRelleno
-                      : AppColores.textoSecundario,
-                ),
-              ],
+                    )
+                  else
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: principal
+                          ? AppColores.sobreRelleno
+                          : AppColores.textoSecundario,
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -1414,21 +1442,36 @@ class _ComprarScreenState extends State<ComprarScreen> {
               style: TextStyle(fontSize: 14, color: AppColores.textoSecundario),
             ),
             const SizedBox(height: AppEspaciado.md),
-            opcion(
-              icono: Icons.qr_code_2_rounded,
-              titulo: 'Pagar ahora con Yape',
-              detalle: 'Rápido, desde la app',
-              principal: true,
-              onTap: () => Navigator.pop(ctx, true),
-            ),
-            const SizedBox(height: AppEspaciado.sm + 2),
+            // Mientras Yape no esté disponible en la tienda, recepción pasa
+            // a ser la opción principal y Yape queda como "Próximamente".
+            if (yapeEnTiendaDisponible) ...[
+              opcion(
+                icono: Icons.qr_code_2_rounded,
+                titulo: 'Pagar ahora con Yape',
+                detalle: 'Rápido, desde la app',
+                principal: true,
+                onTap: () => Navigator.pop(ctx, true),
+              ),
+              const SizedBox(height: AppEspaciado.sm + 2),
+            ],
             opcion(
               icono: Icons.storefront_rounded,
               titulo: 'Pagar en recepción',
               detalle: 'Lo recoges y pagas en el gimnasio',
-              principal: false,
+              principal: !yapeEnTiendaDisponible,
               onTap: () => Navigator.pop(ctx, false),
             ),
+            if (!yapeEnTiendaDisponible) ...[
+              const SizedBox(height: AppEspaciado.sm + 2),
+              opcion(
+                icono: Icons.qr_code_2_rounded,
+                titulo: 'Pagar con Yape',
+                detalle: 'Pronto podrás pagar desde la app',
+                principal: false,
+                proximamente: true,
+                onTap: () {},
+              ),
+            ],
             const SizedBox(height: AppEspaciado.sm),
           ],
         ),
