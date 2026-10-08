@@ -5,7 +5,7 @@ import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
-import 'package:xnox_app/features/cliente/presentacion/widget/grafico_linea.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/grafico_evolucion.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/hoja_numero.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/temporizador_descanso.dart';
 import 'package:xnox_app/features/ejercicios/datos/repositorio_ejercicios.dart';
@@ -719,7 +719,18 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
               ],
             ),
           const SizedBox(height: AppEspaciado.sm),
-          GraficoLinea(valores: pesos, color: AppColores.primario, altura: 110),
+          GraficoEvolucion(
+            puntos: [
+              for (final m in sesiones)
+                PuntoEvolucion(m.fecha, m.peso, detalle: '${m.repsTexto} reps'),
+            ],
+            unidad: 'kg',
+            cabecera: false,
+            enTarjeta: false,
+            alto: 150,
+            textoVacio: 'Termina esta sesión y aquí verás tu progreso',
+            textoUnPunto: 'En la próxima sesión verás tu curva de cargas',
+          ),
         ],
       ),
     );

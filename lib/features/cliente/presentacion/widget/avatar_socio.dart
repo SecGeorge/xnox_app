@@ -110,14 +110,46 @@ class AvatarSocio extends StatelessWidget {
   }
 }
 
-/// Pregunta de dónde sacar la foto (cámara o galería), la sube y avisa.
-Future<void> cambiarFotoPerfil(BuildContext context) async {
+/// Recordatorio de cada apertura de la app: si el socio aún no tiene foto de
+/// perfil, se la pide (solo una vez por apertura).
+bool _fotoPedida = false;
+
+Future<void> pedirFotoSiFalta(BuildContext context) async {
+  if (_fotoPedida) return;
+  if (!await ControladorFotoPerfil.instancia.confirmadoSinFoto()) return;
+  if (!context.mounted || _fotoPedida) return;
+  _fotoPedida = true;
+  await cambiarFotoPerfil(context, recordatorio: true);
+}
+
+/// Pregunta de dónde sacar la foto (cámara o galería), la sube y avisa. Con
+/// [recordatorio] se presenta como invitación para el socio que no tiene foto.
+Future<void> cambiarFotoPerfil(
+  BuildContext context, {
+  bool recordatorio = false,
+}) async {
   final origen = await mostrarHojaModerna<ImageSource>(
     context,
     builder: (ctx) => HojaModerna(
-      icono: Icons.account_circle_rounded,
-      titulo: 'Foto de perfil',
-      subtitulo: 'El gimnasio también la verá en tu ficha',
+      icono: recordatorio
+          ? Icons.add_a_photo_rounded
+          : Icons.account_circle_rounded,
+      titulo: recordatorio ? 'Agrega tu foto de perfil' : 'Foto de perfil',
+      subtitulo: recordatorio
+          ? 'Así el gimnasio te reconoce al ingresar. Toma solo un momento.'
+          : 'El gimnasio también la verá en tu ficha',
+      pie: recordatorio
+          ? SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  'Ahora no',
+                  style: TextStyle(color: AppColores.textoSecundario),
+                ),
+              ),
+            )
+          : null,
       child: Row(
         children: [
           Expanded(

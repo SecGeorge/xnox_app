@@ -11,7 +11,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 13;
+  static const _version = 14;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -214,6 +214,10 @@ class BaseDatosLocal {
         await db.execute('ALTER TABLE ejercicio ADD COLUMN descanso_seg INTEGER');
       }
     }
+    if (desde < 14) {
+      // v14: medidas corporales del socio (pecho, bíceps, cintura…).
+      await _crearTablaMedida(db);
+    }
   }
 
   /// Valor de partida para las filas que ya existían: mientras un gimnasio no
@@ -260,6 +264,28 @@ class BaseDatosLocal {
         activa INTEGER NOT NULL DEFAULT 0
       )
     ''');
+  }
+
+  /// Medidas corporales por fecha. `zona` es la clave de ZonaMedida y
+  /// `usuario_id` separa a los socios que compartan teléfono. Se suben a la BD
+  /// central (`medidas.php`): `uid` evita duplicados al reintentar,
+  /// `servidor_id` queda NULL hasta que el servidor la confirma y `eliminado`
+  /// marca un borrado que aún no llegó al servidor.
+  Future<void> _crearTablaMedida(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS medida (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario_id TEXT NOT NULL,
+        uid TEXT NOT NULL UNIQUE,
+        servidor_id INTEGER,
+        zona TEXT NOT NULL,
+        fecha TEXT NOT NULL,
+        valor REAL NOT NULL,
+        eliminado INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_medida_usuario ON medida (usuario_id, zona)');
   }
 
   Future<void> _crearTablaSerie(Database db) async {
@@ -351,6 +377,8 @@ class BaseDatosLocal {
     // código que el usuario escribe en el primer arranque.
     await _crearTablaEmpresa(db);
     await _sembrarCodigosConocidos(db);
+
+    await _crearTablaMedida(db);
 
     await db.execute('CREATE INDEX idx_rutina_dia_rutina ON rutina_dia (rutina_id)');
     await db.execute('CREATE INDEX idx_ejercicio_dia ON ejercicio (dia_id)');

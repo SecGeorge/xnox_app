@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/cliente_publicidad_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
@@ -30,11 +31,11 @@ class DetallePublicidadScreen extends StatelessWidget {
                 width: double.infinity,
                 child: p.imagenUrl != null && p.imagenUrl!.isNotEmpty
                     ? InteractiveViewer(
-                        child: Image.network(
-                          p.imagenUrl!,
+                        child: Image(
+                          // Mismo proveedor que la lista: ya está en caché.
+                          image: imagenNovedad(p.imagenUrl!),
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          cacheWidth: 1280,
                           loadingBuilder: (context, child, progress) =>
                               progress == null
                               ? child

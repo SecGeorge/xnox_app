@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
@@ -119,22 +121,38 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
     if (mounted) setState(() => _listaAsistencias = lista);
   }
 
+  /// Se completa cuando terminó la primera carga de la membresía (con o sin
+  /// red), para encadenar los avisos del arranque sin que se encimen.
+  final _membresiaCargada = Completer<void>();
+
   Future<void> _cargarMembresia() async {
     try {
       final m = await _membresia.obtenerMembresia();
       if (mounted) setState(() => _contrato = m);
-      _intentarAvisoVencimiento();
     } catch (_) {
       /* sin red */
+    } finally {
+      if (!_membresiaCargada.isCompleted) _membresiaCargada.complete();
     }
   }
 
+  /// Avisos del arranque, uno detrás de otro: novedades (ya cerradas al
+  /// llegar aquí) → vencimiento de la membresía → foto de perfil si falta.
+  Future<void> _avisosDeArranque() async {
+    await _membresiaCargada.future;
+    await _intentarAvisoVencimiento();
+    if (mounted) await pedirFotoSiFalta(context);
+  }
+
+  bool _vencimientoAvisado = false;
+
   /// Avisa al socio al que le quedan 7 días o menos, después de las novedades.
-  void _intentarAvisoVencimiento() {
+  Future<void> _intentarAvisoVencimiento() async {
     final m = _contrato;
-    if (!_novedadesListas || m == null) return;
+    if (!_novedadesListas || m == null || _vencimientoAvisado) return;
     if (!debeAvisarVencimiento(m) || !mounted) return;
-    mostrarAvisoVencimiento(
+    _vencimientoAvisado = true;
+    await mostrarAvisoVencimiento(
       context,
       membresia: m,
       novedades: _novedadesKey.currentState?.novedades ?? const [],
@@ -270,7 +288,7 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
                 },
                 onListo: () {
                   _novedadesListas = true;
-                  _intentarAvisoVencimiento();
+                  _avisosDeArranque();
                 },
               ),
             ],
@@ -774,7 +792,7 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
       ),
       _Acceso(
         'Mi avance',
-        'Pesos y marcas de tus ejercicios',
+        'Marcas y medidas de tu cuerpo',
         Icons.insights_rounded,
         '$_fotos/progreso.jpg',
         () => widget.onIrA(DestinoCliente.reporte),

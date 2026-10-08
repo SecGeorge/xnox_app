@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -110,6 +113,7 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
         _isLoading = false;
       });
       widget.onNovedades?.call(_publicidades.length);
+      precargarNovedades(context, _publicidades);
       if (widget.incrustada && !_modalMostrado && _publicidades.isNotEmpty) {
         // Tras el primer frame, para no abrir el modal en mitad del build.
         WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -478,13 +482,11 @@ class ClientePublicidadScreenState extends State<ClientePublicidadScreen> {
                       // dar clic.
                       child: AspectRatio(
                         aspectRatio: AppEspaciado.publicidadRatio,
-                        child: Image.network(
-                          p.imagenUrl!,
+                        child: Image(
+                          image: imagenNovedad(p.imagenUrl!),
                           width: double.infinity,
                           fit: BoxFit.cover,
                           alignment: p.alineacion,
-                          // Decodifica a menor resolución (más rápido y menos memoria).
-                          cacheWidth: 1000,
                           loadingBuilder: (context, child, progress) =>
                               progress == null ? child : _cargando(),
                           errorBuilder: (context, error, stack) => _banner(),
@@ -615,6 +617,23 @@ Future<void> abrirNovedades(
 }
 
 /// Muestra la imagen de la campaña a pantalla completa, como un modal.
+/// Imagen de una novedad con caché en DISCO: se descarga una vez y al volver
+/// a abrir la app sale al instante (Image.network solo guardaba en memoria y
+/// la bajaba de nuevo en cada arranque). Se reduce a 1000 px de ancho al
+/// guardarla. Usar siempre este proveedor para que la precarga sirva.
+ImageProvider imagenNovedad(String url) =>
+    CachedNetworkImageProvider(url, maxWidth: 1000);
+
+/// Descarga de antemano las imágenes de [lista], para que el carrusel no
+/// muestre la ruedita al pasar de una novedad a otra.
+void precargarNovedades(BuildContext context, List<Publicidad> lista) {
+  for (final p in lista) {
+    final url = p.imagenUrl;
+    if (url == null || url.isEmpty) continue;
+    precacheImage(imagenNovedad(url), context, onError: (_, _) {});
+  }
+}
+
 void _verImagen(BuildContext context, String url) {
   showDialog(
     context: context,
@@ -625,8 +644,8 @@ void _verImagen(BuildContext context, String url) {
         children: [
           Center(
             child: InteractiveViewer(
-              child: Image.network(
-                url,
+              child: Image(
+                image: CachedNetworkImageProvider(url),
                 fit: BoxFit.contain,
                 errorBuilder: (c, e, s) => const Icon(
                   Icons.broken_image,
@@ -669,8 +688,45 @@ class _ModalNovedadesState extends State<_ModalNovedades> {
 
   int get _total => widget.publicidades.length;
 
+  /// Avance automático: cada [_intervalo] pasa a la siguiente novedad y, tras
+  /// la última, vuelve a la primera. Se pausa mientras el socio toca la
+  /// tarjeta y el conteo se reinicia al cambiar de página (también a mano),
+  /// para que nunca salte justo después de deslizar.
+  static const _intervalo = Duration(seconds: 2);
+  Timer? _auto;
+
+  @override
+  void initState() {
+    super.initState();
+    _programar();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Por si se abre con una lista que no pasó por la pantalla de novedades
+    // (p. ej. el aviso de vencimiento): ya vienen bajando todas.
+    precargarNovedades(context, widget.publicidades);
+  }
+
+  void _programar() {
+    _auto?.cancel();
+    if (_total < 2) return;
+    _auto = Timer(_intervalo, _avanzar);
+  }
+
+  void _avanzar() {
+    if (!mounted || !_paginas.hasClients) return;
+    _paginas.animateToPage(
+      (_actual + 1) % _total,
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   void dispose() {
+    _auto?.cancel();
     _paginas.dispose();
     super.dispose();
   }
@@ -751,13 +807,22 @@ class _ModalNovedadesState extends State<_ModalNovedades> {
                     .clamp(0.0, alto * 0.82 - 100);
                 return SizedBox(
                   height: altoTarjeta,
-                  child: PageView.builder(
-                    controller: _paginas,
-                    itemCount: _total,
-                    onPageChanged: (i) => setState(() => _actual = i),
-                    itemBuilder: (_, i) => Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: _tarjeta(widget.publicidades[i]),
+                  child: Listener(
+                    // Con el dedo encima no avanza; al soltar vuelve a contar.
+                    onPointerDown: (_) => _auto?.cancel(),
+                    onPointerUp: (_) => _programar(),
+                    onPointerCancel: (_) => _programar(),
+                    child: PageView.builder(
+                      controller: _paginas,
+                      itemCount: _total,
+                      onPageChanged: (i) {
+                        setState(() => _actual = i);
+                        _programar();
+                      },
+                      itemBuilder: (_, i) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        child: _tarjeta(widget.publicidades[i]),
+                      ),
                     ),
                   ),
                 );
@@ -854,11 +919,10 @@ class _ModalNovedadesState extends State<_ModalNovedades> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(
-            url,
+          Image(
+            image: imagenNovedad(url),
             fit: BoxFit.cover,
             alignment: p.alineacion,
-            cacheWidth: 1000,
             loadingBuilder: (_, hijo, progreso) => progreso == null
                 ? hijo
                 : Container(

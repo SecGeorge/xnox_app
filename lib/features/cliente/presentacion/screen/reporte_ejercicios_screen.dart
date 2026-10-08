@@ -4,7 +4,8 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
-import 'package:xnox_app/features/cliente/presentacion/widget/grafico_linea.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/medidas_screen.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/grafico_evolucion.dart';
 
 /// Reporte del progreso del cliente: resumen y evolución de marcas por ejercicio.
 class ReporteEjerciciosScreen extends StatefulWidget {
@@ -56,7 +57,7 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
             children: [
               const CabeceraApp(
                 titulo: 'Mi avance',
-                subtitulo: 'Tus pesos y marcas registradas',
+                subtitulo: 'Tus marcas y medidas corporales',
                 atras: false,
               ),
               const SizedBox(height: AppEspaciado.md + 4),
@@ -80,6 +81,17 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
                       pie: totalMarcas == 1 ? 'registro' : 'registros',
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(height: AppEspaciado.md),
+              PortadaFoto(
+                foto: FotosApp.espalda,
+                altura: 136,
+                etiqueta: 'Tu cuerpo',
+                titulo: 'Mis medidas',
+                texto: 'Registra tus medidas y mira cómo cambia tu cuerpo.',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MedidasScreen()),
                 ),
               ),
               const SizedBox(height: AppEspaciado.lg),
@@ -197,7 +209,15 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
               ],
             ),
             const SizedBox(height: AppEspaciado.md),
-            GraficoLinea(valores: progreso, color: AppColores.primario),
+            GraficoEvolucion(
+              puntos: [
+                  for (final m in e.marcasOrdenadas)
+                    PuntoEvolucion(m.fecha, m.peso, detalle: '${m.repsTexto} reps'),
+                ],
+              unidad: 'kg',
+              enTarjeta: false,
+              alto: 160,
+            ),
             const SizedBox(height: AppEspaciado.sm + 2),
             Row(
               children: [

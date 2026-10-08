@@ -343,7 +343,7 @@ class _ClienteShellState extends State<ClienteShell> {
                     child: _tarjetaMas(
                       Icons.insights_rounded,
                       'Mi avance',
-                      'Pesos y marcas',
+                      'Marcas y medidas',
                       activo: _selectedIndex == _iReporte,
                       onTap: () =>
                           ir(() => setState(() => _selectedIndex = _iReporte)),

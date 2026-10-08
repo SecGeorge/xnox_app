@@ -9,7 +9,7 @@ import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
-import 'package:xnox_app/features/cliente/presentacion/widget/grafico_linea.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/grafico_evolucion.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/screen/detalle_ejercicio_screen.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/widget/hoja_agregar_ejercicio.dart';
 
@@ -330,9 +330,6 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
 
   Widget _buildEjercicio(Ejercicio e, bool editable) {
     final pr = e.mejorMarca;
-    final progreso = e.marcasOrdenadas
-        .map((m) => m.peso)
-        .toList(growable: false);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppEspaciado.md),
@@ -499,7 +496,18 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
               ],
             ),
             const SizedBox(height: AppEspaciado.sm),
-            GraficoLinea(valores: progreso),
+            GraficoEvolucion(
+              puntos: [
+                for (final m in e.marcasOrdenadas)
+                  PuntoEvolucion(m.fecha, m.peso),
+              ],
+              unidad: 'kg',
+              cabecera: false,
+              enTarjeta: false,
+              alto: 130,
+              textoVacio: 'Registra la carga para ver tu progreso',
+              textoUnPunto: 'Registra otra sesión para ver tu curva',
+            ),
             const SizedBox(height: AppEspaciado.sm),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

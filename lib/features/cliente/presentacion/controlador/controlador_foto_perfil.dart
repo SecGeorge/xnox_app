@@ -22,6 +22,19 @@ class ControladorFotoPerfil {
   static const _clave = 'foto_perfil';
   final _http = HttpService();
 
+  /// Carga en curso (o la última), para esperar su resultado.
+  Future<void>? _carga;
+
+  /// True si el servidor respondió en la última carga (con o sin foto).
+  bool _servidorRespondio = false;
+
+  /// ¿El servidor confirmó que el socio NO tiene foto? Sin red da false: no
+  /// se le pide una foto que quizá ya tiene.
+  Future<bool> confirmadoSinFoto() async {
+    await (_carga ?? cargar());
+    return _servidorRespondio && url.value == null;
+  }
+
   /// La ruta que guarda el backend es relativa a la API ("../imagenes/x.png");
   /// la foto genérica de alta no cuenta como foto propia.
   String? _aUrl(String? ruta) {
@@ -33,7 +46,10 @@ class ControladorFotoPerfil {
   }
 
   /// Muestra al instante la última foto conocida y la revalida con el servidor.
-  Future<void> cargar() async {
+  Future<void> cargar() => _carga = _cargar();
+
+  Future<void> _cargar() async {
+    _servidorRespondio = false;
     final prefs = await SharedPreferences.getInstance();
     final miembro = prefs.getString('miembroId') ?? '';
     final guardada = prefs.getString(_clave);
@@ -50,6 +66,7 @@ class ControladorFotoPerfil {
         final ruta = r['imagen']?.toString() ?? '';
         await prefs.setString(_clave, '$miembro|$ruta');
         url.value = _aUrl(ruta);
+        _servidorRespondio = true;
       }
     } catch (_) {
       // Sin conexión: se queda la foto en caché.

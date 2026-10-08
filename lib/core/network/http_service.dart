@@ -119,6 +119,11 @@ class HttpService {
   static const String _mensajeSinConexion =
       'Sin conexión a internet. Verifica tu red e inténtalo de nuevo.';
 
+  /// Mensaje cuando el teléfono sí tiene red pero el servidor del gimnasio no
+  /// respondió (caído, lento o inalcanzable).
+  static const String _mensajeServidorNoResponde =
+      'No se pudo conectar con el servidor del gimnasio. Inténtalo de nuevo en unos momentos.';
+
   /// Comprueba si el dispositivo tiene alguna interfaz de red activa
   /// (WiFi, datos móviles, ethernet o VPN).
   Future<bool> hayInternet() async {
@@ -137,6 +142,19 @@ class HttpService {
   Map<String, dynamic> _respuestaSinConexion() {
     mostrarMensajeGlobal(_mensajeSinConexion, tipo: TipoMensaje.advertencia);
     return {'success': false, 'sin_conexion': true, 'error': _mensajeSinConexion};
+  }
+
+  /// Respuesta cuando hay red pero el servidor no contestó. Conserva la marca
+  /// `sin_conexion` (los repositorios la usan para saber que no hubo respuesta
+  /// y que ya se avisó), pero el mensaje no culpa al internet del usuario.
+  Map<String, dynamic> _respuestaServidorNoResponde() {
+    mostrarMensajeGlobal(_mensajeServidorNoResponde, tipo: TipoMensaje.advertencia);
+    return {
+      'success': false,
+      'sin_conexion': true,
+      'servidor_no_responde': true,
+      'error': _mensajeServidorNoResponde,
+    };
   }
 
   Future<bool> intentarRecuperarSesion() async {
@@ -224,12 +242,13 @@ class HttpService {
     }
   }
 
-  dynamic _handleError(DioException e) {
+  Future<dynamic> _handleError(DioException e) async {
     if (e.response != null) {
       return e.response?.data;
     }
-    // Sin respuesta del servidor: timeout, conexión rechazada o red caída
-    // aunque el dispositivo reporte tener interfaz activa.
+    // Sin respuesta del servidor: timeout, conexión rechazada o red caída.
+    // Se vuelve a mirar la red para no decir "sin internet" cuando lo que
+    // falló fue el servidor del gimnasio.
     const erroresConexion = {
       DioExceptionType.connectionError,
       DioExceptionType.connectionTimeout,
@@ -237,7 +256,9 @@ class HttpService {
       DioExceptionType.sendTimeout,
     };
     if (erroresConexion.contains(e.type)) {
-      return _respuestaSinConexion();
+      return await hayInternet()
+          ? _respuestaServidorNoResponde()
+          : _respuestaSinConexion();
     }
     return {'success': false, 'error': e.message};
   }
