@@ -5,6 +5,7 @@ import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/hoja_moderna.dart';
 import 'package:xnox_app/core/widgets/logo_gimnasio.dart';
+import 'package:xnox_app/features/cliente/datos/almacen_rutinas.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/membresia_cliente.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_membresia.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/cliente_publicidad_screen.dart';
@@ -259,6 +260,13 @@ class _ClienteShellState extends State<ClienteShell> {
     );
 
     if (!confirmar) return;
+    // Último intento de subir el entrenamiento pendiente: después ya no hay
+    // sesión con qué hacerlo.
+    try {
+      await AlmacenRutinas.instancia.sincronizarEntrenamiento().timeout(
+        const Duration(seconds: 8),
+      );
+    } catch (_) {}
     await _logout.ejecutar();
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(

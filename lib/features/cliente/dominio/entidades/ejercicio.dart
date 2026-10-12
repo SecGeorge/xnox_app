@@ -24,6 +24,10 @@ class Ejercicio {
   /// cambiarlo en su teléfono.
   final int? descansoSeg;
 
+  /// Se hace un lado a la vez (curl con mancuerna a un brazo, zancada…): cada
+  /// serie registra las repeticiones del lado izquierdo y del derecho.
+  final bool unilateral;
+
   Ejercicio({
     required this.id,
     required this.nombre,
@@ -34,6 +38,7 @@ class Ejercicio {
     this.imagenUrl,
     this.videoUrl,
     this.descansoSeg,
+    this.unilateral = false,
     List<Marca>? marcas,
   }) : marcas = marcas ?? [];
 

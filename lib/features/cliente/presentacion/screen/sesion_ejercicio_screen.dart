@@ -33,7 +33,8 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
   final _controlador = ControladorRutinas();
   final _descanso = ControlDescanso();
 
-  /// Peso con el que se registrarán las series de hoy.
+  /// Peso con el que se registrarán las próximas series de hoy (cada serie ya
+  /// hecha guarda el suyo).
   double? _peso;
 
   // Referencia de ejecución del catálogo del gimnasio (fotos, video, texto).
@@ -138,7 +139,12 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
       );
     }
     final hoy = _sesionHoy(e);
-    _peso ??= hoy?.peso ?? _sugerido(e) ?? e.ultimaMarca?.peso;
+    _peso ??=
+        (hoy != null && hoy.pesoPorSerie.isNotEmpty
+            ? hoy.pesoPorSerie.last
+            : hoy?.peso) ??
+        _sugerido(e) ??
+        e.ultimaMarca?.peso;
 
     return Scaffold(
       backgroundColor: AppColores.fondo,
@@ -209,6 +215,8 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                   'Series de hoy',
                   '${hoy?.repsPorSerie.length ?? 0} de ${e.series}',
                 ),
+                _interruptorUnilateral(e),
+                const SizedBox(height: AppEspaciado.sm),
                 _seriesDeHoy(e, hoy),
                 const SizedBox(height: AppEspaciado.lg),
                 _titulo('Evolución de la carga', null),
@@ -481,6 +489,15 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                 const Text('Series y repeticiones', style: etiqueta),
                 const SizedBox(height: 6),
                 Text('${e.series} × ${e.repeticiones}', style: valor),
+                if (e.unilateral)
+                  Text(
+                    'por lado',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColores.primario,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -512,7 +529,7 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                   borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                    onTap: () => _editarPeso(e, hoy),
+                    onTap: () => _editarPeso(e),
                     child: SizedBox(
                       width: 40,
                       height: 40,
@@ -557,6 +574,32 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// Interruptor para los ejercicios que se hacen un lado a la vez: con él
+  /// activo cada serie pide las repeticiones del lado izquierdo y del derecho.
+  Widget _interruptorUnilateral(Ejercicio e) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColores.superficie,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: SwitchListTile(
+        dense: true,
+        value: e.unilateral,
+        onChanged: (v) async {
+          await _controlador.cambiarUnilateral(e.id, v);
+          if (mounted) setState(() {});
+        },
+        secondary: Icon(Icons.back_hand_outlined, color: AppColores.primario),
+        title: const Text(
+          'Unilateral',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: const Text('Registra las repeticiones de cada lado'),
       ),
     );
   }
@@ -607,7 +650,7 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
     final hecha = reps != null;
     return InkWell(
       onTap: hecha
-          ? () => _editarSerie(hoy!, i, reps)
+          ? () => _editarSerie(e, hoy!, i, reps)
           : siguiente
           ? () => _registrarSerie(e)
           : null,
@@ -654,7 +697,7 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
             ),
             if (hecha)
               Text(
-                '$reps reps · ${_num(hoy!.peso)} kg',
+                '${hoy!.textoSerie(i)} reps · ${_num(hoy.pesoDeSerie(i))} kg',
                 style: TextStyle(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
@@ -819,7 +862,9 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
 
   // ------------------------------------------------------------ Acciones
 
-  Future<void> _editarPeso(Ejercicio e, Marca? hoy) async {
+  /// Cambia la carga de las PRÓXIMAS series; las ya registradas conservan la
+  /// suya (para cambiar una en concreto se toca su fila).
+  Future<void> _editarPeso(Ejercicio e) async {
     final previa = _anterior(e);
     final sugerido = _sugerido(e);
     final pr = e.mejorMarca;
@@ -833,7 +878,7 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
     final nuevo = await pedirNumero(
       context,
       titulo: 'Carga de hoy',
-      subtitulo: e.nombre,
+      subtitulo: '${e.nombre} · para las próximas series',
       icono: Icons.fitness_center_rounded,
       unidad: 'kg',
       inicial: _peso ?? sugerido ?? previa?.peso,
@@ -842,26 +887,41 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
       atajos: atajos,
     );
     if (nuevo == null) return;
-    if (hoy?.id != null) await _controlador.editarPesoSesion(hoy!.id!, nuevo);
     if (mounted) setState(() => _peso = nuevo);
   }
 
   Future<void> _registrarSerie(Ejercicio e) async {
     if (_peso == null || _peso! <= 0) {
-      await _editarPeso(e, _sesionHoy(e));
+      await _editarPeso(e);
       if (_peso == null || _peso! <= 0) return;
     }
     final hechas = _sesionHoy(e)?.repsPorSerie.length ?? 0;
-    final reps = await _pedirReps('Serie ${hechas + 1}', e.repeticiones);
-    if (reps == null) return;
-    await _controlador.agregarSerie(e.id, _peso!, reps);
+    if (e.unilateral) {
+      final lados = await _pedirLados(
+        'Serie ${hechas + 1}',
+        e.repeticiones,
+        e.repeticiones,
+      );
+      if (lados == null) return;
+      await _controlador.agregarSerie(
+        e.id,
+        _peso!,
+        lados.$1 < lados.$2 ? lados.$1 : lados.$2,
+        izq: lados.$1,
+        der: lados.$2,
+      );
+    } else {
+      final reps = await _pedirReps('Serie ${hechas + 1}', e.repeticiones);
+      if (reps == null) return;
+      await _controlador.agregarSerie(e.id, _peso!, reps);
+    }
     if (!mounted) return;
     setState(() {});
     // Toca descansar antes de la siguiente.
     _descanso.iniciar();
   }
 
-  Future<void> _editarSerie(Marca hoy, int i, int reps) async {
+  Future<void> _editarSerie(Ejercicio e, Marca hoy, int i, int reps) async {
     final accion = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppColores.superficie,
@@ -879,6 +939,15 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
               onTap: () => Navigator.pop(ctx, 'editar'),
             ),
             ListTile(
+              leading: Icon(
+                Icons.fitness_center_rounded,
+                color: AppColores.primario,
+              ),
+              title: Text('Cambiar peso de la serie ${i + 1}'),
+              subtitle: Text('Ahora: ${_num(hoy.pesoDeSerie(i))} kg'),
+              onTap: () => Navigator.pop(ctx, 'peso'),
+            ),
+            ListTile(
               leading: const Icon(
                 Icons.delete_outline,
                 color: AppColores.moroso,
@@ -894,9 +963,40 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
       ),
     );
     if (accion == 'editar') {
-      final nuevas = await _pedirReps('Serie ${i + 1}', reps);
-      if (nuevas == null) return;
-      await _controlador.editarSerie(hoy.id!, i + 1, nuevas);
+      final previos = hoy.ladosDeSerie(i);
+      if (e.unilateral || previos != null) {
+        final lados = await _pedirLados(
+          'Serie ${i + 1}',
+          previos?.$1 ?? reps,
+          previos?.$2 ?? reps,
+        );
+        if (lados == null) return;
+        await _controlador.editarSerie(
+          hoy.id!,
+          i + 1,
+          lados.$1 < lados.$2 ? lados.$1 : lados.$2,
+          izq: lados.$1,
+          der: lados.$2,
+        );
+      } else {
+        final nuevas = await _pedirReps('Serie ${i + 1}', reps);
+        if (nuevas == null) return;
+        await _controlador.editarSerie(hoy.id!, i + 1, nuevas);
+      }
+    } else if (accion == 'peso') {
+      if (!mounted) return;
+      final nuevo = await pedirNumero(
+        context,
+        titulo: 'Peso · serie ${i + 1}',
+        subtitulo: 'Solo cambia esta serie',
+        icono: Icons.fitness_center_rounded,
+        unidad: 'kg',
+        inicial: hoy.pesoDeSerie(i),
+        paso: 2.5,
+        decimales: true,
+      );
+      if (nuevo == null || nuevo <= 0) return;
+      await _controlador.editarPesoSerie(hoy.id!, i + 1, nuevo);
     } else if (accion == 'borrar') {
       await _controlador.eliminarSerie(hoy.id!, i + 1);
     } else {
@@ -905,8 +1005,30 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Ejercicio unilateral: pide las repeticiones del lado izquierdo y luego
+  /// las del derecho (con atajo "Igual que el izquierdo"). Null si se cancela.
+  Future<(int, int)?> _pedirLados(
+    String titulo,
+    int inicialIzq,
+    int inicialDer,
+  ) async {
+    final izq = await _pedirReps('$titulo · lado izquierdo', inicialIzq);
+    if (izq == null || !mounted) return null;
+    final der = await _pedirReps(
+      '$titulo · lado derecho',
+      inicialDer,
+      extra: [AtajoNumero('Igual que el izquierdo', izq.toDouble())],
+    );
+    if (der == null) return null;
+    return (izq, der);
+  }
+
   /// Pide las repeticiones de una serie con la hoja de número (− / +).
-  Future<int?> _pedirReps(String titulo, int inicial) async {
+  Future<int?> _pedirReps(
+    String titulo,
+    int inicial, {
+    List<AtajoNumero> extra = const [],
+  }) async {
     final e = _ejercicio;
     final v = await pedirNumero(
       context,
@@ -918,6 +1040,7 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
       unidad: 'repeticiones',
       inicial: inicial.toDouble(),
       atajos: [
+        ...extra,
         if (e != null) AtajoNumero('Objetivo', e.repeticiones.toDouble()),
       ],
     );

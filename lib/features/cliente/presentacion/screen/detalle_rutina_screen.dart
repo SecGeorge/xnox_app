@@ -9,6 +9,7 @@ import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_rutinas.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/sesion_ejercicio_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/grafico_evolucion.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/screen/detalle_ejercicio_screen.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/widget/hoja_agregar_ejercicio.dart';
@@ -818,7 +819,10 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
   /// Alta con autocompletado contra el catálogo del gimnasio. Si el ejercicio
   /// no existe se crea ahí mismo (pidiendo fotos) sin frenar la rutina.
   Future<void> _agregarEjercicio(int diaId) async {
-    final elegido = await mostrarHojaAgregarEjercicio(context);
+    final elegido = await mostrarHojaAgregarEjercicio(
+      context,
+      permitirUnilateral: true,
+    );
     if (elegido == null) return;
 
     await _controlador.agregarEjercicio(
@@ -830,6 +834,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
       catalogoId: elegido.catalogoId,
       imagenUrl: elegido.imagenUrl,
       videoUrl: elegido.videoUrl,
+      unilateral: elegido.unilateral,
     );
     if (!mounted) return;
     setState(() {});
@@ -846,6 +851,20 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
 
   /// Editor de la sesión de hoy: agrega/edita/borra cada serie una por una.
   Future<void> _editarSesionHoy(Ejercicio e) async {
+    // Los unilaterales se registran por lado en la pantalla del ejercicio;
+    // esta hoja rápida solo sabe de repeticiones totales.
+    if (e.unilateral) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => SesionEjercicioScreen(
+            rutinaId: widget.rutinaId,
+            ejercicioId: e.id,
+          ),
+        ),
+      );
+      if (mounted) setState(() {});
+      return;
+    }
     final sesion = _sesionHoy(e);
     int? marcaId = sesion?.id;
     final reps = <int>[...?sesion?.repsPorSerie];
@@ -916,13 +935,6 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                 reps.removeAt(i);
                 if (reps.isEmpty) marcaId = null;
               });
-            }
-
-            Future<void> guardarPeso() async {
-              final peso = pesoValido();
-              if (peso != null && peso > 0 && marcaId != null) {
-                await _controlador.editarPesoSesion(marcaId!, peso);
-              }
             }
 
             return Padding(
@@ -1007,8 +1019,8 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                       ),
                       decoration: const InputDecoration(
                         labelText: 'Peso de trabajo (kg)',
+                        helperText: 'Se usa en las próximas series',
                       ),
-                      onSubmitted: (_) => guardarPeso(),
                     ),
                     const SizedBox(height: AppEspaciado.md),
                     Text(

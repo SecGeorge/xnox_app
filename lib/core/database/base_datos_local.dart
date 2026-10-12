@@ -3,15 +3,16 @@ import 'package:sqflite/sqflite.dart';
 
 /// Acceso a la base de datos local SQLite (offline) de la app.
 ///
-/// Aquí viven las rutinas del cliente (CRUD local) y la copia sincronizada de
-/// las rutinas sugeridas del administrador, junto con el historial de marcas
-/// que alimenta los reportes de avance.
+/// Aquí viven las rutinas del cliente y la copia sincronizada de las rutinas
+/// sugeridas del administrador, junto con el historial de marcas que alimenta
+/// los reportes de avance. Las rutinas del cliente y las marcas se suben al
+/// backend; aquí quedan para usarlas sin internet.
 class BaseDatosLocal {
   BaseDatosLocal._interno();
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 14;
+  static const _version = 17;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -73,7 +74,7 @@ class BaseDatosLocal {
       'nombre': 'Sistema Gimnasio VF',
       'ruta_global': 'http://192.168.1.113/sistema_gimnasio_vf/api/',
       'codigo_backend': 'LOCAL',
-    }
+    },
   ];
 
   Database? _db;
@@ -149,11 +150,9 @@ class BaseDatosLocal {
       if (!await _existeColumna(db, 'empresa', 'codigo_backend')) {
         await db.execute('ALTER TABLE empresa ADD COLUMN codigo_backend TEXT');
       }
-      await db.update(
-        'empresa',
-        {'codigo_backend': _codigoBackendPorDefecto},
-        where: 'codigo_backend IS NULL',
-      );
+      await db.update('empresa', {
+        'codigo_backend': _codigoBackendPorDefecto,
+      }, where: 'codigo_backend IS NULL');
     }
     if (desde < 8) {
       // v8: el administrador puede armar una rutina para UN cliente. Sigue
@@ -161,7 +160,8 @@ class BaseDatosLocal {
       // las generales de la sucursal.
       if (!await _existeColumna(db, 'rutina', 'personalizada')) {
         await db.execute(
-            'ALTER TABLE rutina ADD COLUMN personalizada INTEGER NOT NULL DEFAULT 0');
+          'ALTER TABLE rutina ADD COLUMN personalizada INTEGER NOT NULL DEFAULT 0',
+        );
       }
     }
     if (desde < 9) {
@@ -173,7 +173,8 @@ class BaseDatosLocal {
         await db.update(
           'empresa',
           {'codigo_backend': gimnasio['codigo_backend']},
-          where: 'codigo = ? AND (codigo_backend IS NULL OR codigo_backend != ?)',
+          where:
+              'codigo = ? AND (codigo_backend IS NULL OR codigo_backend != ?)',
           whereArgs: [gimnasio['codigo'], gimnasio['codigo_backend']],
         );
       }
@@ -183,7 +184,9 @@ class BaseDatosLocal {
       // imágenes de referencia. Se guarda el id del catálogo y la URL de la
       // portada para verla sin conexión a la lista de sugerencias.
       if (!await _existeColumna(db, 'ejercicio', 'catalogo_id')) {
-        await db.execute('ALTER TABLE ejercicio ADD COLUMN catalogo_id INTEGER');
+        await db.execute(
+          'ALTER TABLE ejercicio ADD COLUMN catalogo_id INTEGER',
+        );
       }
       if (!await _existeColumna(db, 'ejercicio', 'imagen_url')) {
         await db.execute('ALTER TABLE ejercicio ADD COLUMN imagen_url TEXT');
@@ -211,12 +214,61 @@ class BaseDatosLocal {
       // v13: descanso entre series que fija el gimnasio desde el web para cada
       // ejercicio de sus rutinas (el socio lo puede cambiar en su teléfono).
       if (!await _existeColumna(db, 'ejercicio', 'descanso_seg')) {
-        await db.execute('ALTER TABLE ejercicio ADD COLUMN descanso_seg INTEGER');
+        await db.execute(
+          'ALTER TABLE ejercicio ADD COLUMN descanso_seg INTEGER',
+        );
       }
     }
     if (desde < 14) {
       // v14: medidas corporales del socio (pecho, bíceps, cintura…).
       await _crearTablaMedida(db);
+    }
+    if (desde < 15) {
+      // v15: peso por serie, para subir o bajar la carga en una serie sin
+      // tocar las demás. Las series existentes heredan el peso de su sesión.
+      if (!await _existeColumna(db, 'serie', 'peso')) {
+        await db.execute('ALTER TABLE serie ADD COLUMN peso REAL');
+      }
+      await db.execute(
+        'UPDATE serie SET peso = (SELECT m.peso FROM marca m WHERE m.id = serie.marca_id) WHERE peso IS NULL',
+      );
+    }
+    if (desde < 16) {
+      // v16: ejercicios unilaterales (un brazo/pierna a la vez): la serie
+      // guarda las repeticiones de cada lado.
+      if (!await _existeColumna(db, 'ejercicio', 'unilateral')) {
+        await db.execute(
+          'ALTER TABLE ejercicio ADD COLUMN unilateral INTEGER NOT NULL DEFAULT 0',
+        );
+      }
+      if (!await _existeColumna(db, 'serie', 'reps_izq')) {
+        await db.execute('ALTER TABLE serie ADD COLUMN reps_izq INTEGER');
+      }
+      if (!await _existeColumna(db, 'serie', 'reps_der')) {
+        await db.execute('ALTER TABLE serie ADD COLUMN reps_der INTEGER');
+      }
+    }
+    if (desde < 17) {
+      // v17: el entrenamiento se guarda en el backend (entrenamiento.php);
+      // SQLite queda para cuando no hay internet. Las rutinas propias y todas
+      // las sesiones ya existentes reciben su uid y quedan pendientes de subir.
+      for (final tabla in ['rutina', 'marca']) {
+        if (!await _existeColumna(db, tabla, 'uid')) {
+          await db.execute('ALTER TABLE $tabla ADD COLUMN uid TEXT');
+        }
+        if (!await _existeColumna(db, tabla, 'pendiente')) {
+          await db.execute(
+            'ALTER TABLE $tabla ADD COLUMN pendiente INTEGER NOT NULL DEFAULT 0',
+          );
+        }
+      }
+      await db.execute(
+        "UPDATE rutina SET uid = lower(hex(randomblob(16))), pendiente = 1 WHERE origen = 'cliente' AND uid IS NULL",
+      );
+      await db.execute(
+        'UPDATE marca SET uid = lower(hex(randomblob(16))), pendiente = 1 WHERE uid IS NULL',
+      );
+      await _crearTablasSincronizacion(db);
     }
   }
 
@@ -235,17 +287,13 @@ class BaseDatosLocal {
   Future<void> _sembrarCodigosConocidos(Database db) async {
     final batch = db.batch();
     for (final gimnasio in codigosConocidos) {
-      batch.insert(
-        'empresa',
-        {
-          'codigo': gimnasio['codigo'],
-          'nombre': gimnasio['nombre'],
-          'ruta_global': gimnasio['ruta_global'],
-          'codigo_backend': gimnasio['codigo_backend'],
-          'activa': 0,
-        },
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+      batch.insert('empresa', {
+        'codigo': gimnasio['codigo'],
+        'nombre': gimnasio['nombre'],
+        'ruta_global': gimnasio['ruta_global'],
+        'codigo_backend': gimnasio['codigo_backend'],
+        'activa': 0,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
     }
     await batch.commit(noResult: true);
   }
@@ -285,7 +333,35 @@ class BaseDatosLocal {
       )
     ''');
     await db.execute(
-        'CREATE INDEX IF NOT EXISTS idx_medida_usuario ON medida (usuario_id, zona)');
+      'CREATE INDEX IF NOT EXISTS idx_medida_usuario ON medida (usuario_id, zona)',
+    );
+  }
+
+  /// Apoyo para subir el entrenamiento al backend. `uid` (rutina y marca) es
+  /// el identificador compartido con el servidor y `pendiente` se incrementa
+  /// en cada cambio local (0 = el servidor ya lo tiene). `sync_borrado` guarda
+  /// los borrados que aún no llegaron al servidor y `meta` a qué usuario
+  /// pertenece el entrenamiento guardado en el teléfono.
+  Future<void> _crearTablasSincronizacion(Database db) async {
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_rutina_uid ON rutina (uid)',
+    );
+    await db.execute(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_marca_uid ON marca (uid)',
+    );
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_borrado (
+        tipo TEXT NOT NULL,
+        uid TEXT NOT NULL,
+        PRIMARY KEY (tipo, uid)
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS meta (
+        clave TEXT PRIMARY KEY,
+        valor TEXT
+      )
+    ''');
   }
 
   Future<void> _crearTablaSerie(Database db) async {
@@ -295,6 +371,9 @@ class BaseDatosLocal {
         marca_id INTEGER NOT NULL,
         numero INTEGER NOT NULL,
         repeticiones INTEGER NOT NULL,
+        peso REAL,
+        reps_izq INTEGER,
+        reps_der INTEGER,
         FOREIGN KEY (marca_id) REFERENCES marca (id) ON DELETE CASCADE
       )
     ''');
@@ -313,7 +392,7 @@ class BaseDatosLocal {
 
   Future<void> _crear(Database db, int version) async {
     // origen: 'admin' = rutina sugerida (solo lectura, viene del backend)
-    //         'cliente' = rutina propia del cliente (CRUD local)
+    //         'cliente' = rutina propia del cliente (se sube al backend)
     // servidor_id: id de la rutina en el backend (solo rutinas 'admin').
     // personalizada: 1 si el administrador armó esa rutina 'admin' para este
     //                cliente en concreto (no la ven los demás).
@@ -325,7 +404,9 @@ class BaseDatosLocal {
         descripcion TEXT,
         origen TEXT NOT NULL,
         personalizada INTEGER NOT NULL DEFAULT 0,
-        fecha_sync TEXT
+        fecha_sync TEXT,
+        uid TEXT,
+        pendiente INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -351,6 +432,7 @@ class BaseDatosLocal {
         series INTEGER NOT NULL DEFAULT 0,
         repeticiones INTEGER NOT NULL DEFAULT 0,
         observaciones TEXT,
+        unilateral INTEGER NOT NULL DEFAULT 0,
         orden INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (dia_id) REFERENCES rutina_dia (id) ON DELETE CASCADE
       )
@@ -366,6 +448,8 @@ class BaseDatosLocal {
         peso REAL NOT NULL,
         repeticiones INTEGER NOT NULL,
         reps_series TEXT,
+        uid TEXT,
+        pendiente INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (ejercicio_id) REFERENCES ejercicio (id) ON DELETE CASCADE
       )
     ''');
@@ -379,9 +463,14 @@ class BaseDatosLocal {
     await _sembrarCodigosConocidos(db);
 
     await _crearTablaMedida(db);
+    await _crearTablasSincronizacion(db);
 
-    await db.execute('CREATE INDEX idx_rutina_dia_rutina ON rutina_dia (rutina_id)');
+    await db.execute(
+      'CREATE INDEX idx_rutina_dia_rutina ON rutina_dia (rutina_id)',
+    );
     await db.execute('CREATE INDEX idx_ejercicio_dia ON ejercicio (dia_id)');
-    await db.execute('CREATE INDEX idx_marca_ejercicio ON marca (ejercicio_id)');
+    await db.execute(
+      'CREATE INDEX idx_marca_ejercicio ON marca (ejercicio_id)',
+    );
   }
 }

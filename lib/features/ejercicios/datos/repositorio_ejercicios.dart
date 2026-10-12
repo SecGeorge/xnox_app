@@ -77,6 +77,47 @@ class RepositorioEjercicios {
     }
   }
 
+  /// Catálogo completo (general + los suyos, solo activos), sin el tope de 25
+  /// de `buscar`. Sirve para filtrar por grupo muscular en el teléfono.
+  /// Null si no hay conexión, para caer de vuelta en `buscar`.
+  Future<List<EjercicioCatalogo>?> listar() async {
+    try {
+      final response = await _http.obtenerConDatos({
+        'metodo': 'listar',
+        'miembro_id': await _miembroId(),
+        'solo_activos': 1,
+      }, 'ejercicios.php');
+      if (response is Map && response['resultado'] == true) {
+        return _mapear(response);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Nombres de los grupos musculares del gimnasio (Pecho, Espalda…).
+  Future<List<String>> grupos() async {
+    try {
+      final response = await _http.obtenerConDatos({
+        'metodo': 'grupos',
+      }, 'ejercicios.php');
+      if (response is Map && response['resultado'] == true) {
+        final data = response['datos'];
+        if (data is List) {
+          return data
+              .whereType<Map>()
+              .map((g) => _textoNullable(g['nombre']))
+              .whereType<String>()
+              .toList();
+        }
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
   /// Ejercicio del catálogo con su GALERÍA COMPLETA.
   ///
   /// `buscar` y `listar` traen solo la portada (el SP la corta con LIMIT 1), así

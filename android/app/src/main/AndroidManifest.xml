@@ -4,6 +4,12 @@
     <!-- Android 13+ exige pedir este permiso en tiempo de ejecución; sin él la
          app no muestra ninguna notificación y no se reporta ningún error. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Alarma de fin de descanso entre series: se programa a la hora exacta
+         para que suene con la pantalla apagada o la app cerrada. En Android 14+
+         el socio la concede en "Alarmas y recordatorios" (la app se lo pide). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <application
         android:label="xnox_app"
         android:name="${applicationName}"
@@ -42,6 +48,18 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- Notificaciones programadas (alarma de descanso) y su botón
+             "Silenciar", de flutter_local_notifications. -->
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
         <!-- Canal por el que FCM entrega los avisos cuando la app está cerrada
              o en segundo plano. Debe coincidir con `ServicioNotificaciones.canal`;
              si no existe, Android los agrupa en un canal "Varios" sin sonido. -->

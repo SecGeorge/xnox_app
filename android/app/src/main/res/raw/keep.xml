@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- El sonido de la alarma de descanso solo se nombra desde Dart
+     (RawResourceAndroidNotificationSound), así que el reductor de recursos
+     del build release no ve quién lo usa y lo borraría. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/descanso_fin" />

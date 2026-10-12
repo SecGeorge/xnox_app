@@ -23,6 +23,9 @@ class EjercicioElegido {
   final String? imagenUrl;
   final String? videoUrl;
 
+  /// Se hace un lado a la vez: las series se registran por lado.
+  final bool unilateral;
+
   const EjercicioElegido({
     required this.nombre,
     required this.series,
@@ -31,15 +34,23 @@ class EjercicioElegido {
     this.catalogoId,
     this.imagenUrl,
     this.videoUrl,
+    this.unilateral = false,
   });
 }
 
 /// Hoja para agregar un ejercicio con autocompletado.
 ///
 /// Al escribir busca en el catálogo del gimnasio (más los ejercicios que el
-/// propio cliente creó). Si el nombre no existe, ofrece crearlo con fotos, y
+/// propio cliente creó), por nombre o por grupo muscular; los chips de grupo
+/// muestran todos los ejercicios de, por ejemplo, Espalda. Si el nombre no existe, ofrece crearlo con fotos, y
 /// si no hay conexión igual deja guardarlo como texto: nunca bloquea la rutina.
-Future<EjercicioElegido?> mostrarHojaAgregarEjercicio(BuildContext context) {
+///
+/// [permitirUnilateral] muestra el interruptor "Unilateral" (solo tiene
+/// sentido en las rutinas del socio, que se registran en el teléfono).
+Future<EjercicioElegido?> mostrarHojaAgregarEjercicio(
+  BuildContext context, {
+  bool permitirUnilateral = false,
+}) {
   return showModalBottomSheet<EjercicioElegido>(
     context: context,
     isScrollControlled: true,
@@ -47,12 +58,15 @@ Future<EjercicioElegido?> mostrarHojaAgregarEjercicio(BuildContext context) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => const _HojaAgregarEjercicio(),
+    builder: (_) =>
+        _HojaAgregarEjercicio(permitirUnilateral: permitirUnilateral),
   );
 }
 
 class _HojaAgregarEjercicio extends StatefulWidget {
-  const _HojaAgregarEjercicio();
+  final bool permitirUnilateral;
+
+  const _HojaAgregarEjercicio({this.permitirUnilateral = false});
 
   @override
   State<_HojaAgregarEjercicio> createState() => _HojaAgregarEjercicioState();
@@ -65,6 +79,11 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
   final _seriesCtrl = TextEditingController(text: '4');
   final _repsCtrl = TextEditingController(text: '10');
   final _obsCtrl = TextEditingController();
+  final _grupoCtrl = TextEditingController(text: _todos);
+
+  /// Opción del select que quita el filtro de grupo.
+  static const _todos = 'Todos los grupos';
+  bool _unilateral = false;
 
   Timer? _debounce;
   bool _buscando = false;
@@ -72,6 +91,14 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
   String? _error;
 
   List<EjercicioCatalogo> _sugerencias = [];
+
+  /// Catálogo completo para filtrar en el teléfono. Null mientras carga o si
+  /// no hubo conexión (entonces se usa la búsqueda del servidor).
+  List<EjercicioCatalogo>? _catalogo;
+
+  /// Grupos musculares para los chips y el elegido (null = todos).
+  List<String> _grupos = [];
+  String? _grupo;
 
   /// Ejercicio del catálogo ya elegido. Se suelta al volver a escribir.
   EjercicioCatalogo? _elegido;
@@ -95,7 +122,7 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
         _elegido!.nombre.toLowerCase() == texto.toLowerCase()) {
       return false;
     }
-    return !_sugerencias.any(
+    return !(_catalogo ?? _sugerencias).any(
       (s) => s.nombre.toLowerCase() == texto.toLowerCase(),
     );
   }
@@ -105,12 +132,66 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
     super.initState();
     // Sugerencias iniciales: lo más usado del gimnasio, sin escribir nada.
     _buscar('');
+    _cargarCatalogo();
+  }
+
+  Future<void> _cargarCatalogo() async {
+    final resultados = await Future.wait([
+      _repositorio.listar(),
+      _repositorio.grupos(),
+    ]);
+    if (!mounted) return;
+    final catalogo = resultados[0] as List<EjercicioCatalogo>?;
+    var grupos = resultados[1] as List<String>;
+    if (catalogo != null) {
+      // Solo los grupos que tienen ejercicios (y los que haya en el catálogo
+      // aunque no estén en la tabla de grupos).
+      final conEjercicios = <String>{
+        for (final e in catalogo)
+          if (e.grupoMuscular != null) e.grupoMuscular!,
+      };
+      grupos = [
+        ...grupos.where(
+          (g) => conEjercicios.any((c) => _normalizar(c) == _normalizar(g)),
+        ),
+        ...conEjercicios.where(
+          (c) => !grupos.any((g) => _normalizar(g) == _normalizar(c)),
+        ),
+      ];
+    }
+    setState(() {
+      _catalogo = catalogo;
+      _grupos = grupos;
+    });
+    if (catalogo != null) _buscar(_nombreCtrl.text);
+  }
+
+  /// Minúsculas y sin tildes, para que "espalda" encuentre "Espalda" y
+  /// "biceps" encuentre "Bíceps".
+  static String _normalizar(String texto) {
+    const con = 'áéíóúüàèìòù';
+    const sin = 'aeiouuaeiou';
+    final b = StringBuffer();
+    for (final c in texto.toLowerCase().trim().split('')) {
+      final i = con.indexOf(c);
+      b.write(i >= 0 ? sin[i] : c);
+    }
+    return b.toString();
+  }
+
+  void _elegirGrupo(String? grupo) {
+    setState(() {
+      _grupo = grupo;
+      _elegido = null;
+    });
+    _buscar(_nombreCtrl.text);
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _nombreCtrl.dispose();
+    _grupoCtrl.dispose();
     _seriesCtrl.dispose();
     _repsCtrl.dispose();
     _obsCtrl.dispose();
@@ -128,13 +209,47 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
   }
 
   Future<void> _buscar(String termino) async {
+    final catalogo = _catalogo;
+    if (catalogo != null) {
+      setState(() => _sugerencias = _filtrar(catalogo, termino));
+      return;
+    }
     setState(() => _buscando = true);
     final resultados = await _repositorio.buscar(termino.trim());
     if (!mounted) return;
     setState(() {
-      _sugerencias = resultados;
+      _sugerencias = _grupo == null ? resultados : _filtrar(resultados, '');
       _buscando = false;
     });
+  }
+
+  /// Filtra por el grupo elegido y por el texto, que puede ser parte del
+  /// nombre o el grupo muscular ("espalda" trae todos los de espalda). Los que
+  /// empiezan con el texto van primero.
+  List<EjercicioCatalogo> _filtrar(
+    List<EjercicioCatalogo> lista,
+    String termino,
+  ) {
+    final t = _normalizar(termino);
+    final grupo = _grupo == null ? null : _normalizar(_grupo!);
+    final filtrados = lista.where((e) {
+      final g = _normalizar(e.grupoMuscular ?? '');
+      if (grupo != null && g != grupo) return false;
+      if (t.isEmpty) return true;
+      return _normalizar(e.nombre).contains(t) || g.contains(t);
+    }).toList();
+    if (t.isNotEmpty) {
+      int peso(EjercicioCatalogo e) {
+        final n = _normalizar(e.nombre);
+        return n.startsWith(t) ? 0 : (n.contains(t) ? 1 : 2);
+      }
+
+      filtrados.sort((a, b) {
+        final c = peso(a).compareTo(peso(b));
+        return c != 0 ? c : a.nombre.compareTo(b.nombre);
+      });
+    }
+    return filtrados;
   }
 
   void _elegirSugerencia(EjercicioCatalogo ejercicio) {
@@ -306,6 +421,8 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
       // por ejemplo— el ejercicio igual se agrega como texto.
       final creado = await _repositorio.crear(
         nombre: nombre,
+        // Si estaba viendo un grupo, el ejercicio nuevo queda en ese grupo.
+        grupoMuscular: _grupo,
         imagenesBase64: await _fotosEnBase64(),
       );
       catalogoId = creado?.id;
@@ -343,6 +460,7 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
         catalogoId: catalogoId,
         imagenUrl: imagenUrl,
         videoUrl: videoUrl,
+        unilateral: _unilateral,
       ),
     );
   }
@@ -380,13 +498,18 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
             ),
             const SizedBox(height: AppEspaciado.md),
 
+            if (_grupos.isNotEmpty) ...[
+              _selectorGrupo(),
+              const SizedBox(height: AppEspaciado.md),
+            ],
+
             TextField(
               controller: _nombreCtrl,
               autofocus: true,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 labelText: 'Nombre del ejercicio',
-                hintText: 'Escribe y elige de la lista',
+                hintText: 'Nombre o grupo muscular (ej. espalda)',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _buscando
                     ? const Padding(
@@ -406,6 +529,22 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
               ),
               onChanged: _alEscribir,
             ),
+
+            if (_grupo != null &&
+                _sugerencias.isEmpty &&
+                _elegido == null &&
+                !_buscando) ...[
+              const SizedBox(height: AppEspaciado.sm),
+              Text(
+                _nombreCtrl.text.trim().isEmpty
+                    ? 'No hay ejercicios de $_grupo en el catálogo.'
+                    : 'No hay ejercicios de $_grupo con ese nombre.',
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColores.textoSecundario,
+                ),
+              ),
+            ],
 
             if (_sugerencias.isNotEmpty && _elegido == null) ...[
               const SizedBox(height: AppEspaciado.sm),
@@ -453,6 +592,21 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
               ),
             ),
 
+            if (widget.permitirUnilateral) ...[
+              const SizedBox(height: AppEspaciado.sm),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _unilateral,
+                onChanged: (v) => setState(() => _unilateral = v),
+                title: const Text('Unilateral'),
+                subtitle: const Text(
+                  'Un brazo o pierna a la vez: registras las repeticiones '
+                  'de cada lado',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
+
             if (_error != null) ...[
               const SizedBox(height: AppEspaciado.md),
               _aviso(
@@ -492,6 +646,58 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
           : 'Guardar con ${_fotos.length} foto(s)';
     }
     return 'Guardar';
+  }
+
+  /// Select de grupo muscular en el que también se escribe: "esp" deja solo
+  /// Espalda (sin importar tildes ni mayúsculas).
+  Widget _selectorGrupo() {
+    return DropdownMenu<String>(
+      controller: _grupoCtrl,
+      initialSelection: _grupo ?? '',
+      expandedInsets: EdgeInsets.zero,
+      menuHeight: 280,
+      enableFilter: true,
+      requestFocusOnTap: true,
+      label: const Text('Grupo muscular'),
+      hintText: 'Escribe o elige (ej. espalda)',
+      leadingIcon: Icon(
+        Icons.accessibility_new_rounded,
+        color: _grupo == null
+            ? AppColores.textoSecundario
+            : AppColores.primario,
+      ),
+      // Filtro propio: el de Flutter no ignora tildes ("biceps" ≠ "Bíceps").
+      // Con el texto "Todos los grupos" o vacío se ve la lista completa.
+      filterCallback: (entradas, texto) {
+        final t = _normalizar(texto);
+        if (t.isEmpty ||
+            texto == _todos ||
+            entradas.any((e) => e.label == texto)) {
+          return entradas;
+        }
+        return entradas
+            .where((e) => e.value.isEmpty || _normalizar(e.label).contains(t))
+            .toList();
+      },
+      onSelected: (valor) {
+        final grupo = (valor == null || valor.isEmpty) ? null : valor;
+        if (grupo == null) _grupoCtrl.text = _todos;
+        _elegirGrupo(grupo);
+      },
+      dropdownMenuEntries: [
+        const DropdownMenuEntry(
+          value: '',
+          label: _todos,
+          leadingIcon: Icon(Icons.apps_rounded, size: 20),
+        ),
+        for (final g in _grupos)
+          DropdownMenuEntry(
+            value: g,
+            label: g,
+            leadingIcon: const Icon(Icons.fitness_center_rounded, size: 20),
+          ),
+      ],
+    );
   }
 
   Widget _listaSugerencias() {
