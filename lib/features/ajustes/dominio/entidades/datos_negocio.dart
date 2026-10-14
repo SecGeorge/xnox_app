@@ -12,6 +12,10 @@ class DatosNegocio {
   /// URL absoluta lista para mostrar en un `Image.network`, o null si no hay logo.
   final String? logoUrl;
 
+  /// URL absoluta del logo propio de la app (`ajustes.logo_app`), o null si el
+  /// gimnasio no subió uno y la app usa el logo normal.
+  final String? logoAppUrl;
+
   // ----------------------------------------------------------- Pago por Yape
   /// Número de Yape del negocio al que pagan los clientes.
   final String yapeNumero;
@@ -36,6 +40,7 @@ class DatosNegocio {
     required this.direccion,
     required this.logo,
     this.logoUrl,
+    this.logoAppUrl,
     this.yapeNumero = '',
     this.yapeTitular = '',
     this.yapeQr = '',
@@ -57,6 +62,7 @@ class DatosNegocio {
       direccion: direccion ?? this.direccion,
       logo: logo,
       logoUrl: logoUrl,
+      logoAppUrl: logoAppUrl,
       yapeNumero: yapeNumero,
       yapeTitular: yapeTitular,
       yapeQr: yapeQr,

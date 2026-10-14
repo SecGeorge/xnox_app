@@ -55,6 +55,7 @@ class RepositorioAjustesImpl {
       direccion: json['direccion']?.toString() ?? '',
       logo: json['logo']?.toString() ?? '',
       logoUrl: _urlLogo(json['logo']),
+      logoAppUrl: _urlLogo(json['logo_app']),
       yapeNumero: json['yape_numero']?.toString() ?? '',
       yapeTitular: json['yape_titular']?.toString() ?? '',
       yapeQr: json['yape_qr']?.toString() ?? '',
@@ -83,6 +84,28 @@ class RepositorioAjustesImpl {
     if (fila is! Map || fila['voit_exito']?.toString() != '1') {
       return (fila is Map ? fila['voit_message']?.toString() : null) ??
           'El servidor del gimnasio aún no permite guardar los colores';
+    }
+    return null;
+  }
+
+  /// Sube el logo propio de la app ([logoBase64] con encabezado data:), o lo
+  /// quita si es `null` para volver al logo normal del gimnasio. Devuelve
+  /// `null` si salió bien o un mensaje de error legible.
+  Future<String?> guardarLogoApp(String? logoBase64) async {
+    final resp = await _httpService.registrar({
+      'metodo': 'guardar_logo_app',
+      'logo': logoBase64 ?? '',
+    }, 'ajustes.php');
+
+    if (resp is Map && resp['error'] != null) {
+      return resp['error'].toString();
+    }
+
+    final fila = resp is List && resp.isNotEmpty ? resp.first : resp;
+    // Un servidor que aún no tiene `guardar_logo_app` no responde nada.
+    if (fila is! Map || fila['voit_exito']?.toString() != '1') {
+      return (fila is Map ? fila['voit_message']?.toString() : null) ??
+          'El servidor del gimnasio aún no permite cambiar el logo de la app';
     }
     return null;
   }

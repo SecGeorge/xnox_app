@@ -30,6 +30,7 @@ import 'package:xnox_app/features/recomendaciones/presentacion/screen/enviar_rec
 import 'package:xnox_app/features/recomendaciones/presentacion/screen/recomendaciones_screen.dart';
 import 'package:xnox_app/features/recomendaciones/presentacion/widget/buzon_recomendaciones.dart';
 import 'package:xnox_app/features/rutinas_admin/presentacion/screen/rutinas_admin_screen.dart';
+import 'package:xnox_app/features/nutricion/presentacion/screen/nutricion_admin_screen.dart';
 import 'package:xnox_app/features/ventas/presentacion/screen/ventas_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -136,6 +137,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Icons.fitness_center,
           'Rutinas',
           () => const RutinasAdminScreen(),
+        ),
+      if (p.tiene(PermisosMovil.nutricion))
+        _SeccionAdmin(
+          Icons.restaurant_outlined,
+          Icons.restaurant,
+          'Nutrición',
+          () => const NutricionAdminScreen(),
         ),
       _SeccionAdmin(
         Icons.settings_outlined,
@@ -271,6 +279,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'Ventas': 'Punto de venta y pedidos',
       'Publicidad': 'Novedades y promociones',
       'Rutinas': 'Rutinas semanales',
+      'Nutrición': 'Lo que comen y su plan',
       'Ajustes': 'Cuenta, negocio y cobros',
     };
     return Drawer(
@@ -727,6 +736,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'Planes semanales',
           Icons.fitness_center_rounded,
           FotosApp.rutinas,
+        ),
+      if (_tieneSeccion('Nutrición'))
+        (
+          'Nutrición',
+          'Planes de comida',
+          Icons.restaurant_rounded,
+          'assets/imagenes/nutricion/mesa.jpg',
         ),
       if (_tieneSeccion('Publicidad'))
         ('Publicidad', 'Novedades', Icons.campaign_rounded, FotosApp.progreso),
@@ -1241,8 +1257,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (negocio)
                 _ajusteFila(
                   Icons.palette_rounded,
-                  'Colores de la app',
-                  'Plantillas con el estilo de tu gimnasio',
+                  'Logo y colores de la app',
+                  'Tu logo y el estilo de tu gimnasio',
                   () => ir(const ColoresAppScreen()),
                 ),
               if (_permisos.tiene(PermisosMovil.ajustesYape))

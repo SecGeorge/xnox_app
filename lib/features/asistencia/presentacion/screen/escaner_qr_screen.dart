@@ -3,18 +3,28 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 
 /// Cámara a pantalla completa para leer el QR del pase del socio. Devuelve el
-/// texto del primer código leído (el DNI del socio).
+/// texto del primer código leído (el DNI del socio). Con otros [formatos] y
+/// textos sirve también para el código de barras de un producto (Nutrición).
 class EscanerQrScreen extends StatefulWidget {
-  const EscanerQrScreen({super.key});
+  final List<BarcodeFormat> formatos;
+  final String titulo;
+  final String ayuda;
+
+  const EscanerQrScreen({
+    super.key,
+    this.formatos = const [BarcodeFormat.qrCode],
+    this.titulo = 'Escanea el pase del socio',
+    this.ayuda = 'Pídele que abra "Mi pase" en su app',
+  });
 
   @override
   State<EscanerQrScreen> createState() => _EscanerQrScreenState();
 }
 
 class _EscanerQrScreenState extends State<EscanerQrScreen> {
-  final _camara = MobileScannerController(
+  late final _camara = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
-    formats: const [BarcodeFormat.qrCode],
+    formats: widget.formatos,
   );
   bool _leido = false;
 
@@ -119,9 +129,9 @@ class _EscanerQrScreenState extends State<EscanerQrScreen> {
                     ],
                   ),
                   const Spacer(),
-                  const Text(
-                    'Escanea el pase del socio',
-                    style: TextStyle(
+                  Text(
+                    widget.titulo,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 19,
                       fontWeight: FontWeight.w800,
@@ -129,7 +139,7 @@ class _EscanerQrScreenState extends State<EscanerQrScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Pídele que abra "Mi pase" en su app',
+                    widget.ayuda,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 13.5,

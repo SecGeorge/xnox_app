@@ -200,29 +200,22 @@ class _DatosNegocioScreenState extends State<DatosNegocioScreen> {
           ),
           Positioned(
             bottom: 0,
-            child: Container(
+            // Solo el logo, sin recuadro (igual que en el resto de la app).
+            child: SizedBox(
               width: 108,
               height: 108,
-              decoration: BoxDecoration(
-                color: AppColores.superficie,
-                borderRadius: BorderRadius.circular(AppEspaciado.radio + 6),
-                border: Border.all(color: AppColores.superficie, width: 4),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
               child: url != null
                   ? Image.network(
                       url,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (c, e, s) => _logoPlaceholder(),
                     )
-                  : _logoPlaceholder(),
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                        AppEspaciado.radio + 6,
+                      ),
+                      child: _logoPlaceholder(),
+                    ),
             ),
           ),
         ],

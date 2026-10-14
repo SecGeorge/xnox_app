@@ -7,17 +7,32 @@ import 'package:xnox_app/features/ajustes/datos/repositorios/repositorio_ajustes
 /// Lo que identifica visualmente al gimnasio activo.
 class MarcaGimnasio {
   final PaletaApp paleta;
+
+  /// Logo que muestra la app: el propio de la app si el admin subió uno, si no
+  /// el logo normal del gimnasio.
   final String? logoUrl;
   final String? nombre;
 
-  const MarcaGimnasio({required this.paleta, this.logoUrl, this.nombre});
+  /// `true` si [logoUrl] es el logo propio de la app (`ajustes.logo_app`).
+  final bool logoPropio;
 
-  MarcaGimnasio copyWith({PaletaApp? paleta, String? logoUrl, String? nombre}) =>
-      MarcaGimnasio(
-        paleta: paleta ?? this.paleta,
-        logoUrl: logoUrl ?? this.logoUrl,
-        nombre: nombre ?? this.nombre,
-      );
+  const MarcaGimnasio({
+    required this.paleta,
+    this.logoUrl,
+    this.nombre,
+    this.logoPropio = false,
+  });
+
+  MarcaGimnasio copyWith({
+    PaletaApp? paleta,
+    String? logoUrl,
+    String? nombre,
+  }) => MarcaGimnasio(
+    paleta: paleta ?? this.paleta,
+    logoUrl: logoUrl ?? this.logoUrl,
+    nombre: nombre ?? this.nombre,
+    logoPropio: logoPropio,
+  );
 }
 
 /// Marca (colores + logo) del gimnasio al que apunta la app.
@@ -33,8 +48,9 @@ class ControladorMarca with WidgetsBindingObserver {
   ControladorMarca._();
   static final ControladorMarca instancia = ControladorMarca._();
 
-  final ValueNotifier<MarcaGimnasio> marca =
-      ValueNotifier(const MarcaGimnasio(paleta: PaletasApp.porDefecto));
+  final ValueNotifier<MarcaGimnasio> marca = ValueNotifier(
+    const MarcaGimnasio(paleta: PaletasApp.porDefecto),
+  );
 
   PaletaApp get paleta => marca.value.paleta;
 
@@ -53,11 +69,13 @@ class ControladorMarca with WidgetsBindingObserver {
     final paleta = empresa?.paleta != null
         ? PaletasApp.porId(empresa!.paleta)
         : PaletasApp.inicialPara(empresa?.codigo);
-    _aplicar(MarcaGimnasio(
-      paleta: paleta,
-      logoUrl: empresa?.logoUrl,
-      nombre: empresa?.nombreComercial,
-    ));
+    _aplicar(
+      MarcaGimnasio(
+        paleta: paleta,
+        logoUrl: empresa?.logoUrl,
+        nombre: empresa?.nombreComercial,
+      ),
+    );
     if (empresa != null) {
       // Sin await: el arranque no espera a la red.
       refrescar();
@@ -75,25 +93,34 @@ class ControladorMarca with WidgetsBindingObserver {
     try {
       final empresa = await EmpresaDao.instancia.activa();
       if (empresa == null) return;
-      final datos =
-          await RepositorioAjustesImpl(HttpService()).obtenerDatosNegocio();
+      final datos = await RepositorioAjustesImpl(HttpService())
+          .obtenerDatosNegocio();
       final nombre = datos.nombre.trim().isEmpty ? null : datos.nombre.trim();
+      // El logo propio de la app manda sobre el de la web (que suele ser
+      // blanco y se pierde sobre fondos claros).
+      final logo = datos.logoAppUrl ?? datos.logoUrl;
       // Sin respuesta del servidor (datos vacíos) se conserva lo guardado.
-      if (datos.logoUrl == null && nombre == null && datos.paletaApp == null) {
+      if (logo == null && nombre == null && datos.paletaApp == null) {
         return;
       }
-      await EmpresaDao.instancia.guardarMarca(empresa.id,
-          logoUrl: datos.logoUrl, nombreComercial: nombre);
+      await EmpresaDao.instancia.guardarMarca(
+        empresa.id,
+        logoUrl: logo,
+        nombreComercial: nombre,
+      );
       var paletaNueva = paleta;
       if (datos.paletaApp != null) {
         paletaNueva = PaletasApp.porId(datos.paletaApp);
         await EmpresaDao.instancia.guardarPaleta(empresa.id, paletaNueva.id);
       }
-      _aplicar(MarcaGimnasio(
-        paleta: paletaNueva,
-        logoUrl: datos.logoUrl,
-        nombre: nombre,
-      ));
+      _aplicar(
+        MarcaGimnasio(
+          paleta: paletaNueva,
+          logoUrl: logo,
+          nombre: nombre,
+          logoPropio: datos.logoAppUrl != null,
+        ),
+      );
     } catch (e) {
       debugPrint('[MARCA] no se pudo refrescar la marca: $e');
     }
@@ -105,7 +132,8 @@ class ControladorMarca with WidgetsBindingObserver {
   Future<String?> elegirPaleta(PaletaApp nueva) async {
     final String? error;
     try {
-      error = await RepositorioAjustesImpl(HttpService()).guardarPaleta(nueva.id);
+      error = await RepositorioAjustesImpl(HttpService())
+          .guardarPaleta(nueva.id);
     } catch (_) {
       return 'No se pudo conectar con el servidor. Intenta de nuevo.';
     }
@@ -115,6 +143,23 @@ class ControladorMarca with WidgetsBindingObserver {
     if (empresa != null) {
       await EmpresaDao.instancia.guardarPaleta(empresa.id, nueva.id);
     }
+    return null;
+  }
+
+  /// El admin sube un logo solo para la app ([logoBase64] con encabezado
+  /// data:) o lo quita (`null`) para volver al logo del gimnasio. Se guarda en
+  /// el servidor, para todos los dispositivos, y luego se vuelve a leer la
+  /// marca. Devuelve `null` si salió bien o el mensaje de error.
+  Future<String?> cambiarLogoApp(String? logoBase64) async {
+    final String? error;
+    try {
+      error = await RepositorioAjustesImpl(HttpService())
+          .guardarLogoApp(logoBase64);
+    } catch (_) {
+      return 'No se pudo conectar con el servidor. Intenta de nuevo.';
+    }
+    if (error != null) return error;
+    await refrescar();
     return null;
   }
 

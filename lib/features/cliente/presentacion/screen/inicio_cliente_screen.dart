@@ -20,7 +20,7 @@ import 'package:xnox_app/features/cliente/presentacion/widget/modal_vencimiento.
 import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
 
 /// Secciones del cliente a las que se puede saltar desde el inicio.
-enum DestinoCliente { rutinas, qr, tienda, membresia, reporte }
+enum DestinoCliente { rutinas, qr, tienda, membresia, reporte, nutricion }
 
 /// Inicio del socio: saludo con su racha, la rutina que le toca hoy, accesos
 /// a las secciones del gimnasio, su progreso y las novedades.
@@ -797,6 +797,13 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
         '$_fotos/progreso.jpg',
         () => widget.onIrA(DestinoCliente.reporte),
       ),
+      _Acceso(
+        'Nutrición',
+        'Lo que comes, tus metas y tu plan',
+        Icons.restaurant_rounded,
+        'assets/imagenes/nutricion/plato.jpg',
+        () => widget.onIrA(DestinoCliente.nutricion),
+      ),
     ];
     Widget fila(_Acceso a, _Acceso b) => Row(
       children: [
@@ -810,6 +817,8 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
         fila(accesos[0], accesos[1]),
         const SizedBox(height: AppEspaciado.sm + 4),
         fila(accesos[2], accesos[3]),
+        const SizedBox(height: AppEspaciado.sm + 4),
+        _tarjetaAcceso(accesos[4]),
       ],
     );
   }

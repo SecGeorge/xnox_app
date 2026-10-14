@@ -1,6 +1,12 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/tema/controlador_marca.dart';
+import 'package:xnox_app/core/utils/quitar_fondo.dart';
 import 'package:xnox_app/core/widgets/logo_gimnasio.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 
@@ -17,6 +23,79 @@ class ColoresAppScreen extends StatefulWidget {
 class _ColoresAppScreenState extends State<ColoresAppScreen> {
   /// Paleta que se está guardando (muestra el indicador en su tarjeta).
   String? _guardandoId;
+
+  bool _guardandoLogo = false;
+
+  /// Sube un logo solo para la app. Sin `imageQuality`: así un PNG no se
+  /// recomprime a JPEG y conserva el fondo transparente.
+  Future<void> _subirLogo() async {
+    if (_guardandoLogo) return;
+    final img = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+    );
+    if (img == null) return;
+    await _revisarYGuardar(await img.readAsBytes());
+  }
+
+  /// Quitar el fondo al logo que ya se muestra (el propio o el de la web):
+  /// se descarga y se abre la misma vista previa con la opción activada.
+  Future<void> _quitarFondoActual(String url) async {
+    if (_guardandoLogo) return;
+    setState(() => _guardandoLogo = true);
+    Uint8List? bytes;
+    try {
+      final r = await Dio().get<List<int>>(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      bytes = Uint8List.fromList(r.data ?? const []);
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _guardandoLogo = false);
+    if (bytes == null || bytes.isEmpty) {
+      mostrarMensajeGlobal(
+        'No se pudo descargar el logo actual',
+        tipo: TipoMensaje.error,
+      );
+      return;
+    }
+    await _revisarYGuardar(bytes, quitarFondo: true);
+  }
+
+  /// Vista previa antes de subir, con la opción de quitar el fondo.
+  Future<void> _revisarYGuardar(
+    Uint8List bytes, {
+    bool quitarFondo = false,
+  }) async {
+    final elegido = await showDialog<Uint8List>(
+      context: context,
+      builder: (_) =>
+          _DialogoLogo(original: bytes, quitarFondoInicial: quitarFondo),
+    );
+    if (elegido == null) return;
+    // El backend solo distingue el encabezado; el contenido real puede ser
+    // PNG (con fondo quitado) o JPEG.
+    await _guardarLogo('data:image/png;base64,${base64Encode(elegido)}');
+  }
+
+  Future<void> _guardarLogo(String? base64) async {
+    setState(() => _guardandoLogo = true);
+    final error = await ControladorMarca.instancia.cambiarLogoApp(base64);
+    if (!mounted) return;
+    setState(() => _guardandoLogo = false);
+    if (error != null) {
+      mostrarMensajeGlobal(error, tipo: TipoMensaje.error);
+    } else {
+      mostrarMensajeGlobal(
+        base64 == null
+            ? 'La app vuelve a usar el logo del gimnasio'
+            : 'Logo de la app actualizado en todos los dispositivos',
+        tipo: TipoMensaje.exito,
+      );
+    }
+  }
 
   Future<void> _elegir(PaletaApp paleta) async {
     // Un toque a la vez: cada uno es una petición al servidor.
@@ -53,6 +132,21 @@ class _ColoresAppScreenState extends State<ColoresAppScreen> {
             ),
             children: [
               _Portada(marca: marca),
+              const SizedBox(height: AppEspaciado.lg + 4),
+              const _TituloSeccion(
+                titulo: 'Logo de la app',
+                subtitulo: 'Si tu logo es blanco, sube una versión a color',
+              ),
+              const SizedBox(height: AppEspaciado.md),
+              _LogoApp(
+                marca: marca,
+                guardando: _guardandoLogo,
+                onSubir: _subirLogo,
+                onQuitarFondo: marca.logoUrl == null
+                    ? null
+                    : () => _quitarFondoActual(marca.logoUrl!),
+                onQuitar: () => _guardarLogo(null),
+              ),
               const SizedBox(height: AppEspaciado.lg + 4),
               const _TituloSeccion(
                 titulo: 'Plantillas',
@@ -195,6 +289,220 @@ class _Portada extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Vista previa del logo sobre fondo claro (como en el login) y sobre el color
+/// de marca, con los botones para cambiarlo o volver al del gimnasio.
+class _LogoApp extends StatelessWidget {
+  final MarcaGimnasio marca;
+  final bool guardando;
+  final VoidCallback onSubir;
+  final VoidCallback onQuitar;
+  final VoidCallback? onQuitarFondo;
+
+  const _LogoApp({
+    required this.marca,
+    required this.guardando,
+    required this.onSubir,
+    required this.onQuitar,
+    this.onQuitarFondo,
+  });
+
+  Widget _muestra(Color fondo, String texto, Color colorTexto) => Expanded(
+    child: Container(
+      height: 104,
+      decoration: BoxDecoration(
+        color: fondo,
+        borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const LogoGimnasio(tamano: 56),
+          const SizedBox(height: 6),
+          Text(texto, style: TextStyle(fontSize: 11, color: colorTexto)),
+        ],
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppEspaciado.md),
+      decoration: BoxDecoration(
+        color: AppColores.superficie,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _muestra(
+                const Color(0xFFF1F3F8),
+                'Fondo claro',
+                AppColores.textoSecundario,
+              ),
+              const SizedBox(width: AppEspaciado.sm),
+              _muestra(
+                AppColores.relleno,
+                'Color de marca',
+                AppColores.sobreRellenoSuave,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppEspaciado.sm),
+          Text(
+            marca.logoPropio
+                ? 'Usando el logo propio de la app'
+                : 'Usando el logo del gimnasio (el de la web)',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColores.textoSecundario,
+            ),
+          ),
+          const SizedBox(height: AppEspaciado.md),
+          FilledButton.icon(
+            onPressed: guardando ? null : onSubir,
+            icon: guardando
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image_outlined),
+            label: Text(
+              marca.logoPropio
+                  ? 'Cambiar logo de la app'
+                  : 'Subir logo para la app',
+            ),
+          ),
+          if (onQuitarFondo != null)
+            OutlinedButton.icon(
+              onPressed: guardando ? null : onQuitarFondo,
+              icon: const Icon(Icons.auto_fix_high_outlined),
+              label: const Text('Quitar fondo al logo actual'),
+            ),
+          if (marca.logoPropio)
+            TextButton(
+              onPressed: guardando ? null : onQuitar,
+              child: const Text('Volver al logo del gimnasio'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Vista previa del logo antes de subirlo, sobre fondo claro y sobre el color
+/// de marca, con el interruptor para quitarle el fondo. Devuelve los bytes a
+/// subir (con o sin fondo) o null si se cancela.
+class _DialogoLogo extends StatefulWidget {
+  final Uint8List original;
+  final bool quitarFondoInicial;
+
+  const _DialogoLogo({required this.original, this.quitarFondoInicial = false});
+
+  @override
+  State<_DialogoLogo> createState() => _DialogoLogoState();
+}
+
+class _DialogoLogoState extends State<_DialogoLogo> {
+  late bool _quitarFondo = widget.quitarFondoInicial;
+  Uint8List? _sinFondo;
+  bool _procesando = false;
+
+  /// La imagen no tiene un fondo liso que quitar.
+  bool _sinFondoQueQuitar = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_quitarFondo) _procesar();
+  }
+
+  Future<void> _procesar() async {
+    if (_sinFondo != null || _sinFondoQueQuitar) return;
+    setState(() => _procesando = true);
+    final r = await quitarFondoLogo(widget.original);
+    if (!mounted) return;
+    setState(() {
+      _procesando = false;
+      _sinFondo = r;
+      _sinFondoQueQuitar = r == null;
+      if (r == null) _quitarFondo = false;
+    });
+  }
+
+  Uint8List get _actual =>
+      _quitarFondo && _sinFondo != null ? _sinFondo! : widget.original;
+
+  Widget _muestra(Color fondo) => Expanded(
+    child: Container(
+      height: 120,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: fondo,
+        borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: _procesando
+          ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+          : Image.memory(_actual, fit: BoxFit.contain),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Logo de la app'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              _muestra(const Color(0xFFF1F3F8)),
+              const SizedBox(width: AppEspaciado.sm),
+              _muestra(AppColores.relleno),
+            ],
+          ),
+          const SizedBox(height: AppEspaciado.sm),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Quitar fondo'),
+            subtitle: Text(
+              _sinFondoQueQuitar
+                  ? 'Este logo ya no tiene un fondo liso que quitar'
+                  : 'Borra el color liso que rodea al logo',
+              style: const TextStyle(fontSize: 12),
+            ),
+            value: _quitarFondo,
+            onChanged: _procesando || _sinFondoQueQuitar
+                ? null
+                : (v) {
+                    setState(() => _quitarFondo = v);
+                    if (v) _procesar();
+                  },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: _procesando ? null : () => Navigator.pop(context, _actual),
+          child: const Text('Guardar'),
+        ),
+      ],
     );
   }
 }

@@ -27,6 +27,7 @@ import 'package:xnox_app/features/login/presentacion/screen/login_screen.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/controlador/controlador_notificaciones.dart';
 import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
 import 'package:xnox_app/features/recomendaciones/presentacion/screen/enviar_recomendacion_screen.dart';
+import 'package:xnox_app/features/nutricion/presentacion/screen/nutricion_screen.dart';
 
 /// Definición de una sección navegable del cliente.
 class _SeccionNav {
@@ -224,14 +225,27 @@ class _ClienteShellState extends State<ClienteShell> {
 
   /// Salto desde el inicio a otra sección.
   void _irA(DestinoCliente destino) {
+    if (destino == DestinoCliente.nutricion) {
+      _abrirNutricion();
+      return;
+    }
     final indice = switch (destino) {
       DestinoCliente.rutinas => _iRutinas,
       DestinoCliente.qr => _iQr,
       DestinoCliente.tienda => _iTienda,
       DestinoCliente.membresia => _iMembresia,
       DestinoCliente.reporte => _iReporte,
+      DestinoCliente.nutricion => _selectedIndex,
     };
     setState(() => _selectedIndex = indice);
+  }
+
+  /// Nutrición va en su propia pantalla (no en la barra): se entra desde el
+  /// inicio o desde el menú "Más".
+  Future<void> _abrirNutricion() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const NutricionScreen()),
+    );
   }
 
   /// Abre el formulario de recomendaciones. Está en el AppBar, visible desde
@@ -358,6 +372,14 @@ class _ClienteShellState extends State<ClienteShell> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: AppEspaciado.sm + 2),
+              _tarjetaMas(
+                Icons.restaurant_rounded,
+                'Nutrición',
+                'Lo que comes, tus metas y tu plan',
+                activo: false,
+                onTap: () => ir(_abrirNutricion),
               ),
               const SizedBox(height: AppEspaciado.lg),
               const Text(

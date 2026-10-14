@@ -30,6 +30,10 @@ abstract class PermisosMovil {
   static const marketing = 'mobile_marketing';
   static const rutinas = 'mobile_rutinas';
   static const rutinasGestion = 'mobile_rutinas_gestion';
+
+  /// Ver lo que comen los socios; con `gestion`, asignar plan, metas y altura.
+  static const nutricion = 'mobile_nutricion';
+  static const nutricionGestion = 'mobile_nutricion_gestion';
   static const lectorPagos = 'mobile_lector_pagos';
   static const notifEnviar = 'mobile_notif_enviar';
   static const ajustesNegocio = 'mobile_ajustes_negocio';
