@@ -4,6 +4,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/datos/almacen_medidas.dart';
+import 'package:xnox_app/features/cliente/dominio/entidades/composicion_corporal.dart';
 import 'package:xnox_app/features/nutricion/datos/repositorio_nutricion.dart';
 import 'package:xnox_app/features/nutricion/dominio/nutricion.dart';
 import 'package:xnox_app/features/nutricion/presentacion/widget/piezas_nutricion.dart';
@@ -39,12 +40,7 @@ class _DatosNutricionScreenState extends State<DatosNutricionScreen> {
     return (p / ((a / 100) * (a / 100)) * 10).round() / 10;
   }
 
-  String _categoria(double imc) {
-    if (imc < 18.5) return 'Bajo peso';
-    if (imc < 25) return 'Normal';
-    if (imc < 30) return 'Sobrepeso';
-    return 'Obesidad';
-  }
+  String _categoria(double imc) => NivelImc.de(imc).nombre;
 
   static const _objetivos = [
     ('perder', 'Bajar de peso', Icons.trending_down_rounded),

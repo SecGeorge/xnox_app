@@ -9,10 +9,12 @@ import 'package:xnox_app/features/cliente/presentacion/widget/grafico_evolucion.
 import 'package:xnox_app/features/cliente/presentacion/widget/hoja_numero.dart';
 
 /// Una zona del cuerpo: foto, medida actual, gráfico de evolución e historial.
+/// Con [registros] es solo lectura (el personal viendo a un socio).
 class DetalleMedidaScreen extends StatefulWidget {
   final ZonaMedida zona;
+  final List<Medida>? registros;
 
-  const DetalleMedidaScreen({super.key, required this.zona});
+  const DetalleMedidaScreen({super.key, required this.zona, this.registros});
 
   @override
   State<DetalleMedidaScreen> createState() => _DetalleMedidaScreenState();
@@ -22,11 +24,16 @@ class _DetalleMedidaScreenState extends State<DetalleMedidaScreen> {
   List<Medida> _registros = const [];
 
   ZonaMedida get _zona => widget.zona;
+  bool get _soloVer => widget.registros != null;
 
   @override
   void initState() {
     super.initState();
-    _cargar();
+    if (_soloVer) {
+      _registros = widget.registros!;
+    } else {
+      _cargar();
+    }
   }
 
   Future<void> _cargar() async {
@@ -81,17 +88,20 @@ class _DetalleMedidaScreenState extends State<DetalleMedidaScreen> {
         : _registros.last.valor - _registros.first.valor;
 
     return PantallaApp(
-      onRefresh: _cargar,
+      onRefresh: _soloVer ? null : _cargar,
       espacioAbajo: AppEspaciado.lg,
-      pie: PieBoton(
-        texto: 'Registrar medida',
-        icono: Icons.straighten_rounded,
-        onPressed: _registrar,
-      ),
+      pie: _soloVer
+          ? null
+          : PieBoton(
+              texto: 'Registrar medida',
+              icono: Icons.straighten_rounded,
+              onPressed: _registrar,
+            ),
       children: [
         CabeceraApp(
           titulo: _zona.nombre,
-          subtitulo: 'Medida en ${_zona.unidad == 'kg' ? 'kilos' : 'centímetros'}',
+          subtitulo:
+              'Medida en ${_zona.unidad == 'kg' ? 'kilos' : 'centímetros'}',
         ),
         const SizedBox(height: AppEspaciado.md + 4),
         PortadaFoto(
@@ -127,12 +137,14 @@ class _DetalleMedidaScreenState extends State<DetalleMedidaScreen> {
           ),
         ),
         const SizedBox(height: AppEspaciado.lg),
-        const TituloSeccion(
+        TituloSeccion(
           icono: Icons.show_chart_rounded,
-          titulo: 'Tu evolución',
+          titulo: _soloVer ? 'Evolución' : 'Tu evolución',
         ),
         GraficoEvolucion(
-          puntos: [for (final m in _registros) PuntoEvolucion(m.fecha, m.valor)],
+          puntos: [
+            for (final m in _registros) PuntoEvolucion(m.fecha, m.valor),
+          ],
           unidad: _zona.unidad,
           mejorSiSube: switch (_zona.tendencia) {
             TendenciaMedida.subir => true,
@@ -151,10 +163,11 @@ class _DetalleMedidaScreenState extends State<DetalleMedidaScreen> {
         if (_registros.isEmpty)
           VacioApp(
             icono: _zona.icono,
-            titulo: 'Aún no tienes medidas',
-            texto:
-                'Mídete con cinta métrica y toca "Registrar medida". '
-                'Repite cada 2 a 4 semanas.',
+            titulo: _soloVer ? 'Sin medidas' : 'Aún no tienes medidas',
+            texto: _soloVer
+                ? 'El socio aún no registró esta zona.'
+                : 'Mídete con cinta métrica y toca "Registrar medida". '
+                      'Repite cada 2 a 4 semanas.',
           )
         else
           GrupoFilas(
@@ -178,14 +191,16 @@ class _DetalleMedidaScreenState extends State<DetalleMedidaScreen> {
         if (diferencia != null && diferencia != 0)
           '${diferencia > 0 ? '+' : ''}${numeroMedida(diferencia)} ${_zona.unidad}',
       ].join(' · '),
-      fin: IconButton(
-        tooltip: 'Eliminar',
-        onPressed: () => _eliminar(m),
-        icon: const Icon(
-          Icons.delete_outline_rounded,
-          color: AppColores.textoSecundario,
-        ),
-      ),
+      fin: _soloVer
+          ? null
+          : IconButton(
+              tooltip: 'Eliminar',
+              onPressed: () => _eliminar(m),
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColores.textoSecundario,
+              ),
+            ),
     );
   }
 }

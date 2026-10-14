@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xnox_app/features/cliente/dominio/entidades/composicion_corporal.dart';
 
 /// Nutrición del socio: modelos que llegan de `nutricion.php`.
 ///
@@ -379,11 +380,7 @@ class PerfilNutricion {
 
   String get categoriaImc {
     final v = imc;
-    if (v == null) return '';
-    if (v < 18.5) return 'Bajo peso';
-    if (v < 25) return 'Normal';
-    if (v < 30) return 'Sobrepeso';
-    return 'Obesidad';
+    return v == null ? '' : NivelImc.de(v).nombre;
   }
 
   static const objetivos = {

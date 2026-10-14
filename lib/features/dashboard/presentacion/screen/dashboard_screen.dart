@@ -29,9 +29,11 @@ import 'package:xnox_app/features/publicidad/presentacion/screen/publicidad_scre
 import 'package:xnox_app/features/recomendaciones/presentacion/screen/enviar_recomendacion_screen.dart';
 import 'package:xnox_app/features/recomendaciones/presentacion/screen/recomendaciones_screen.dart';
 import 'package:xnox_app/features/recomendaciones/presentacion/widget/buzon_recomendaciones.dart';
+import 'package:xnox_app/features/seguimiento/presentacion/screen/seguimiento_admin_screen.dart';
 import 'package:xnox_app/features/rutinas_admin/presentacion/screen/rutinas_admin_screen.dart';
 import 'package:xnox_app/features/nutricion/presentacion/screen/nutricion_admin_screen.dart';
 import 'package:xnox_app/features/ventas/presentacion/screen/ventas_screen.dart';
+import 'package:xnox_app/features/tienda_xnox/presentacion/screen/tienda_xnox_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -145,6 +147,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
           'Nutrición',
           () => const NutricionAdminScreen(),
         ),
+      // Ficha completa del socio (entrenamiento, medidas, IMC y comidas): la
+      // ve quien lleva rutinas o nutrición.
+      if (p.tieneAlguno([PermisosMovil.rutinas, PermisosMovil.nutricion]))
+        _SeccionAdmin(
+          Icons.insights_outlined,
+          Icons.insights,
+          'Seguimiento',
+          () => const SeguimientoAdminScreen(),
+        ),
+      // Productos que XNOX ofrece al gimnasio (no su tienda): para todo el
+      // personal, se piden directo a XNOX.
+      _SeccionAdmin(
+        Icons.local_mall_outlined,
+        Icons.local_mall,
+        'Tienda XNOX',
+        () => const TiendaXnoxScreen(),
+      ),
       _SeccionAdmin(
         Icons.settings_outlined,
         Icons.settings,
@@ -280,6 +299,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'Publicidad': 'Novedades y promociones',
       'Rutinas': 'Rutinas semanales',
       'Nutrición': 'Lo que comen y su plan',
+      'Tienda XNOX': 'Productos de XNOX para tu gimnasio',
       'Ajustes': 'Cuenta, negocio y cobros',
     };
     return Drawer(

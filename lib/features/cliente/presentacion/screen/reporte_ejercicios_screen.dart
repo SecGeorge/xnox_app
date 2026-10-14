@@ -89,7 +89,7 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
                 altura: 136,
                 etiqueta: 'Tu cuerpo',
                 titulo: 'Mis medidas',
-                texto: 'Registra tus medidas y mira cómo cambia tu cuerpo.',
+                texto: 'Tus medidas, tu IMC y tu peso ideal.',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const MedidasScreen()),
                 ),
@@ -211,9 +211,13 @@ class _ReporteEjerciciosScreenState extends State<ReporteEjerciciosScreen> {
             const SizedBox(height: AppEspaciado.md),
             GraficoEvolucion(
               puntos: [
-                  for (final m in e.marcasOrdenadas)
-                    PuntoEvolucion(m.fecha, m.peso, detalle: '${m.repsTexto} reps'),
-                ],
+                for (final m in e.marcasOrdenadas)
+                  PuntoEvolucion(
+                    m.fecha,
+                    m.peso,
+                    detalle: '${m.repsTexto} reps',
+                  ),
+              ],
               unidad: 'kg',
               enTarjeta: false,
               alto: 160,

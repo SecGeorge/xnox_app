@@ -28,6 +28,17 @@ class ZonaMedida {
 
   static const _fotos = 'assets/imagenes/medidas';
 
+  /// El peso corporal (la primera zona).
+  static ZonaMedida get peso => todas.first;
+
+  /// La zona de una clave guardada, o null si ya no existe.
+  static ZonaMedida? de(String clave) {
+    for (final z in todas) {
+      if (z.clave == clave) return z;
+    }
+    return null;
+  }
+
   /// Cada zona con una foto donde se vea ESE músculo.
   static const List<ZonaMedida> todas = [
     ZonaMedida(

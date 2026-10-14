@@ -12,6 +12,9 @@ import 'package:xnox_app/features/cliente/presentacion/widget/hoja_mis_puntos.da
 import 'package:xnox_app/features/tienda/dominio/entidades/item_carrito.dart';
 import 'package:xnox_app/features/tienda/dominio/entidades/producto_tienda.dart';
 import 'package:xnox_app/features/tienda/presentacion/controlador/controlador_tienda.dart';
+import 'package:xnox_app/features/tienda_xnox/datos/repositorio_tienda_xnox.dart';
+import 'package:xnox_app/features/tienda_xnox/dominio/producto_xnox.dart';
+import 'package:xnox_app/features/tienda_xnox/presentacion/widget/seccion_tienda_xnox.dart';
 
 /// Tienda del socio: catálogo en cuadrícula con categorías, ficha de cada
 /// producto, carrito y pedido (queda pendiente hasta que se paga por Yape o
@@ -37,6 +40,9 @@ class _ComprarScreenState extends State<ComprarScreen> {
   /// Pedidos del socio aún pendientes de pago (abre "Mis pedidos").
   int _pedidosPendientes = 0;
 
+  /// Productos de XNOX (no del gimnasio) publicados para los socios.
+  List<ProductoXnox> _productosXnox = const [];
+
   /// Producto -> puntos que otorga (para el distintivo "+X pts").
   Map<int, int> get _puntosPorProducto => {
     for (final g in _resumen.gana) g.productoId: g.puntos,
@@ -53,6 +59,8 @@ class _ComprarScreenState extends State<ComprarScreen> {
 
   Future<void> _cargar() async {
     setState(() => _cargando = true);
+    // Va aparte: es otro servidor y se ve aunque falle el del gimnasio.
+    _cargarXnox();
     try {
       final catalogo = await _controlador.obtenerCatalogo();
       // Los puntos y los pedidos son secundarios: si fallan, no rompen la
@@ -79,6 +87,18 @@ class _ComprarScreenState extends State<ComprarScreen> {
         'No se pudo cargar la tienda',
         tipo: TipoMensaje.error,
       );
+    }
+  }
+
+  Future<void> _cargarXnox() async {
+    try {
+      final productos = await RepositorioTiendaXnox.instancia.productos(
+        PublicoTiendaXnox.cliente,
+      );
+      if (!mounted) return;
+      setState(() => _productosXnox = productos);
+    } catch (_) {
+      /* secundaria: sin ella la tienda del gimnasio sigue igual */
     }
   }
 
@@ -257,6 +277,14 @@ class _ComprarScreenState extends State<ComprarScreen> {
                               if (_categorias.length > 1) ...[
                                 _filtroCategorias(),
                                 const SizedBox(height: AppEspaciado.md),
+                              ],
+                              // Al buscar o filtrar se queda solo lo del
+                              // gimnasio, que es lo que se está buscando.
+                              if (_productosXnox.isNotEmpty &&
+                                  _busqueda.trim().isEmpty &&
+                                  _categoria == null) ...[
+                                SeccionTiendaXnox(productos: _productosXnox),
+                                const SizedBox(height: AppEspaciado.md + 4),
                               ],
                               _tituloSeccion(productos.length),
                               const SizedBox(height: AppEspaciado.sm + 4),

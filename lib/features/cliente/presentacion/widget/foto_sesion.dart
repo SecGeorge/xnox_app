@@ -118,6 +118,13 @@ class FotoSesion {
     return mejor;
   }
 
+  /// Foto de un ejercicio suelto según su nombre ("Press banca" → pecho).
+  static FotoSesion deEjercicio(String nombre) =>
+      _grupoDe(nombre)?.foto ?? general;
+
+  /// Grupo muscular de un ejercicio ("Pecho", "Piernas"…), o null.
+  static String? grupoDeEjercicio(String nombre) => _grupoDe(nombre)?.nombre;
+
   /// Grupos del día ordenados por cuántos ejercicios tienen (empate: el que
   /// aparece primero en la rutina).
   static List<_Grupo> _gruposDelDia(DiaRutina dia) {

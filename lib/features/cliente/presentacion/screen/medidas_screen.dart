@@ -4,13 +4,26 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
 import 'package:xnox_app/features/cliente/datos/almacen_medidas.dart';
+import 'package:xnox_app/features/cliente/dominio/entidades/composicion_corporal.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/medida.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/composicion_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/detalle_medida_screen.dart';
+import 'package:xnox_app/features/cliente/presentacion/widget/grafico_evolucion.dart';
+import 'package:xnox_app/features/nutricion/datos/repositorio_nutricion.dart';
+import 'package:xnox_app/features/nutricion/dominio/nutricion.dart';
+import 'package:xnox_app/features/nutricion/presentacion/widget/hojas_nutricion.dart';
+import 'package:xnox_app/features/nutricion/presentacion/widget/piezas_nutricion.dart';
 
 /// Medidas corporales del socio: una tarjeta con foto por cada músculo, con la
 /// última medida y cuánto cambió desde la primera.
+///
+/// Con [medidas] la usa el personal para ver las de un socio: solo lectura,
+/// sin sincronizar ni IMC (el IMC tiene su propio acceso en la ficha).
 class MedidasScreen extends StatefulWidget {
-  const MedidasScreen({super.key});
+  final List<Medida>? medidas;
+  final String? nombre;
+
+  const MedidasScreen({super.key, this.medidas, this.nombre});
 
   @override
   State<MedidasScreen> createState() => _MedidasScreenState();
@@ -19,16 +32,26 @@ class MedidasScreen extends StatefulWidget {
 class _MedidasScreenState extends State<MedidasScreen> {
   List<Medida> _medidas = const [];
 
+  /// Altura, sexo y edad (de Nutrición) para el IMC. Null sin conexión.
+  PerfilNutricion? _perfil;
+
+  bool get _soloVer => widget.medidas != null;
+
   @override
   void initState() {
     super.initState();
-    _cargar();
+    if (_soloVer) {
+      _medidas = widget.medidas!;
+    } else {
+      _cargar();
+    }
   }
 
   /// Pinta primero lo del teléfono y luego lo sincroniza con la BD central
   /// (sube lo pendiente y trae lo registrado desde otro equipo).
   Future<void> _cargar() async {
     await _leerLocal();
+    _cargarPerfil();
     try {
       await AlmacenMedidas.instancia.sincronizar();
     } catch (_) {
@@ -43,14 +66,107 @@ class _MedidasScreenState extends State<MedidasScreen> {
     setState(() => _medidas = lista);
   }
 
+  Future<void> _cargarPerfil() async {
+    try {
+      final hoy = DateTime.now();
+      final r = await RepositorioNutricion().resumen(desde: hoy, hasta: hoy);
+      if (!mounted) return;
+      setState(() => _perfil = r.perfil);
+    } catch (_) {
+      // Sin conexión o sin módulo de nutrición: no se muestra el IMC.
+    }
+  }
+
+  List<Medida> get _pesos => _de(ZonaMedida.peso);
+
+  ComposicionCorporal? get _composicion {
+    final p = _perfil;
+    if (p == null) return null;
+    final pesos = _pesos;
+    return ComposicionCorporal.calcular(
+      pesoKg: pesos.isEmpty ? p.peso : pesos.last.valor,
+      alturaCm: p.alturaCm,
+      edad: p.edad,
+      sexo: p.sexo,
+    );
+  }
+
+  Future<void> _completarDatos() async {
+    final p = _perfil;
+    if (p == null) return;
+    if (await editarPerfilNutricion(context, perfil: p)) {
+      await _leerLocal();
+      await _cargarPerfil();
+    }
+  }
+
+  Future<void> _abrirImc(ComposicionCorporal c) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ComposicionScreen(
+          composicion: c,
+          pesos: [for (final m in _pesos) PuntoEvolucion(m.fecha, m.valor)],
+          onCompletarDatos: () {
+            Navigator.of(context).pop();
+            _completarDatos();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Portada del IMC: el resultado, o qué falta para calcularlo.
+  Widget _portadaImc() {
+    final c = _composicion;
+    if (c != null) {
+      return PortadaNutricion(
+        foto: ComposicionScreen.fotoCuerpo,
+        alineacion: const Alignment(0, -0.35),
+        icono: Icons.monitor_weight_rounded,
+        chip: 'Tu IMC',
+        alto: 150,
+        titulo: 'IMC ${numeroMedida(c.imc)} · ${c.nivel.nombre}',
+        detalle: c.consejoPeso(),
+        onTap: () => _abrirImc(c),
+        accion: BotonFoto(
+          'Ver IMC y peso ideal',
+          icono: Icons.arrow_forward_rounded,
+          onTap: () => _abrirImc(c),
+        ),
+      );
+    }
+    final sinAltura = _perfil!.alturaCm == null;
+    return PortadaNutricion(
+      foto: ComposicionScreen.fotoCuerpo,
+      alineacion: const Alignment(0, -0.35),
+      icono: Icons.monitor_weight_rounded,
+      chip: 'Tu IMC',
+      alto: 150,
+      titulo: 'Calcula tu IMC',
+      detalle: sinAltura
+          ? 'Indica tu altura y verás tu IMC y tu peso ideal'
+          : 'Registra tu peso y verás tu IMC y tu peso ideal',
+      accion: BotonFoto(
+        sinAltura ? 'Poner mi altura' : 'Registrar mi peso',
+        icono: sinAltura ? Icons.height_rounded : Icons.monitor_weight_rounded,
+        onTap: sinAltura ? _completarDatos : () => _abrir(ZonaMedida.peso),
+      ),
+    );
+  }
+
   List<Medida> _de(ZonaMedida zona) =>
       _medidas.where((m) => m.zona == zona.clave).toList();
 
   Future<void> _abrir(ZonaMedida zona) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => DetalleMedidaScreen(zona: zona)),
+      MaterialPageRoute(
+        builder: (_) => DetalleMedidaScreen(
+          zona: zona,
+          registros: _soloVer ? _de(zona) : null,
+        ),
+      ),
     );
-    await _leerLocal();
+    if (!_soloVer) await _leerLocal();
   }
 
   @override
@@ -59,45 +175,53 @@ class _MedidasScreenState extends State<MedidasScreen> {
     final ultima = _medidas.isEmpty ? null : _medidas.last.fecha;
 
     return PantallaApp(
-      onRefresh: _cargar,
+      onRefresh: _soloVer ? null : _cargar,
       espacioAbajo: AppEspaciado.lg,
       children: [
-        const CabeceraApp(
-          titulo: 'Mis medidas',
-          subtitulo: 'Mide tus músculos y mira cómo cambian',
+        CabeceraApp(
+          titulo: _soloVer ? 'Medidas' : 'Mis medidas',
+          subtitulo: _soloVer
+              ? widget.nombre
+              : 'Mide tus músculos y mira cómo cambian',
         ),
         const SizedBox(height: AppEspaciado.md + 4),
-        PortadaFoto(
+        // Alto mínimo: con letra grande crece en vez de desbordarse.
+        PortadaNutricion(
           foto: FotosApp.brazos,
-          altura: 170,
-          etiqueta: 'Última medición',
+          alineacion: const Alignment(0.4, -0.2),
+          icono: Icons.straighten_rounded,
+          chip: 'Última medición',
+          alto: 170,
           titulo: ultima == null
-              ? 'Mídete hoy'
+              ? (_soloVer ? 'Sin medidas' : 'Mídete hoy')
               : DateFormat("d 'de' MMMM", 'es').format(ultima),
-          pie: Row(
-            children: [
-              DatoPortada(
-                icono: Icons.straighten_rounded,
-                valor: '$medidas/${ZonaMedida.todas.length}',
-                pie: 'zonas medidas',
-              ),
-              const SizedBox(width: 18),
-              DatoPortada(
-                icono: Icons.history_rounded,
-                valor: '${_medidas.length}',
-                pie: _medidas.length == 1 ? 'registro' : 'registros',
-              ),
-            ],
-          ),
+          pie: [
+            DatoPie(
+              icono: Icons.straighten_rounded,
+              valor: '$medidas/${ZonaMedida.todas.length}',
+              pie: 'zonas medidas',
+            ),
+            DatoPie(
+              icono: Icons.history_rounded,
+              valor: '${_medidas.length}',
+              pie: _medidas.length == 1 ? 'registro' : 'registros',
+            ),
+          ],
         ),
+        if (_perfil != null) ...[
+          const SizedBox(height: AppEspaciado.md),
+          _portadaImc(),
+        ],
         const SizedBox(height: AppEspaciado.lg),
-        const TituloSeccion(
+        TituloSeccion(
           icono: Icons.accessibility_new_rounded,
-          titulo: 'Tus músculos',
+          titulo: _soloVer ? 'Sus músculos' : 'Tus músculos',
         ),
-        const Text(
-          'Mídete con cinta métrica, en relajado y a la misma hora. '
-          'Toca una zona para registrar su medida.',
+        Text(
+          _soloVer
+              ? 'Toca una zona para ver su evolución e historial.'
+              : 'Mídete con cinta métrica, en relajado y a la misma hora. '
+                    'Toca una zona para registrar su medida.',
           style: TextStyle(
             fontSize: 13,
             height: 1.35,
@@ -105,17 +229,22 @@ class _MedidasScreenState extends State<MedidasScreen> {
           ),
         ),
         const SizedBox(height: AppEspaciado.md),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: AppEspaciado.sm + 4,
-          crossAxisSpacing: AppEspaciado.sm + 4,
-          childAspectRatio: 1.05,
-          children: [
-            for (final zona in ZonaMedida.todas) _tarjetaZona(zona),
-          ],
-        ),
+        // De dos en dos y sin alto fijo: con letra grande la tarjeta crece.
+        for (var i = 0; i < ZonaMedida.todas.length; i += 2)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppEspaciado.sm + 4),
+            child: Row(
+              children: [
+                Expanded(child: _tarjetaZona(ZonaMedida.todas[i])),
+                const SizedBox(width: AppEspaciado.sm + 4),
+                Expanded(
+                  child: i + 1 < ZonaMedida.todas.length
+                      ? _tarjetaZona(ZonaMedida.todas[i + 1])
+                      : const SizedBox(),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
@@ -134,56 +263,76 @@ class _MedidasScreenState extends State<MedidasScreen> {
       onTap: () => _abrir(zona),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppColores.destacado,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
-                        blurRadius: 8,
-                      ),
-                    ],
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 132),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: AppColores.destacado,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      zona.icono,
+                      size: 19,
+                      color: _tintaSobreDestacado,
+                    ),
                   ),
-                  child: Icon(zona.icono, size: 19, color: _tintaSobreDestacado),
-                ),
-                const Spacer(),
-                if (cambio != null && cambio != 0)
-                  ChipCambioMedida(zona: zona, cambio: cambio),
-              ],
-            ),
-            const Spacer(),
-            Text(
-              zona.nombre,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
+                  const SizedBox(width: 6),
+                  if (cambio != null && cambio != 0)
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: ChipCambioMedida(zona: zona, cambio: cambio),
+                      ),
+                    ),
+                ],
               ),
-            ),
-            Text(
-              ultima == null
-                  ? 'Sin medir'
-                  : '${numeroMedida(ultima)} ${zona.unidad}',
-              style: TextStyle(
-                fontSize: ultima == null ? 12 : 18,
-                height: 1.2,
-                fontWeight: ultima == null ? FontWeight.w500 : FontWeight.w800,
-                color: ultima == null
-                    ? Colors.white.withValues(alpha: 0.75)
-                    : AppColores.destacado,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  Text(
+                    zona.nombre,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    ultima == null
+                        ? 'Sin medir'
+                        : '${numeroMedida(ultima)} ${zona.unidad}',
+                    style: TextStyle(
+                      fontSize: ultima == null ? 12 : 18,
+                      height: 1.2,
+                      fontWeight: ultima == null
+                          ? FontWeight.w500
+                          : FontWeight.w800,
+                      color: ultima == null
+                          ? Colors.white.withValues(alpha: 0.75)
+                          : AppColores.destacado,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -228,17 +377,23 @@ class ChipCambioMedida extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            cambio > 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+            cambio > 0
+                ? Icons.trending_up_rounded
+                : Icons.trending_down_rounded,
             size: 14,
             color: color,
           ),
           const SizedBox(width: 3),
-          Text(
-            '${cambio > 0 ? '+' : ''}${numeroMedida(cambio)} ${zona.unidad}',
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-              color: color,
+          Flexible(
+            child: Text(
+              '${cambio > 0 ? '+' : ''}${numeroMedida(cambio)} ${zona.unidad}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
             ),
           ),
         ],
