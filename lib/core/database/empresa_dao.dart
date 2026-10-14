@@ -35,11 +35,7 @@ class EmpresaDao {
   /// La empresa marcada como activa, o `null` si aún no se escribió el código.
   Future<Empresa?> activa() async {
     final db = await _bd.db;
-    final filas = await db.query(
-      'empresa',
-      where: 'activa = 1',
-      limit: 1,
-    );
+    final filas = await db.query('empresa', where: 'activa = 1', limit: 1);
     if (filas.isEmpty) return null;
     return Empresa.desdeMapa(filas.first);
   }
@@ -90,16 +86,35 @@ class EmpresaDao {
     );
   }
 
+  /// Cambia la URL del gimnasio [id] (p. ej. porque el panel de XNOX dice que
+  /// su sistema se mudó). Se aplica desde el siguiente arranque.
+  Future<void> actualizarRuta(int id, String rutaGlobal) async {
+    final db = await _bd.db;
+    await db.update(
+      'empresa',
+      {'ruta_global': rutaGlobal},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   /// Guarda la plantilla de colores que eligió el gimnasio [id].
   Future<void> guardarPaleta(int id, String paleta) async {
     final db = await _bd.db;
-    await db.update('empresa', {'paleta': paleta},
-        where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'empresa',
+      {'paleta': paleta},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   /// Guarda la copia local del logo y el nombre comercial del gimnasio [id].
-  Future<void> guardarMarca(int id,
-      {required String? logoUrl, required String? nombreComercial}) async {
+  Future<void> guardarMarca(
+    int id, {
+    required String? logoUrl,
+    required String? nombreComercial,
+  }) async {
     final db = await _bd.db;
     await db.update(
       'empresa',

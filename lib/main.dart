@@ -9,6 +9,7 @@ import 'package:xnox_app/core/servicios/servicio_notificaciones.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/tema/controlador_marca.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/empresa/datos/directorio_gimnasios.dart';
 import 'package:xnox_app/features/empresa/dominio/codigo_empresa.dart';
 import 'package:xnox_app/features/empresa/dominio/entidades/empresa.dart';
 import 'package:xnox_app/features/empresa/presentacion/screen/codigo_empresa_screen.dart';
@@ -29,6 +30,11 @@ void main() async {
       CodigoEmpresa.rutaEnUso(empresaActiva.codigo, empresaActiva.rutaGlobal),
     );
   }
+  // Si en el panel de XNOX se cambió la URL de este gimnasio, se guarda para
+  // el próximo arranque. En segundo plano: no retrasa la apertura.
+  if (empresaActiva != null) {
+    unawaited(_sincronizarRutaConPanel(empresaActiva));
+  }
   // Colores y logo del gimnasio activo, antes del primer frame para que la
   // app no arranque con otra paleta y luego cambie.
   await ControladorMarca.instancia.cargar();
@@ -46,6 +52,24 @@ void main() async {
   // hasta que el usuario contesta, y esperarlo dejaría la app en blanco.
   unawaited(ServicioNotificaciones().init());
   runApp(const MyApp());
+}
+
+/// Trae del panel de XNOX la URL de [empresa] y, si cambió, la guarda. Si el
+/// panel no responde o no lo tiene registrado, no se toca nada.
+Future<void> _sincronizarRutaConPanel(Empresa empresa) async {
+  try {
+    final registrado = await const DirectorioGimnasios().consultar(
+      empresa.codigo,
+    );
+    if (registrado != null && registrado.rutaGlobal != empresa.rutaGlobal) {
+      await EmpresaDao.instancia.actualizarRuta(
+        empresa.id,
+        registrado.rutaGlobal,
+      );
+    }
+  } catch (_) {
+    /* sin panel se sigue con la URL guardada */
+  }
 }
 
 class MyApp extends StatelessWidget {

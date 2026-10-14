@@ -4,6 +4,7 @@ import 'package:xnox_app/core/database/empresa_dao.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/core/tema/controlador_marca.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/empresa/datos/directorio_gimnasios.dart';
 import 'package:xnox_app/features/empresa/datos/verificador_empresa.dart';
 import 'package:xnox_app/features/empresa/dominio/codigo_empresa.dart';
 import 'package:xnox_app/features/login/presentacion/screen/sesion_gate.dart';
@@ -56,14 +57,22 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _procesando = true);
 
-    // Si el gimnasio ya está en la tabla `empresa` usamos la URL guardada; si
-    // no, se arma desde el subdominio y al guardarlo queda para siempre. Se
-    // valida y se navega contra la ruta en uso (en debug puede ser el servidor
-    // de desarrollo), pero lo que se guarda es siempre la URL real.
+    // Primero el panel de XNOX, donde se registran los gimnasios (Clientes →
+    // Acceso a la app): así un gimnasio nuevo entra sin tocar la app. Si el
+    // panel no responde o no lo tiene, se usa la URL guardada en la tabla
+    // `empresa` o, si tampoco, la de su subdominio. Se valida y se navega
+    // contra la ruta en uso (en debug puede ser el servidor de desarrollo),
+    // pero lo que se guarda es siempre la URL real.
+    GimnasioRegistrado? registrado;
+    try {
+      registrado = await const DirectorioGimnasios().consultar(codigo);
+    } catch (_) {
+      registrado = null;
+    }
     final guardado = await EmpresaDao.instancia.porCodigo(codigo);
     final rutaReal = CodigoEmpresa.rutaReal(
       codigo,
-      rutaGuardada: guardado?.rutaGlobal,
+      rutaGuardada: registrado?.rutaGlobal ?? guardado?.rutaGlobal,
     );
     final ruta = CodigoEmpresa.rutaEnUso(codigo, rutaReal);
     final resultado = await const VerificadorEmpresa().verificar(ruta, codigo);
@@ -84,8 +93,12 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
     final codigoBackend =
         await const VerificadorEmpresa().codigoQueReconoce(
           ruta,
-          CodigoEmpresa.candidatosParaBackend(codigo),
+          <String>{
+            ?registrado?.codigoBackend,
+            ...CodigoEmpresa.candidatosParaBackend(codigo),
+          }.toList(),
         ) ??
+        registrado?.codigoBackend ??
         guardado?.codigoBackend;
     if (!mounted) return;
 
@@ -93,7 +106,9 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
       await EmpresaDao.instancia.guardarYActivar(
         codigo: codigo,
         rutaGlobal: rutaReal,
-        nombre: guardado?.nombre,
+        nombre: (registrado?.nombre.isNotEmpty ?? false)
+            ? registrado!.nombre
+            : guardado?.nombre,
         codigoBackend: codigoBackend,
       );
     } catch (_) {
