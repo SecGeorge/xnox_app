@@ -28,6 +28,7 @@ import 'package:xnox_app/features/notificaciones/presentacion/controlador/contro
 import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
 import 'package:xnox_app/features/recomendaciones/presentacion/screen/enviar_recomendacion_screen.dart';
 import 'package:xnox_app/features/nutricion/presentacion/screen/nutricion_screen.dart';
+import 'package:xnox_app/features/clases/presentacion/screen/clases_screen.dart';
 
 /// Definición de una sección navegable del cliente.
 class _SeccionNav {
@@ -229,6 +230,10 @@ class _ClienteShellState extends State<ClienteShell> {
       _abrirNutricion();
       return;
     }
+    if (destino == DestinoCliente.clases) {
+      _abrirClases();
+      return;
+    }
     final indice = switch (destino) {
       DestinoCliente.rutinas => _iRutinas,
       DestinoCliente.qr => _iQr,
@@ -236,6 +241,7 @@ class _ClienteShellState extends State<ClienteShell> {
       DestinoCliente.membresia => _iMembresia,
       DestinoCliente.reporte => _iReporte,
       DestinoCliente.nutricion => _selectedIndex,
+      DestinoCliente.clases => _selectedIndex,
     };
     setState(() => _selectedIndex = indice);
   }
@@ -245,6 +251,13 @@ class _ClienteShellState extends State<ClienteShell> {
   Future<void> _abrirNutricion() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const NutricionScreen()),
+    );
+  }
+
+  /// Clases con reserva: también en su propia pantalla, como Nutrición.
+  Future<void> _abrirClases() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ClasesScreen()),
     );
   }
 
@@ -380,6 +393,14 @@ class _ClienteShellState extends State<ClienteShell> {
                 'Lo que comes, tus metas y tu plan',
                 activo: false,
                 onTap: () => ir(_abrirNutricion),
+              ),
+              const SizedBox(height: AppEspaciado.sm + 2),
+              _tarjetaMas(
+                Icons.event_available_rounded,
+                'Clases',
+                'Horario y reserva de clases',
+                activo: false,
+                onTap: () => ir(_abrirClases),
               ),
               const SizedBox(height: AppEspaciado.lg),
               const Text(
