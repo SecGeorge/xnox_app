@@ -33,6 +33,9 @@ class AlmacenRutinas {
   List<Rutina> _rutinas = [];
   bool _cargado = false;
 
+  /// Rutina que el socio eligió para entrenar (clave `rutina_activa` en meta).
+  int? _rutinaActivaId;
+
   // ----------------------------------------------------------------- Lecturas
   List<Rutina> get rutinas => List.unmodifiable(_rutinas);
 
@@ -58,6 +61,25 @@ class AlmacenRutinas {
       if (r.id == id) return r;
     }
     return null;
+  }
+
+  /// La rutina elegida para entrenar, o null si no eligió ninguna (o ya no
+  /// existe: la borró o se la quitaron).
+  Rutina? get rutinaActiva =>
+      _rutinaActivaId == null ? null : buscarRutina(_rutinaActivaId!);
+
+  /// Elige la rutina a entrenar; null vuelve a mostrar todas.
+  Future<void> elegirRutinaActiva(int? id) async {
+    final db = await BaseDatosLocal.instancia.db;
+    if (id == null) {
+      await db.delete('meta', where: 'clave = ?', whereArgs: ['rutina_activa']);
+    } else {
+      await db.insert('meta', {
+        'clave': 'rutina_activa',
+        'valor': '$id',
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    _rutinaActivaId = id;
   }
 
   /// Carga la caché desde SQLite (una sola vez salvo que se fuerce).
@@ -177,6 +199,15 @@ class AlmacenRutinas {
         dias: diasPorRutina[id] ?? [],
       );
     }).toList();
+
+    final activa = await db.query(
+      'meta',
+      where: 'clave = ?',
+      whereArgs: ['rutina_activa'],
+    );
+    _rutinaActivaId = activa.isEmpty
+        ? null
+        : int.tryParse(activa.first['valor'] as String? ?? '');
 
     _cargado = true;
   }
@@ -964,6 +995,11 @@ class AlmacenRutinas {
         await txn.delete('rutina', where: "origen = 'cliente'");
         await txn.delete('marca');
         await txn.delete('sync_borrado');
+        await txn.delete(
+          'meta',
+          where: 'clave = ?',
+          whereArgs: ['rutina_activa'],
+        );
       }
       await txn.insert('meta', {
         'clave': 'dueno_entrenamiento',

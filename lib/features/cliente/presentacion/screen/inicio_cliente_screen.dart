@@ -191,15 +191,12 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
       .replaceAll('ó', 'o')
       .replaceAll('ú', 'u');
 
-  /// El día de rutina que toca hoy: primero las que armó el gimnasio para el
-  /// socio, luego las suyas y por último las sugeridas.
+  /// El día de rutina que toca hoy: de la rutina elegida o, si no eligió,
+  /// primero las que armó el gimnasio para el socio, luego las suyas y por
+  /// último las sugeridas.
   _RutinaDeHoy? _buscarRutinaDeHoy() {
     final hoy = _diasSemana[DateTime.now().weekday - 1];
-    final candidatas = [
-      ..._rutinas.obtenerAsignadas(),
-      ..._rutinas.obtenerMisRutinas(),
-      ..._rutinas.obtenerSugeridas(),
-    ];
+    final candidatas = _rutinas.obtenerParaEntrenar();
     for (final r in candidatas) {
       for (final d in r.dias) {
         if (_normalizar(d.diaSemana) == hoy && d.ejercicios.isNotEmpty) {

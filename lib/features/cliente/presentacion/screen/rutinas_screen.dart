@@ -14,7 +14,8 @@ import 'package:xnox_app/features/cliente/presentacion/widget/foto_sesion.dart';
 import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
 
 /// Rutinas del socio en tres vistas:
-/// - Mi semana: lo que le toca cada día, con el avance del día elegido.
+/// - Mi semana: lo que le toca cada día, con el avance del día elegido. Si
+///   el socio eligió una rutina, solo sale esa.
 /// - Mis rutinas: todas (las que armó el gimnasio, sugeridas y propias).
 /// - Historial: las sesiones registradas, agrupadas por fecha.
 ///
@@ -87,10 +88,11 @@ class _RutinasScreenState extends State<RutinasScreen> {
   ];
 
   /// Rutinas que tienen ejercicios el día [indice] de la semana, con ese día.
+  /// Si eligió una rutina, solo cuenta esa.
   List<(Rutina, DiaRutina)> _opcionesDelDia(int indice) {
     final buscado = _normalizar(_nombresDia[indice]);
     return [
-      for (final r in _todas)
+      for (final r in _controlador.obtenerParaEntrenar())
         for (final d in r.dias)
           if (_normalizar(d.diaSemana) == buscado && d.ejercicios.isNotEmpty)
             (r, d),
@@ -146,6 +148,26 @@ class _RutinasScreenState extends State<RutinasScreen> {
     );
     // Al volver puede haber registrado series o cambiado la rutina.
     if (mounted) setState(() {});
+  }
+
+  /// Elige [r] como la rutina a entrenar, o la suelta si ya era la elegida.
+  Future<void> _alternarActiva(Rutina r) async {
+    final eraActiva = _controlador.obtenerRutinaActiva()?.id == r.id;
+    await _controlador.elegirRutinaActiva(eraActiva ? null : r.id);
+    if (!mounted) return;
+    setState(() {
+      _rutinaElegidaId = null;
+      if (!eraActiva) _vista = _Vista.semana;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          eraActiva
+              ? 'Ya no tienes una rutina elegida: verás todas.'
+              : 'Ahora entrenas con "${r.nombre}".',
+        ),
+      ),
+    );
   }
 
   // -------------------------------------------------------------- Vista
@@ -316,7 +338,12 @@ class _RutinasScreenState extends State<RutinasScreen> {
             orElse: () => opciones.first,
           );
     final fecha = _fechaDe(_dia);
+    final activa = _controlador.obtenerRutinaActiva();
     return [
+      if (activa != null) ...[
+        _bannerActiva(activa),
+        const SizedBox(height: AppEspaciado.md),
+      ],
       _tiraSemana(),
       const SizedBox(height: AppEspaciado.md + 4),
       if (elegida == null)
@@ -334,8 +361,66 @@ class _RutinasScreenState extends State<RutinasScreen> {
           _filaEjercicio(i + 1, elegida.$2.ejercicios[i], elegida.$1, fecha),
       ],
       const SizedBox(height: AppEspaciado.sm),
-      _avisoOtrasRutinas(),
+      _avisoOtrasRutinas(hayActiva: activa != null),
     ];
+  }
+
+  /// La rutina elegida, con acceso rápido para cambiarla.
+  Widget _bannerActiva(Rutina r) {
+    final radio = BorderRadius.circular(AppEspaciado.radio);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppEspaciado.md,
+        AppEspaciado.sm + 2,
+        AppEspaciado.sm,
+        AppEspaciado.sm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: AppColores.primario.withValues(alpha: 0.08),
+        borderRadius: radio,
+        border: Border.all(color: AppColores.primario.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.push_pin_rounded, size: 20, color: AppColores.primario),
+          const SizedBox(width: AppEspaciado.sm + 2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Entrenando con',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: AppColores.textoSecundario,
+                  ),
+                ),
+                Text(
+                  r.nombre,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColores.textoPrincipal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => setState(() => _vista = _Vista.rutinas),
+            child: Text(
+              'Cambiar',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColores.primario,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _tiraSemana() {
@@ -880,7 +965,7 @@ class _RutinasScreenState extends State<RutinasScreen> {
     );
   }
 
-  Widget _avisoOtrasRutinas() {
+  Widget _avisoOtrasRutinas({required bool hayActiva}) {
     final radio = BorderRadius.circular(AppEspaciado.radio);
     return Material(
       color: AppColores.primario.withValues(alpha: 0.06),
@@ -905,15 +990,17 @@ class _RutinasScreenState extends State<RutinasScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '¿No es tu rutina?',
+                      hayActiva ? '¿Quieres otra rutina?' : 'Elige tu rutina',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColores.textoPrincipal,
                       ),
                     ),
-                    const Text(
-                      'Mira todas tus rutinas o crea una nueva.',
+                    Text(
+                      hayActiva
+                          ? 'Cámbiala desde tus rutinas o crea una nueva.'
+                          : 'Escoge una y aquí verás solo esa rutina.',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColores.textoSecundario,
@@ -923,7 +1010,7 @@ class _RutinasScreenState extends State<RutinasScreen> {
                 ),
               ),
               Text(
-                'Ver todas',
+                hayActiva ? 'Ver todas' : 'Elegir',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -1144,7 +1231,9 @@ class _RutinasScreenState extends State<RutinasScreen> {
                       ),
                     ],
                     const Spacer(),
-                    if (!r.esSugerida)
+                    _botonElegir(r),
+                    if (!r.esSugerida) ...[
+                      const SizedBox(width: 6),
                       GestureDetector(
                         onTap: () => _eliminarRutina(r),
                         child: Container(
@@ -1161,6 +1250,7 @@ class _RutinasScreenState extends State<RutinasScreen> {
                           ),
                         ),
                       ),
+                    ],
                   ],
                 ),
                 const Spacer(),
@@ -1226,6 +1316,52 @@ class _RutinasScreenState extends State<RutinasScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Botón de la tarjeta para elegir la rutina a entrenar (o soltarla).
+  Widget _botonElegir(Rutina r) {
+    final activa = _controlador.obtenerRutinaActiva()?.id == r.id;
+    final tinta = activa
+        ? (AppColores.destacado.computeLuminance() > 0.45
+              ? const Color(0xFF0E1A12)
+              : Colors.white)
+        : Colors.white;
+    return GestureDetector(
+      onTap: () => _alternarActiva(r),
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: activa
+              ? AppColores.destacado
+              : Colors.black.withValues(alpha: 0.35),
+          borderRadius: BorderRadius.circular(20),
+          border: activa
+              ? null
+              : Border.all(color: Colors.white.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              activa ? Icons.check_rounded : Icons.push_pin_outlined,
+              size: 16,
+              color: tinta,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              activa ? 'EN USO' : 'ELEGIR',
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 0.6,
+                fontWeight: FontWeight.w800,
+                color: tinta,
+              ),
+            ),
+          ],
         ),
       ),
     );

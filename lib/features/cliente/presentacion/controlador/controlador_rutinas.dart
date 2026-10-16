@@ -19,6 +19,24 @@ class ControladorRutinas {
   List<Ejercicio> obtenerTodosLosEjercicios() => _almacen.todosLosEjercicios;
   Rutina? obtenerRutina(int id) => _almacen.buscarRutina(id);
 
+  /// Rutina que el socio eligió para entrenar (null = no eligió).
+  Rutina? obtenerRutinaActiva() => _almacen.rutinaActiva;
+
+  Future<void> elegirRutinaActiva(int? id) => _almacen.elegirRutinaActiva(id);
+
+  /// Rutinas que cuentan para "lo que toca hoy": solo la elegida o, si no
+  /// eligió ninguna, todas en orden de prioridad (las del gimnasio para el
+  /// socio, las suyas y las sugeridas).
+  List<Rutina> obtenerParaEntrenar() {
+    final activa = _almacen.rutinaActiva;
+    if (activa != null) return [activa];
+    return [
+      ..._almacen.rutinasAsignadas,
+      ..._almacen.rutinasCliente,
+      ..._almacen.rutinasSugeridas,
+    ];
+  }
+
   /// Garantiza que la caché esté cargada desde SQLite.
   Future<void> asegurarCargado() => _almacen.asegurarCargado();
 
