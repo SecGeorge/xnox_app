@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/presentacion/screen/ejecutar_rutina_screen.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/asistencia_cliente.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/dia_rutina.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/membresia_cliente.dart';
@@ -546,10 +547,18 @@ class _InicioClienteScreenState extends State<InicioClienteScreen> {
                 }
                 await Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => DiaRutinaScreen(
-                      rutinaId: hoy.rutina.id,
-                      diaId: hoy.dia.id,
-                    ),
+                    // Circuitos, HIIT, EMOM...: la sesión va con temporizador.
+                    builder: (_) => hoy.rutina.dias.any(
+                          (d) => d.diaSemana == hoy.dia.diaSemana && d.esFuncional,
+                        )
+                        ? EjecutarRutinaScreen(
+                            plan: hoy.rutina.plan,
+                            dia: hoy.dia.diaSemana,
+                          )
+                        : DiaRutinaScreen(
+                            rutinaId: hoy.rutina.id,
+                            diaId: hoy.dia.id,
+                          ),
                   ),
                 );
                 // Al volver puede haber registrado series: recalcula.

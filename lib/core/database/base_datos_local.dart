@@ -12,7 +12,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 17;
+  static const _version = 18;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -270,6 +270,39 @@ class BaseDatosLocal {
       );
       await _crearTablasSincronizacion(db);
     }
+    if (desde < 18) {
+      // v18: rutinas por metodología (circuito, HIIT, EMOM, AMRAP,
+      // estaciones). Cada fila de rutina_dia es un bloque de un día con su
+      // propia metodología, rondas y tiempos (un día puede tener varios); la
+      // rutina guarda su tipo (o MIXTO); el ejercicio, su trabajo y peso.
+      const columnas = {
+        'rutina': {
+          'tipo': "TEXT NOT NULL DEFAULT 'MUSCULACION'",
+          'objetivo': 'TEXT',
+          'nivel': 'TEXT',
+          'duracion_seg': 'INTEGER',
+        },
+        'rutina_dia': {
+          'tipo': "TEXT NOT NULL DEFAULT 'MUSCULACION'",
+          'nombre': 'TEXT',
+          'rondas': 'INTEGER NOT NULL DEFAULT 1',
+          'descanso_ronda_seg': 'INTEGER',
+          'tiempo_limite_seg': 'INTEGER',
+          'intervalo_seg': 'INTEGER',
+          'descanso_bloque_seg': 'INTEGER',
+        },
+        'ejercicio': {'trabajo_seg': 'INTEGER', 'peso_kg': 'REAL'},
+      };
+      for (final tabla in columnas.entries) {
+        for (final c in tabla.value.entries) {
+          if (!await _existeColumna(db, tabla.key, c.key)) {
+            await db.execute(
+              'ALTER TABLE ${tabla.key} ADD COLUMN ${c.key} ${c.value}',
+            );
+          }
+        }
+      }
+    }
   }
 
   /// Valor de partida para las filas que ya existían: mientras un gimnasio no
@@ -404,6 +437,10 @@ class BaseDatosLocal {
         descripcion TEXT,
         origen TEXT NOT NULL,
         personalizada INTEGER NOT NULL DEFAULT 0,
+        tipo TEXT NOT NULL DEFAULT 'MUSCULACION',
+        objetivo TEXT,
+        nivel TEXT,
+        duracion_seg INTEGER,
         fecha_sync TEXT,
         uid TEXT,
         pendiente INTEGER NOT NULL DEFAULT 0
@@ -416,6 +453,13 @@ class BaseDatosLocal {
         rutina_id INTEGER NOT NULL,
         dia_semana TEXT NOT NULL,
         orden INTEGER NOT NULL DEFAULT 0,
+        tipo TEXT NOT NULL DEFAULT 'MUSCULACION',
+        nombre TEXT,
+        rondas INTEGER NOT NULL DEFAULT 1,
+        descanso_ronda_seg INTEGER,
+        tiempo_limite_seg INTEGER,
+        intervalo_seg INTEGER,
+        descanso_bloque_seg INTEGER,
         FOREIGN KEY (rutina_id) REFERENCES rutina (id) ON DELETE CASCADE
       )
     ''');
@@ -428,6 +472,8 @@ class BaseDatosLocal {
         imagen_url TEXT,
         video_url TEXT,
         descanso_seg INTEGER,
+        trabajo_seg INTEGER,
+        peso_kg REAL,
         nombre TEXT NOT NULL,
         series INTEGER NOT NULL DEFAULT 0,
         repeticiones INTEGER NOT NULL DEFAULT 0,

@@ -93,11 +93,11 @@ class PaletaApp {
 class PaletasApp {
   PaletasApp._();
 
-  /// Estilo propio de XNOX-SOFT: el blanco es el color principal y el azul
+  /// Estilo propio de XCOUNT: el blanco es el color principal y el azul
   /// marino de la marca va en los bordes, íconos y textos.
   static const xnoxsoft = PaletaApp(
     id: 'xnoxsoft',
-    nombre: 'XNOX-SOFT',
+    nombre: 'XCOUNT',
     descripcion: 'Blanco con bordes azul marino',
     primario: Color(0xFF1A2B4C),
     primarioClaro: Color(0xFF2E4475),

@@ -163,6 +163,8 @@ class AlmacenRutinas {
               imagenUrl: e['imagen_url'] as String?,
               videoUrl: e['video_url'] as String?,
               descansoSeg: e['descanso_seg'] as int?,
+              trabajoSeg: e['trabajo_seg'] as int?,
+              pesoKg: (e['peso_kg'] as num?)?.toDouble(),
               unilateral: (e['unilateral'] as int? ?? 0) == 1,
               marcas: marcasPorEj[id] ?? [],
             ),
@@ -180,6 +182,13 @@ class AlmacenRutinas {
             DiaRutina(
               id: id,
               diaSemana: d['dia_semana'] as String? ?? '',
+              tipo: d['tipo'] as String? ?? 'MUSCULACION',
+              nombre: d['nombre'] as String?,
+              rondas: d['rondas'] as int? ?? 1,
+              descansoRondaSeg: d['descanso_ronda_seg'] as int?,
+              tiempoLimiteSeg: d['tiempo_limite_seg'] as int?,
+              intervaloSeg: d['intervalo_seg'] as int?,
+              descansoBloqueSeg: d['descanso_bloque_seg'] as int?,
               ejercicios: ejPorDia[id] ?? [],
             ),
           );
@@ -196,6 +205,10 @@ class AlmacenRutinas {
             ? OrigenRutina.admin
             : OrigenRutina.cliente,
         personalizada: (r['personalizada'] as int? ?? 0) == 1,
+        tipo: r['tipo'] as String? ?? 'MUSCULACION',
+        objetivo: r['objetivo'] as String?,
+        nivel: r['nivel'] as String?,
+        duracionSeg: r['duracion_seg'] as int?,
         dias: diasPorRutina[id] ?? [],
       );
     }).toList();
@@ -644,6 +657,7 @@ class AlmacenRutinas {
               'nombre': remota.nombre,
               'descripcion': remota.descripcion,
               'personalizada': remota.personalizada ? 1 : 0,
+              ..._metaRutina(remota),
               'fecha_sync': ahora,
             },
             where: 'id = ?',
@@ -656,6 +670,7 @@ class AlmacenRutinas {
             'descripcion': remota.descripcion,
             'origen': 'admin',
             'personalizada': remota.personalizada ? 1 : 0,
+            ..._metaRutina(remota),
             'fecha_sync': ahora,
           });
         }
@@ -688,37 +703,52 @@ class AlmacenRutinas {
       where: 'rutina_id = ?',
       whereArgs: [rutinaId],
     );
-    final porDiaSemana = <String, int>{}; // dia_semana -> id local
-    for (final d in diasExistentes) {
-      porDiaSemana[d['dia_semana'] as String] = d['id'] as int;
+    // Cada bloque se reconoce por su día y su número dentro del día
+    // ("Lunes#0", "Lunes#1"): así conserva su id y las marcas aunque cambien
+    // de orden los días, y un día puede tener varios bloques.
+    final porClave = <String, int>{}; // clave -> id local
+    final ordenados = [...diasExistentes]
+      ..sort((a, b) => (a['orden'] as int).compareTo(b['orden'] as int));
+    for (final c in _clavesDias([
+      for (final d in ordenados) d['dia_semana'] as String,
+    ]).asMap().entries) {
+      porClave[c.value] = ordenados[c.key]['id'] as int;
     }
 
+    final clavesRemotas = _clavesDias([for (final d in diasRemotos) d.diaSemana]);
     final diasVistos = <String>{};
-    var orden = 0;
-    for (final dia in diasRemotos) {
-      diasVistos.add(dia.diaSemana);
+    for (var orden = 0; orden < diasRemotos.length; orden++) {
+      final dia = diasRemotos[orden];
+      final clave = clavesRemotas[orden];
+      diasVistos.add(clave);
+      final datos = {
+        'dia_semana': dia.diaSemana,
+        'orden': orden,
+        'tipo': dia.tipo,
+        'nombre': dia.nombre,
+        'rondas': dia.rondas,
+        'descanso_ronda_seg': dia.descansoRondaSeg,
+        'tiempo_limite_seg': dia.tiempoLimiteSeg,
+        'intervalo_seg': dia.intervaloSeg,
+        'descanso_bloque_seg': dia.descansoBloqueSeg,
+      };
       int diaId;
-      if (porDiaSemana.containsKey(dia.diaSemana)) {
-        diaId = porDiaSemana[dia.diaSemana]!;
+      if (porClave.containsKey(clave)) {
+        diaId = porClave[clave]!;
         await txn.update(
           'rutina_dia',
-          {'orden': orden},
+          datos,
           where: 'id = ?',
           whereArgs: [diaId],
         );
       } else {
-        diaId = await txn.insert('rutina_dia', {
-          'rutina_id': rutinaId,
-          'dia_semana': dia.diaSemana,
-          'orden': orden,
-        });
+        diaId = await txn.insert('rutina_dia', {'rutina_id': rutinaId, ...datos});
       }
-      orden++;
       await _upsertEjercicios(txn, diaId, dia.ejercicios, propia: propia);
     }
 
     // Eliminar días que ya no vienen del backend.
-    for (final entry in porDiaSemana.entries) {
+    for (final entry in porClave.entries) {
       if (!diasVistos.contains(entry.key)) {
         await txn.delete(
           'rutina_dia',
@@ -728,6 +758,28 @@ class AlmacenRutinas {
       }
     }
   }
+
+  /// Clave de cada bloque: su día y el número de bloque de ese día.
+  static List<String> _clavesDias(List<String> dias) {
+    final veces = <String, int>{};
+    return [for (final d in dias) '$d#${veces[d] = (veces[d] ?? -1) + 1}'];
+  }
+
+  /// Clave de cada ejercicio: su nombre y el número de vez que aparece, para
+  /// que un circuito pueda repetir el mismo ejercicio.
+  static List<String> _clavesEjercicios(List<String> nombres) {
+    final veces = <String, int>{};
+    return [
+      for (final n in nombres) '$n#${veces[n] = (veces[n] ?? -1) + 1}',
+    ];
+  }
+
+  static Map<String, Object?> _metaRutina(Rutina r) => {
+    'tipo': r.tipo,
+    'objetivo': r.objetivo,
+    'nivel': r.nivel,
+    'duracion_seg': r.duracionSeg,
+  };
 
   Future<void> _upsertEjercicios(
     DatabaseExecutor txn,
@@ -740,15 +792,24 @@ class AlmacenRutinas {
       where: 'dia_id = ?',
       whereArgs: [diaId],
     );
-    final porNombre = <String, int>{}; // nombre -> id local
-    for (final e in ejExistentes) {
-      porNombre[e['nombre'] as String] = e['id'] as int;
+    final ordenados = [...ejExistentes]
+      ..sort((a, b) => (a['orden'] as int).compareTo(b['orden'] as int));
+    final porClave = <String, int>{}; // nombre#vez -> id local
+    final clavesLocales = _clavesEjercicios([
+      for (final e in ordenados) e['nombre'] as String,
+    ]);
+    for (var i = 0; i < ordenados.length; i++) {
+      porClave[clavesLocales[i]] = ordenados[i]['id'] as int;
     }
 
-    final nombresVistos = <String>{};
-    var orden = 0;
-    for (final ej in ejerciciosRemotos) {
-      nombresVistos.add(ej.nombre);
+    final clavesRemotas = _clavesEjercicios([
+      for (final e in ejerciciosRemotos) e.nombre,
+    ]);
+    final vistos = <String>{};
+    for (var orden = 0; orden < ejerciciosRemotos.length; orden++) {
+      final ej = ejerciciosRemotos[orden];
+      final clave = clavesRemotas[orden];
+      vistos.add(clave);
       final datos = {
         'nombre': ej.nombre,
         'series': ej.series,
@@ -759,26 +820,27 @@ class AlmacenRutinas {
         'imagen_url': ej.imagenUrl,
         'video_url': ej.videoUrl,
         'descanso_seg': ej.descansoSeg,
+        'trabajo_seg': ej.trabajoSeg,
+        'peso_kg': ej.pesoKg,
         if (propia) 'unilateral': ej.unilateral ? 1 : 0,
         'orden': orden,
       };
-      if (porNombre.containsKey(ej.nombre)) {
+      if (porClave.containsKey(clave)) {
         // Update en sitio: conserva el id y, por tanto, las marcas.
         await txn.update(
           'ejercicio',
           datos,
           where: 'id = ?',
-          whereArgs: [porNombre[ej.nombre]],
+          whereArgs: [porClave[clave]],
         );
       } else {
         await txn.insert('ejercicio', {'dia_id': diaId, ...datos});
       }
-      orden++;
     }
 
     // Eliminar ejercicios que el admin quitó (se pierden sus marcas).
-    for (final entry in porNombre.entries) {
-      if (!nombresVistos.contains(entry.key)) {
+    for (final entry in porClave.entries) {
+      if (!vistos.contains(entry.key)) {
         await txn.delete(
           'ejercicio',
           where: 'id = ?',

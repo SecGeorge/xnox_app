@@ -120,6 +120,8 @@ flutter:
     - assets/imagenes/medidas/
     # Portadas de Nutrición (Unsplash, licencia libre).
     - assets/imagenes/nutricion/
+    # Logo de XCOUNT (nuestro, no del gimnasio): solo se usa en el login.
+    - assets/imagenes/marca/
     # Sonidos del temporizador de descanso (generados, sin licencia de terceros).
     - assets/sonidos/
 

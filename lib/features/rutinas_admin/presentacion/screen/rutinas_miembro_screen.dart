@@ -3,6 +3,7 @@ import 'package:xnox_app/core/permisos/permisos.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/features/rutinas_admin/datos/repositorio_rutinas_admin.dart';
 import 'package:xnox_app/features/rutinas_admin/dominio/rutina_admin.dart';
 import 'package:xnox_app/features/rutinas_admin/presentacion/screen/form_rutina_admin_screen.dart';
@@ -124,12 +125,13 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
                   final p = plantillas[i];
                   return ListTile(
                     leading: Icon(
-                      Icons.fitness_center,
-                      color: AppColores.primario,
+                      p.metodologia.icono,
+                      color: p.metodologia.color,
                     ),
                     title: Text(p.nombre),
                     subtitle: Text(
-                      '${p.totalDias} día(s) · ${p.totalEjercicios} ejercicio(s)',
+                      '${p.metodologia.texto} · ${p.totalEjercicios} ejercicio(s)'
+                      '${p.duracionSeg != null ? ' · ~${formatoDuracion(p.duracionSeg!)}' : ''}',
                     ),
                     onTap: () => Navigator.pop(ctx, p),
                   );
@@ -170,6 +172,8 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
     }
     final error = accion == 'eliminar'
         ? await _repo.eliminar(r.id)
+        : accion == 'duplicar'
+        ? await _repo.duplicar(r.id)
         : (r.activa ? await _repo.anular(r.id) : await _repo.activar(r.id));
     if (!mounted) return;
     if (error == null) {
@@ -336,8 +340,23 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(r.metodologia.icono, size: 14, color: r.metodologia.color),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${r.metodologia.texto}'
+                              '${r.duracionSeg != null ? ' · ~${formatoDuracion(r.duracionSeg!)}' : ''}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: r.metodologia.color,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
                         Text(
-                          '${r.totalDias} ${r.totalDias == 1 ? 'día' : 'días'} · '
                           '${r.totalEjercicios} ${r.totalEjercicios == 1 ? 'ejercicio' : 'ejercicios'}'
                           '${r.origenNombre != null ? ' · de "${r.origenNombre}"' : ''}',
                           maxLines: 2,
@@ -367,12 +386,17 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
                     onSelected: (op) {
                       if (op == 'editar') _editar(r);
                       if (op == 'estado') _cambiarEstado(r, 'estado');
+                      if (op == 'duplicar') _cambiarEstado(r, 'duplicar');
                       if (op == 'eliminar') _cambiarEstado(r, 'eliminar');
                     },
                     itemBuilder: (_) => [
                       const PopupMenuItem(
                         value: 'editar',
                         child: Text('Editar'),
+                      ),
+                      const PopupMenuItem(
+                        value: 'duplicar',
+                        child: Text('Duplicar'),
                       ),
                       PopupMenuItem(
                         value: 'estado',

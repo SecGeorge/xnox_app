@@ -136,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ValueListenableBuilder<MarcaGimnasio>(
                 valueListenable: ControladorMarca.instancia.marca,
                 builder: (context, marca, _) => Text(
-                  (marca.nombre ?? '').isEmpty ? 'XNOX-SOFT' : marca.nombre!,
+                  (marca.nombre ?? '').isEmpty ? 'XCOUNT' : marca.nombre!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 32,
@@ -153,22 +153,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 40),
-              const Text(
-                'Iniciar Sesión',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 28),
               SizedBox(
                 width: 400,
                 child: Column(
                   children: [
                     _buildSelectorTipo(),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     TextField(
                       controller: _usuarioController,
                       decoration: InputDecoration(
@@ -211,21 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          '¿Olvidaste tu contraseña?',
-                          style: TextStyle(
-                            color: Colors.blueAccent,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 24),
                     LayoutBuilder(
                       builder: (context, constraints) => Center(
                         child: AnimatedContainer(
@@ -318,6 +295,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text(
                       'Contactanos por WhatsApp 938197971',
                       style: TextStyle(fontSize: 12, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 28),
+                    const Text(
+                      'Un producto de',
+                      style: TextStyle(fontSize: 11, color: Colors.black38),
+                    ),
+                    const SizedBox(height: 6),
+                    Opacity(
+                      opacity: 0.75,
+                      child: Image.asset(
+                        'assets/imagenes/marca/logo_xcount.png',
+                        height: 22,
+                      ),
                     ),
                   ],
                 ),

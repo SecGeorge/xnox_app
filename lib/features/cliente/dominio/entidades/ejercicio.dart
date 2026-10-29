@@ -24,6 +24,13 @@ class Ejercicio {
   /// cambiarlo en su teléfono.
   final int? descansoSeg;
 
+  /// Rutinas por tiempo: segundos de trabajo (null = por repeticiones). En
+  /// ellas [descansoSeg] es el descanso después del ejercicio.
+  final int? trabajoSeg;
+
+  /// Peso sugerido por el gimnasio (kg), si lo fijó.
+  final double? pesoKg;
+
   /// Se hace un lado a la vez (curl con mancuerna a un brazo, zancada…): cada
   /// serie registra las repeticiones del lado izquierdo y del derecho.
   final bool unilateral;
@@ -38,6 +45,8 @@ class Ejercicio {
     this.imagenUrl,
     this.videoUrl,
     this.descansoSeg,
+    this.trabajoSeg,
+    this.pesoKg,
     this.unilateral = false,
     List<Marca>? marcas,
   }) : marcas = marcas ?? [];

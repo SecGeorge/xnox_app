@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/presentacion/screen/detalle_plan_screen.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/presentacion/screen/ejecutar_rutina_screen.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/dia_rutina.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
@@ -89,13 +93,22 @@ class _RutinasScreenState extends State<RutinasScreen> {
 
   /// Rutinas que tienen ejercicios el día [indice] de la semana, con ese día.
   /// Si eligió una rutina, solo cuenta esa.
+  /// Rutinas que entrenan el día [indice], con su primer bloque de ese día
+  /// (de musculación si lo hay). Una rutina sale una sola vez aunque el día
+  /// tenga varios bloques.
   List<(Rutina, DiaRutina)> _opcionesDelDia(int indice) {
-    final buscado = _normalizar(_nombresDia[indice]);
     return [
       for (final r in _controlador.obtenerParaEntrenar())
-        for (final d in r.dias)
-          if (_normalizar(d.diaSemana) == buscado && d.ejercicios.isNotEmpty)
-            (r, d),
+        if (_bloquesDelDia(r, indice) case final bloques when bloques.isNotEmpty)
+          (r, bloques.firstWhere((d) => !d.esFuncional, orElse: () => bloques.first)),
+    ];
+  }
+
+  List<DiaRutina> _bloquesDelDia(Rutina r, int indice) {
+    final buscado = _normalizar(_nombresDia[indice]);
+    return [
+      for (final d in r.dias)
+        if (_normalizar(d.diaSemana) == buscado && d.ejercicios.isNotEmpty) d,
     ];
   }
 
@@ -144,7 +157,13 @@ class _RutinasScreenState extends State<RutinasScreen> {
 
   Future<void> _abrirRutina(Rutina r) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => DetalleRutinaScreen(rutinaId: r.id)),
+      MaterialPageRoute(
+        // Con circuitos o bloques por tiempo se ve la semana con el botón
+        // para entrenar cada día con el temporizador.
+        builder: (_) => r.esFuncional
+            ? DetallePlanScreen(plan: r.plan, descripcion: r.descripcion)
+            : DetalleRutinaScreen(rutinaId: r.id),
+      ),
     );
     // Al volver puede haber registrado series o cambiado la rutina.
     if (mounted) setState(() {});
@@ -353,12 +372,21 @@ class _RutinasScreenState extends State<RutinasScreen> {
           _selectorRutina(opciones, elegida.$1),
           const SizedBox(height: AppEspaciado.sm + 4),
         ],
-        _tarjetaDia(elegida.$1, elegida.$2, fecha),
-        const SizedBox(height: AppEspaciado.lg),
-        _tituloEjercicios(fecha),
-        const SizedBox(height: AppEspaciado.sm + 4),
-        for (var i = 0; i < elegida.$2.ejercicios.length; i++)
-          _filaEjercicio(i + 1, elegida.$2.ejercicios[i], elegida.$1, fecha),
+        // Circuitos, HIIT, EMOM, AMRAP...: se entrenan con el temporizador.
+        if (_bloquesDelDia(elegida.$1, _dia).any((d) => d.esFuncional)) ...[
+          _tarjetaFuncional(elegida.$1, _bloquesDelDia(elegida.$1, _dia)),
+          const SizedBox(height: AppEspaciado.lg),
+        ],
+        // Musculación: series y marcas como siempre.
+        for (final d in _bloquesDelDia(elegida.$1, _dia).where((d) => !d.esFuncional)) ...[
+          _tarjetaDia(elegida.$1, d, fecha),
+          const SizedBox(height: AppEspaciado.lg),
+          _tituloEjercicios(fecha),
+          const SizedBox(height: AppEspaciado.sm + 4),
+          for (var i = 0; i < d.ejercicios.length; i++)
+            _filaEjercicio(i + 1, d.ejercicios[i], elegida.$1, fecha),
+          const SizedBox(height: AppEspaciado.md),
+        ],
       ],
       const SizedBox(height: AppEspaciado.sm),
       _avisoOtrasRutinas(hayActiva: activa != null),
@@ -524,6 +552,74 @@ class _RutinasScreenState extends State<RutinasScreen> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  /// Bloques por tiempo del día: resumen y botón para el temporizador.
+  Widget _tarjetaFuncional(Rutina r, List<DiaRutina> bloques) {
+    final dia = bloques.first.diaSemana;
+    final sesion = r.plan.sesiones.where((s) => s.dia == dia).firstOrNull;
+    return Container(
+      padding: const EdgeInsets.all(AppEspaciado.md + 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E3A5F),
+        borderRadius: BorderRadius.circular(AppEspaciado.radio + 6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Sesión del ${dia.toLowerCase()}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (sesion != null)
+            Text(
+              '${bloques.length} bloque(s) · ~${formatoDuracion(sesion.duracion)}',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.75)),
+            ),
+          const SizedBox(height: 10),
+          for (final b in bloques)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(Metodologia.de(b.tipo).icono, size: 18, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '${Metodologia.de(b.tipo).texto}'
+                      '${(b.nombre ?? '').isNotEmpty ? ' · ${b.nombre}' : ''}'
+                      ' · ${b.ejercicios.length} ejerc.',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF1E3A5F),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => EjecutarRutinaScreen(plan: r.plan, dia: dia),
+                ),
+              ),
+              icon: const Icon(Icons.timer_outlined),
+              label: const Text('Entrenar con temporizador'),
+            ),
+          ),
         ],
       ),
     );
@@ -1164,7 +1260,10 @@ class _RutinasScreenState extends State<RutinasScreen> {
         ))
           i,
     };
-    final minutos = r.dias.isEmpty
+    // Con bloques por tiempo manda la duración que calculó el gimnasio.
+    final minutos = r.esFuncional && (r.duracionSeg ?? 0) > 0
+        ? (r.duracionSeg! / 60).round()
+        : r.dias.isEmpty
         ? 0
         : (r.dias.map(_minutos).reduce((a, b) => a + b) / r.dias.length)
               .round();

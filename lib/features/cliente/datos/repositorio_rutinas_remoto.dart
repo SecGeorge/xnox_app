@@ -34,6 +34,8 @@ class RepositorioRutinasRemoto {
         'metodo': 'listar_sugeridas',
         'sucursal_id': await _sucursalId(),
         'miembro_id': await _miembroId(),
+        // Esta versión ya entiende circuitos, HIIT, EMOM, AMRAP y estaciones.
+        'incluir_funcionales': 1,
       }, 'rutinas.php');
       return _mapear(response);
     } catch (_) {
@@ -76,11 +78,22 @@ class RepositorioRutinasRemoto {
           descansoSeg: _entero(em['descanso_seg']) > 0
               ? _entero(em['descanso_seg'])
               : null,
+          trabajoSeg: _entero(em['trabajo_seg']) > 0
+              ? _entero(em['trabajo_seg'])
+              : null,
+          pesoKg: double.tryParse(em['peso_kg']?.toString() ?? ''),
         );
       }).toList();
       return DiaRutina(
         id: 0,
         diaSemana: dm['dia_semana']?.toString() ?? '',
+        tipo: _textoNullable(dm['tipo']) ?? 'MUSCULACION',
+        nombre: _textoNullable(dm['nombre']),
+        rondas: _entero(dm['rondas']) > 0 ? _entero(dm['rondas']) : 1,
+        descansoRondaSeg: _positivo(dm['descanso_ronda_seg']),
+        tiempoLimiteSeg: _positivo(dm['tiempo_limite_seg']),
+        intervaloSeg: _positivo(dm['intervalo_seg']),
+        descansoBloqueSeg: _positivo(dm['descanso_bloque_seg']),
         ejercicios: ejercicios,
       );
     }).toList();
@@ -93,6 +106,10 @@ class RepositorioRutinasRemoto {
       origen: OrigenRutina.admin,
       // Con miembro_id la rutina es solo para este cliente.
       personalizada: _entero(j['miembro_id']) > 0,
+      tipo: _textoNullable(j['tipo']) ?? 'MUSCULACION',
+      objetivo: _textoNullable(j['objetivo']),
+      nivel: _textoNullable(j['nivel']),
+      duracionSeg: _positivo(j['duracion_estimada_seg']),
       dias: dias,
     );
   }
@@ -106,6 +123,8 @@ class RepositorioRutinasRemoto {
     final limpia = r.replaceFirst(RegExp(r'^(\.{1,2}/)+'), '');
     return '${_http.rutaActual}$limpia';
   }
+
+  int? _positivo(dynamic v) => _entero(v) > 0 ? _entero(v) : null;
 
   int _entero(dynamic v) =>
       v == null ? 0 : (v is int ? v : int.tryParse(v.toString()) ?? 0);

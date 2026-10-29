@@ -73,6 +73,9 @@ class RepositorioRutinasAdmin {
     return _resultado(resp, 'No se pudo asignar la rutina');
   }
 
+  /// Copia completa de la rutina (mismo dueño, nombre con "(copia)").
+  Future<String?> duplicar(int id) => _estado('duplicar', id);
+
   Future<String?> anular(int id) => _estado('anular', id);
   Future<String?> activar(int id) => _estado('activar', id);
   Future<String?> eliminar(int id) => _estado('eliminar', id);

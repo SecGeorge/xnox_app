@@ -147,7 +147,7 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'XNOX-SOFT',
+                    'XCOUNT',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 32,
