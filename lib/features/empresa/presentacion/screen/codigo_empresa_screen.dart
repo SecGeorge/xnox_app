@@ -146,14 +146,11 @@ class _CodigoEmpresaScreenState extends State<CodigoEmpresaScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'XCOUNT',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: _azul,
-                    ),
+                  // El nombre de la app es su logo
+                  Image.asset(
+                    'assets/imagenes/marca/logo_xnet.png',
+                    height: 40,
+                    semanticLabel: 'XNET',
                   ),
                   const SizedBox(height: 8),
                   const Text(

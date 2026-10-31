@@ -92,6 +92,48 @@ class PlanBloque {
       ejercicios.where((e) => e.nombre.trim().isNotEmpty).toList();
 }
 
+/// Velocidad de ejecución de un ejercicio (saltos, spinning, sprints...).
+class Velocidad {
+  static const valores = ['LENTO', 'MODERADO', 'RAPIDO', 'EXPLOSIVO'];
+  static const _textos = {
+    'LENTO': 'Lento',
+    'MODERADO': 'Moderado',
+    'RAPIDO': 'Rápido',
+    'EXPLOSIVO': 'Explosivo',
+  };
+
+  static String texto(String? valor) => _textos[valor] ?? '';
+  static bool esValida(String? valor) =>
+      valor == null || valor.isEmpty || _textos.containsKey(valor);
+}
+
+/// Tempo de una repetición: segundos al bajar y al subir (ej. 5 y 1).
+class Tempo {
+  /// Máximo de segundos por fase, igual que en el web y el backend.
+  static const maximo = 30;
+
+  /// "↓5 s ↑1 s" (vacío sin tempo).
+  static String corto(int? bajaSeg, int? subeSeg) => [
+    if ((bajaSeg ?? 0) > 0) '↓$bajaSeg s',
+    if ((subeSeg ?? 0) > 0) '↑$subeSeg s',
+  ].join(' ');
+
+  /// "Baja en 5 s · sube en 1 s" (vacío sin tempo).
+  static String largo(int? bajaSeg, int? subeSeg) {
+    final t = [
+      if ((bajaSeg ?? 0) > 0) 'baja en $bajaSeg s',
+      if ((subeSeg ?? 0) > 0) 'sube en $subeSeg s',
+    ].join(' · ');
+    return t.isEmpty ? t : t[0].toUpperCase() + t.substring(1);
+  }
+
+  /// "↓5 s ↑1 s · Lento": tempo y velocidad juntos para una línea de detalle.
+  static String ritmo(int? bajaSeg, int? subeSeg, String? velocidad) => [
+    corto(bajaSeg, subeSeg),
+    Velocidad.texto(velocidad),
+  ].where((p) => p.isNotEmpty).join(' · ');
+}
+
 class PlanEjercicio {
   final String nombre;
   final int series;
@@ -99,6 +141,9 @@ class PlanEjercicio {
   final int? trabajoSeg;
   final double? pesoKg;
   final int? descansoSeg;
+  final int? tempoBajadaSeg;
+  final int? tempoSubidaSeg;
+  final String? velocidad;
   final String? observaciones;
   final String? imagenUrl;
 
@@ -109,16 +154,21 @@ class PlanEjercicio {
     this.trabajoSeg,
     this.pesoKg,
     this.descansoSeg,
+    this.tempoBajadaSeg,
+    this.tempoSubidaSeg,
+    this.velocidad,
     this.observaciones,
     this.imagenUrl,
   });
 
-  /// "10 reps · 30 s · 20 kg"
+  /// "10 reps · 30 s · 20 kg · ↓5 s ↑1 s · Lento"
   String medida({bool conTiempo = true}) {
+    final ritmo = Tempo.ritmo(tempoBajadaSeg, tempoSubidaSeg, velocidad);
     final partes = <String>[
       if (repeticiones > 0) '$repeticiones reps',
       if (conTiempo && (trabajoSeg ?? 0) > 0) '$trabajoSeg s',
       if ((pesoKg ?? 0) > 0) '${formatoKg(pesoKg!)} kg',
+      if (ritmo.isNotEmpty) ritmo,
     ];
     return partes.join(' · ');
   }
@@ -186,10 +236,23 @@ class MotorRutina {
   static const descansoSerieDefecto = 60;
   static const intervaloEmomDefecto = 60;
 
-  /// Tiempo de un paso de trabajo; por repeticiones se estima 3 s por rep.
+  /// Estimado de una repetición cuando no tiene tempo.
+  static const segundosPorRepDefecto = 3;
+
+  /// Duración de una repetición: bajada + subida si tiene tempo; si no, 3 s.
+  static int segundosPorRep(PlanEjercicio e) {
+    final tempo =
+        math.max<int>(0, e.tempoBajadaSeg ?? 0) +
+        math.max<int>(0, e.tempoSubidaSeg ?? 0);
+    return tempo > 0 ? tempo : segundosPorRepDefecto;
+  }
+
+  /// Tiempo de un paso de trabajo; por repeticiones se estima con el tempo.
   static int trabajoEstimado(PlanEjercicio e) {
     if ((e.trabajoSeg ?? 0) > 0) return e.trabajoSeg!;
-    if (e.repeticiones > 0) return math.max(20, e.repeticiones * 3);
+    if (e.repeticiones > 0) {
+      return math.max(20, e.repeticiones * segundosPorRep(e));
+    }
     return 30;
   }
 
@@ -441,6 +504,13 @@ class MotorRutina {
       for (final e in b.ejerciciosValidos) {
         if ((e.trabajoSeg ?? 0) > 3600 || (e.descansoSeg ?? 0) > 3600) {
           return '${e.nombre}: los tiempos no pueden pasar de 60 minutos';
+        }
+        if ((e.tempoBajadaSeg ?? 0) > Tempo.maximo ||
+            (e.tempoSubidaSeg ?? 0) > Tempo.maximo) {
+          return '${e.nombre}: el tempo de bajada o subida no puede pasar de ${Tempo.maximo} segundos';
+        }
+        if (!Velocidad.esValida(e.velocidad)) {
+          return '${e.nombre}: velocidad no válida';
         }
         if (m.esSeries) continue;
         if (m.trabajoObligatorio && (e.trabajoSeg ?? 0) <= 0) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
@@ -197,6 +198,10 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                 ],
                 const SizedBox(height: AppEspaciado.md),
                 _datos(e, hoy),
+                if (e.tieneRitmo) ...[
+                  const SizedBox(height: AppEspaciado.sm + 2),
+                  _ritmo(e),
+                ],
                 const SizedBox(height: AppEspaciado.sm + 4),
                 TemporizadorDescanso(
                   ejercicioId: e.id,
@@ -451,6 +456,188 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                 height: 1.4,
                 color: AppColores.textoPrincipal,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Tempo de cada repetición y velocidad que fijó el gimnasio.
+  Widget _ritmo(Ejercicio e) {
+    final baja = e.tempoBajadaSeg ?? 0;
+    final sube = e.tempoSubidaSeg ?? 0;
+    final porRep = baja + sube;
+    final nivel = Velocidad.valores.indexOf(e.velocidad ?? '') + 1;
+    const etiqueta = TextStyle(fontSize: 12, color: AppColores.textoSecundario);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColores.superficie,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Ritmo de cada repetición', style: etiqueta),
+              ),
+              if (nivel > 0) _velocidad(nivel),
+            ],
+          ),
+          if (porRep > 0) ...[
+            const SizedBox(height: 12),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _fase(Icons.south_rounded, 'Baja', baja, true),
+                  ),
+                  VerticalDivider(width: 20, color: AppColores.borde),
+                  Expanded(
+                    child: _fase(Icons.north_rounded, 'Sube', sube, false),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Cómo se reparte la repetición entre bajar y subir.
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: Row(
+                children: [
+                  if (baja > 0)
+                    Expanded(
+                      flex: baja,
+                      child: Container(height: 6, color: AppColores.primario),
+                    ),
+                  if (baja > 0 && sube > 0) const SizedBox(width: 3),
+                  if (sube > 0)
+                    Expanded(
+                      flex: sube,
+                      child: Container(
+                        height: 6,
+                        color: AppColores.primario.withValues(alpha: 0.35),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              e.repeticiones > 0
+                  ? '$porRep s por repetición · ${e.repeticiones} reps ≈ ${porRep * e.repeticiones} s por serie'
+                  : '$porRep s por repetición',
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: AppColores.textoSecundario,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Una fase del tempo: flecha, nombre y segundos en grande.
+  Widget _fase(IconData icono, String nombre, int segundos, bool principal) {
+    final color = principal
+        ? AppColores.primario
+        : AppColores.primario.withValues(alpha: 0.55);
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: AppColores.primario.withValues(alpha: principal ? 0.12 : 0.06),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icono, size: 20, color: color),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              nombre,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColores.textoSecundario,
+              ),
+            ),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: segundos > 0 ? '$segundos' : '--',
+                    style: TextStyle(
+                      fontSize: 22,
+                      height: 1.2,
+                      fontWeight: FontWeight.w800,
+                      color: AppColores.textoPrincipal,
+                    ),
+                  ),
+                  if (segundos > 0)
+                    const TextSpan(
+                      text: ' s',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColores.textoSecundario,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Velocidad con un medidor de 4 barras: lento, moderado, rápido, explosivo.
+  Widget _velocidad(int nivel) {
+    const colores = [
+      AppColores.verde,
+      AppColores.azul,
+      AppColores.naranja,
+      AppColores.error,
+    ];
+    final color = colores[nivel - 1];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          for (var i = 0; i < 4; i++) ...[
+            Container(
+              width: 4,
+              height: 6.0 + i * 3,
+              decoration: BoxDecoration(
+                color: i < nivel ? color : color.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 2),
+          ],
+          const SizedBox(width: 4),
+          Text(
+            Velocidad.texto(Velocidad.valores[nivel - 1]),
+            style: TextStyle(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w800,
+              color: color,
             ),
           ),
         ],

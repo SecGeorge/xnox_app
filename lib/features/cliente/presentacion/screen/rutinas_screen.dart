@@ -4,6 +4,8 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
+import 'package:xnox_app/features/rutinas_admin/dominio/fuente_rutina.dart';
+import 'package:xnox_app/features/rutinas_admin/presentacion/screen/form_rutina_admin_screen.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/presentacion/screen/detalle_plan_screen.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/presentacion/screen/ejecutar_rutina_screen.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/dia_rutina.dart';
@@ -130,10 +132,14 @@ class _RutinasScreenState extends State<RutinasScreen> {
       e.marcas.any((m) => _mismoDia(m.fecha, fecha));
 
   /// Duración estimada: unos 2,5 minutos por serie (incluye el descanso).
+  /// Duración del día con el mismo motor del web: series, descansos y el
+  /// tempo de cada repetición.
   int _minutos(DiaRutina d) {
-    final series = d.ejercicios.fold<int>(0, (s, e) => s + e.series);
-    final min = (series * 2.5 / 5).round() * 5;
-    return min < 10 ? 10 : min;
+    final seg = MotorRutina.duracionEstimada(
+      PlanRutina(nombre: '', bloques: [d.plan]),
+    );
+    final min = (seg / 60).round();
+    return min < 1 ? 1 : min;
   }
 
   Future<void> _abrirDia(Rutina r, DiaRutina d) async {
@@ -968,6 +974,28 @@ class _RutinasScreenState extends State<RutinasScreen> {
                           color: AppColores.textoSecundario,
                         ),
                       ),
+                      // Tempo y velocidad que pidió el gimnasio.
+                      if (e.tieneRitmo) ...[
+                        const SizedBox(height: 5),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            if (Tempo.corto(e.tempoBajadaSeg, e.tempoSubidaSeg)
+                                .isNotEmpty)
+                              _chipRitmo(
+                                Icons.swap_vert_rounded,
+                                Tempo.corto(e.tempoBajadaSeg, e.tempoSubidaSeg),
+                              ),
+                            if (Velocidad.texto(e.velocidad).isNotEmpty)
+                              _chipRitmo(
+                                Icons.speed_rounded,
+                                Velocidad.texto(e.velocidad),
+                                color: _colorVelocidad(e.velocidad),
+                              ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -997,6 +1025,41 @@ class _RutinasScreenState extends State<RutinasScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Lento verde, moderado azul, rápido naranja, explosivo rojo.
+  static Color? _colorVelocidad(String? v) => switch (v) {
+    'LENTO' => AppColores.verde,
+    'MODERADO' => AppColores.azul,
+    'RAPIDO' => AppColores.naranja,
+    'EXPLOSIVO' => AppColores.error,
+    _ => null,
+  };
+
+  Widget _chipRitmo(IconData icono, String texto, {Color? color}) {
+    final c = color ?? AppColores.primario;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(6, 3, 8, 3),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icono, size: 13, color: c),
+          const SizedBox(width: 4),
+          Text(
+            texto,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              color: c,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1332,6 +1395,25 @@ class _RutinasScreenState extends State<RutinasScreen> {
                     const Spacer(),
                     _botonElegir(r),
                     if (!r.esSugerida) ...[
+                      const SizedBox(width: 6),
+                      // Editar con el mismo editor del gimnasio (bloques,
+                      // tempo, velocidad...).
+                      GestureDetector(
+                        onTap: () => _abrirEditor(rutinaId: r.id),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 6),
                       GestureDetector(
                         onTap: () => _eliminarRutina(r),
@@ -1829,353 +1911,17 @@ class _RutinasScreenState extends State<RutinasScreen> {
     setState(() {});
   }
 
-  Future<void> _nuevaRutina() async {
-    final datos = await showModalBottomSheet<_NuevaRutina>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColores.superficie,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+  /// Crear (sin [rutinaId]) o editar una rutina propia con el mismo editor
+  /// que usa el gimnasio: días con bloques, metodología, tempo, velocidad...
+  Future<void> _abrirEditor({int? rutinaId}) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => FormRutinaAdminScreen(fuente: FuenteRutinaLocal(rutinaId: rutinaId)),
       ),
-      builder: (_) => const _HojaNuevaRutina(),
-    );
-    if (datos == null) return;
-
-    final id = await _controlador.crearRutina(datos.nombre, datos.descripcion);
-    // Los días elegidos se crean de una vez, en orden de lunes a domingo.
-    for (final i in datos.dias.toList()..sort()) {
-      await _controlador.agregarDia(id, _nombresDia[i]);
-    }
-    if (!mounted) return;
-    setState(() {});
-    // Abrir el detalle para que agregue los ejercicios de cada día.
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => DetalleRutinaScreen(rutinaId: id)),
     );
     if (!mounted) return;
     setState(() {});
   }
-}
 
-class _NuevaRutina {
-  final String nombre;
-  final String descripcion;
-  final Set<int> dias; // 0 = lunes
-
-  const _NuevaRutina(this.nombre, this.descripcion, this.dias);
-}
-
-/// Hoja para crear una rutina SEMANAL: nombre (con planes sugeridos que ya
-/// marcan sus días), los días de la semana en que se entrena y una nota.
-class _HojaNuevaRutina extends StatefulWidget {
-  const _HojaNuevaRutina();
-
-  @override
-  State<_HojaNuevaRutina> createState() => _HojaNuevaRutinaState();
-}
-
-class _HojaNuevaRutinaState extends State<_HojaNuevaRutina> {
-  final _nombre = TextEditingController();
-  final _descripcion = TextEditingController();
-  final Set<int> _dias = {};
-  String? _error;
-
-  static const _letras = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
-  /// Planes semanales comunes con sus días de entreno.
-  static const _planes = <(String, Set<int>)>[
-    ('Full body · 3 días', {0, 2, 4}),
-    ('Torso / Pierna · 4 días', {0, 1, 3, 4}),
-    ('Push · Pull · Legs', {0, 1, 2, 3, 4, 5}),
-    ('Hipertrofia · 5 días', {0, 1, 2, 4, 5}),
-  ];
-
-  @override
-  void dispose() {
-    _nombre.dispose();
-    _descripcion.dispose();
-    super.dispose();
-  }
-
-  void _elegirPlan((String, Set<int>) plan) {
-    setState(() {
-      _nombre.text = plan.$1;
-      _dias
-        ..clear()
-        ..addAll(plan.$2);
-      _error = null;
-    });
-  }
-
-  void _crear() {
-    final nombre = _nombre.text.trim();
-    if (nombre.isEmpty) {
-      setState(() => _error = 'Ponle un nombre a tu rutina');
-      return;
-    }
-    if (_dias.isEmpty) {
-      setState(() => _error = 'Elige al menos un día de la semana');
-      return;
-    }
-    Navigator.pop(
-      context,
-      _NuevaRutina(nombre, _descripcion.text.trim(), {..._dias}),
-    );
-  }
-
-  Widget _etiqueta(String texto) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 2),
-    child: Text(
-      texto.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 11.5,
-        letterSpacing: 1.2,
-        fontWeight: FontWeight.w700,
-        color: AppColores.textoSecundario,
-      ),
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final teclado = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: teclado),
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            AppEspaciado.lg,
-            10,
-            AppEspaciado.lg,
-            AppEspaciado.lg,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColores.borde,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppEspaciado.md + 2),
-              Row(
-                children: [
-                  Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      gradient: AppColores.degradadoRelleno,
-                      border: AppColores.bordeCabecera,
-                      borderRadius: BorderRadius.circular(AppEspaciado.radioSm),
-                    ),
-                    child: Icon(
-                      Icons.calendar_view_week_rounded,
-                      color: AppColores.sobreRelleno,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Nueva rutina semanal',
-                          style: TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.w800,
-                            color: AppColores.textoPrincipal,
-                          ),
-                        ),
-                        const Text(
-                          'Elige tus días; luego armas los ejercicios',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: AppColores.textoSecundario,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppEspaciado.lg),
-              _etiqueta('Empieza con un plan'),
-              SizedBox(
-                height: 38,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _planes.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) {
-                    final plan = _planes[i];
-                    final activo = _nombre.text == plan.$1;
-                    return GestureDetector(
-                      onTap: () => _elegirPlan(plan),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: activo
-                              ? AppColores.primario
-                              : AppColores.primario.withValues(alpha: 0.06),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: activo
-                                ? AppColores.primario
-                                : AppColores.primario.withValues(alpha: 0.18),
-                          ),
-                        ),
-                        child: Text(
-                          plan.$1,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: activo ? Colors.white : AppColores.primario,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: AppEspaciado.md + 2),
-              _etiqueta('Nombre'),
-              TextField(
-                controller: _nombre,
-                textCapitalization: TextCapitalization.sentences,
-                onChanged: (_) => setState(() => _error = null),
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColores.textoPrincipal,
-                ),
-                decoration: const InputDecoration(
-                  hintText: 'Ej. Mi plan de fuerza',
-                  prefixIcon: Icon(Icons.edit_note_rounded),
-                ),
-              ),
-              const SizedBox(height: AppEspaciado.md + 2),
-              Row(
-                children: [
-                  Expanded(child: _etiqueta('Días que entrenas')),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      _dias.isEmpty
-                          ? 'Ninguno'
-                          : '${_dias.length} ${_dias.length == 1 ? 'día' : 'días'} por semana',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColores.primario,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  for (var i = 0; i < 7; i++) ...[
-                    if (i > 0) const SizedBox(width: 6),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() {
-                          _dias.contains(i) ? _dias.remove(i) : _dias.add(i);
-                          _error = null;
-                        }),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          height: 44,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            gradient: _dias.contains(i)
-                                ? AppColores.degradadoRelleno
-                                : null,
-                            color: _dias.contains(i) ? null : AppColores.fondo,
-                            borderRadius: BorderRadius.circular(
-                              AppEspaciado.radioSm,
-                            ),
-                            border: _dias.contains(i)
-                                ? AppColores.bordeCabecera
-                                : Border.all(color: AppColores.borde),
-                          ),
-                          child: Text(
-                            _letras[i],
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: _dias.contains(i)
-                                  ? AppColores.sobreRelleno
-                                  : AppColores.textoSecundario,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Los días que no marques quedan como descanso.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColores.textoSecundario,
-                ),
-              ),
-              const SizedBox(height: AppEspaciado.md + 2),
-              _etiqueta('Nota (opcional)'),
-              TextField(
-                controller: _descripcion,
-                textCapitalization: TextCapitalization.sentences,
-                maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Objetivo, cómo calentar, recordatorios…',
-                ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: AppEspaciado.sm + 2),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      size: 17,
-                      color: AppColores.moroso,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _error!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColores.moroso,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: AppEspaciado.lg),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: _crear,
-                  icon: const Icon(Icons.arrow_forward_rounded),
-                  label: const Text('Crear y armar ejercicios'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  Future<void> _nuevaRutina() => _abrirEditor();
 }

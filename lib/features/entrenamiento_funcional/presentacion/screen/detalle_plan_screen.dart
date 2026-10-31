@@ -194,6 +194,8 @@ class DetallePlanScreen extends StatelessWidget {
       if ((e.pesoKg ?? 0) > 0) '${PlanEjercicio.formatoKg(e.pesoKg!)} kg',
       if (m.usa(CampoMetodologia.descanso) && (e.descansoSeg ?? 0) > 0)
         'desc. ${e.descansoSeg} s',
+      if (Tempo.ritmo(e.tempoBajadaSeg, e.tempoSubidaSeg, e.velocidad).isNotEmpty)
+        Tempo.ritmo(e.tempoBajadaSeg, e.tempoSubidaSeg, e.velocidad),
     ];
     return partes.join(' · ');
   }

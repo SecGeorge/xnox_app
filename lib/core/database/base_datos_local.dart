@@ -12,7 +12,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 18;
+  static const _version = 19;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -303,6 +303,22 @@ class BaseDatosLocal {
         }
       }
     }
+    if (desde < 19) {
+      // v19: tempo de cada repetición (segundos al bajar y al subir) y
+      // velocidad de ejecución (lento, rápido...) del ejercicio.
+      const columnas = {
+        'tempo_bajada_seg': 'INTEGER',
+        'tempo_subida_seg': 'INTEGER',
+        'velocidad': 'TEXT',
+      };
+      for (final c in columnas.entries) {
+        if (!await _existeColumna(db, 'ejercicio', c.key)) {
+          await db.execute(
+            'ALTER TABLE ejercicio ADD COLUMN ${c.key} ${c.value}',
+          );
+        }
+      }
+    }
   }
 
   /// Valor de partida para las filas que ya existían: mientras un gimnasio no
@@ -474,6 +490,9 @@ class BaseDatosLocal {
         descanso_seg INTEGER,
         trabajo_seg INTEGER,
         peso_kg REAL,
+        tempo_bajada_seg INTEGER,
+        tempo_subida_seg INTEGER,
+        velocidad TEXT,
         nombre TEXT NOT NULL,
         series INTEGER NOT NULL DEFAULT 0,
         repeticiones INTEGER NOT NULL DEFAULT 0,

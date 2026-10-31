@@ -5,6 +5,9 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xnox_app/core/servicios/voz_entrenamiento.dart';
+import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/dialogo_salir_entrenamiento.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 
@@ -41,7 +44,6 @@ class _Alertas {
 class _Sonidos {
   _Sonidos._();
 
-  static final _tic = AudioPlayer(playerId: 'funcional_tic');
   static final _fin = AudioPlayer(playerId: 'funcional_fin');
   static Future<void>? _preparando;
 
@@ -58,11 +60,9 @@ class _Sonidos {
           options: const {AVAudioSessionOptions.duckOthers},
         ),
       );
-      for (final p in [_tic, _fin]) {
-        await p.setAudioContext(contexto);
-        await p.setPlayerMode(PlayerMode.lowLatency);
-        await p.setReleaseMode(ReleaseMode.stop);
-      }
+      await _fin.setAudioContext(contexto);
+      await _fin.setPlayerMode(PlayerMode.lowLatency);
+      await _fin.setReleaseMode(ReleaseMode.stop);
     } catch (e) {
       debugPrint('[FUNCIONAL] no se pudo preparar el sonido: $e');
     }
@@ -77,7 +77,6 @@ class _Sonidos {
     }
   }
 
-  static Future<void> tic() => _sonar(_tic, 'sonidos/tic.wav');
   static Future<void> cambio() => _sonar(_fin, 'sonidos/descanso_fin.wav');
 }
 
@@ -199,7 +198,15 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
     final quedan = (p.duracion! - _transcurridoPaso).ceil();
     if (quedan != _ultimoSegundoAvisado && quedan > 0 && quedan <= 3) {
       _ultimoSegundoAvisado = quedan;
-      if (_alertas.sonido && _alertas.cuentaRegresiva) _Sonidos.tic();
+      if (_alertas.sonido && _alertas.cuentaRegresiva) {
+        final siguiente = _indice + 1 < _pasos.length ? _pasos[_indice + 1] : null;
+        final numero = VozEntrenamiento.numeroTexto(quedan);
+        VozEntrenamiento.instancia.decir(
+          quedan == 1 && siguiente != null
+              ? '$numero, ${siguiente.esDescanso ? 'descanso' : 'empecemos'}'
+              : numero,
+        );
+      }
       if (_alertas.vibracion) HapticFeedback.selectionClick();
     }
     if (_transcurridoPaso >= p.duracion!) _avanzar(_Resultado.hecho);
@@ -207,6 +214,10 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
 
   // ------------------------------------------------------ Navegación
   void _avanzar(_Resultado r) {
+    // Si la cuenta regresiva llegó a "uno" ya avisó "...uno,
+    // empecemos/descanso"; si se saltó antes de los últimos 3 segundos (o no
+    // tenía reloj), no sonó y hay que avisar el cambio igual.
+    final yaContado = _ultimoSegundoAvisado == 1;
     if (_resultados.length > _indice) {
       _resultados[_indice] = r;
     } else {
@@ -221,7 +232,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
       _transcurridoPaso = 0;
       _ultimoSegundoAvisado = null;
     });
-    _anunciar();
+    _anunciar(conVoz: !yaContado);
   }
 
   void _anterior() {
@@ -264,7 +275,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
     });
   }
 
-  void _anunciar() {
+  void _anunciar({bool conVoz = true}) {
     final p = _paso;
     if (p == null) return;
     if (_alertas.destello) {
@@ -273,7 +284,15 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
         if (mounted) setState(() => _destello = false);
       });
     }
-    if (_alertas.sonido) _Sonidos.cambio();
+    if (_alertas.sonido) {
+      _Sonidos.cambio();
+      // Si venía de una cuenta regresiva ("...uno, descanso/empecemos") no se
+      // repite: solo avisa cuando el cambio fue manual (Saltar, Anterior, un
+      // paso sin reloj) y no hubo cuenta.
+      if (conVoz && p.esDescanso) {
+        VozEntrenamiento.instancia.decir('Tiempo de recuperación');
+      }
+    }
     if (_alertas.vibracion) {
       p.esDescanso ? HapticFeedback.mediumImpact() : HapticFeedback.heavyImpact();
     }
@@ -281,24 +300,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
 
   Future<bool> _confirmarSalida() async {
     if (_estado == _Estado.listo || _estado == _Estado.terminado) return true;
-    final r = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('¿Salir del entrenamiento?'),
-        content: const Text('Se perderá el avance de esta sesión.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Seguir'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Salir'),
-          ),
-        ],
-      ),
-    );
-    return r ?? false;
+    return confirmarSalirEntrenamiento(context);
   }
 
   // ------------------------------------------------------------ Resumen
@@ -345,16 +347,22 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
     return ((hecho + actual) / total).clamp(0, 1).toDouble();
   }
 
+  /// Acento de la fase actual: azul para descanso, navy para trabajo (y
+  /// mientras no ha arrancado o ya terminó). Tiñe apenas el fondo y colorea
+  /// el anillo, los chips y la etiqueta para que se note el cambio de fase
+  /// sin salirse de la paleta azul marino y blanco de la app.
+  Color get _acento =>
+      (_paso?.esDescanso ?? false) ? AppColores.azul : AppColores.primario;
+
   // ---------------------------------------------------------------- UI
   @override
   Widget build(BuildContext context) {
     final p = _paso;
-    final descanso = p?.esDescanso ?? false;
-    final fondo = _estado == _Estado.terminado
-        ? const Color(0xFF1E3A5F)
-        : descanso
-        ? const Color(0xFF334155)
-        : Color.lerp(const Color(0xFF1E3A5F), _m.color, 0.55)!;
+    final acento = _acento;
+    final fondoFase = Color.alphaBlend(
+      acento.withValues(alpha: 0.05),
+      AppColores.fondo,
+    );
 
     return PopScope(
       canPop: false,
@@ -363,21 +371,23 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
         if (await _confirmarSalida() && context.mounted) Navigator.pop(context);
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 350),
-        color: _destello ? Color.lerp(fondo, Colors.white, 0.35) : fondo,
+        duration: const Duration(milliseconds: 250),
+        color: _destello
+            ? Color.alphaBlend(acento.withValues(alpha: 0.14), AppColores.fondo)
+            : fondoFase,
         child: Scaffold(
           backgroundColor: Colors.transparent,
           body: SafeArea(
             child: DefaultTextStyle(
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: AppColores.textoPrincipal),
               child: Column(
                 children: [
                   _barra(p),
                   LinearProgressIndicator(
                     value: _progresoTotal,
-                    minHeight: 5,
-                    color: Colors.white,
-                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    minHeight: 4,
+                    color: AppColores.primario,
+                    backgroundColor: AppColores.borde,
                   ),
                   Expanded(child: _cuerpo(p)),
                 ],
@@ -389,12 +399,15 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
     );
   }
 
-  Widget _barra(PasoRutina? p) => Padding(
+  Widget _barra(PasoRutina? p) => Container(
     padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+    decoration: BoxDecoration(
+      border: Border(bottom: BorderSide(color: AppColores.borde)),
+    ),
     child: Row(
       children: [
         IconButton(
-          icon: const Icon(Icons.close_rounded, color: Colors.white),
+          icon: Icon(Icons.close_rounded, color: AppColores.textoPrincipal),
           onPressed: () async {
             if (await _confirmarSalida() && mounted) Navigator.pop(context);
           },
@@ -407,7 +420,11 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
                 widget.plan.nombre,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: AppColores.textoPrincipal,
+                ),
               ),
               Text(
                 [
@@ -416,26 +433,30 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
                 ].join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.75),
+                  color: AppColores.textoSecundario,
                 ),
               ),
             ],
           ),
         ),
-        Icon(Icons.schedule_rounded, size: 16, color: Colors.white.withValues(alpha: 0.85)),
+        Icon(Icons.schedule_rounded, size: 16, color: AppColores.primario),
         const SizedBox(width: 4),
         Text(
           formatoReloj(_tiempoActivo),
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w700,
-            fontFeatures: [FontFeature.tabularFigures()],
+            color: AppColores.textoPrincipal,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
         IconButton(
           tooltip: 'Alertas',
-          icon: const Icon(Icons.notifications_active_outlined, color: Colors.white),
+          icon: Icon(
+            Icons.notifications_active_outlined,
+            color: AppColores.primario,
+          ),
           onPressed: _abrirAlertas,
         ),
       ],
@@ -445,10 +466,18 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
   Future<void> _abrirAlertas() async {
     await showModalBottomSheet<void>(
       context: context,
+      backgroundColor: AppColores.superficie,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (c) => StatefulBuilder(
         builder: (c, set) {
           Widget sw(String t, bool v, void Function(bool) f) => SwitchListTile(
-            title: Text(t),
+            title: Text(
+              t,
+              style: TextStyle(color: AppColores.textoPrincipal),
+            ),
+            activeThumbColor: AppColores.primario,
             value: v,
             onChanged: (x) {
               set(() => f(x));
@@ -460,14 +489,21 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const ListTile(
+                ListTile(
                   title: Text(
                     'Alertas',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: AppColores.textoPrincipal,
+                    ),
                   ),
                 ),
                 sw('Sonido al cambiar', _alertas.sonido, (x) => _alertas.sonido = x),
-                sw('Cuenta 3-2-1', _alertas.cuentaRegresiva, (x) => _alertas.cuentaRegresiva = x),
+                sw(
+                  'Voz: cuenta 3-2-1',
+                  _alertas.cuentaRegresiva,
+                  (x) => _alertas.cuentaRegresiva = x,
+                ),
                 sw('Vibración', _alertas.vibracion, (x) => _alertas.vibracion = x),
                 sw('Destello en pantalla', _alertas.destello, (x) => _alertas.destello = x),
               ],
@@ -499,10 +535,11 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
                   const SizedBox(height: 14),
                   Text(
                     _etiquetaFase(p),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1,
+                      color: _acento,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -533,13 +570,17 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
   }
 
   Widget _indicadores(PasoRutina p) {
+    final acento = _acento;
     Widget chip(String t) => Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: acento.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(t, style: const TextStyle(fontWeight: FontWeight.w700)),
+      child: Text(
+        t,
+        style: TextStyle(fontWeight: FontWeight.w700, color: acento),
+      ),
     );
     final ronda = _m.etiquetaRondas == 'Vueltas' ? 'Vuelta' : 'Ronda';
     final chips = <Widget>[
@@ -566,10 +607,10 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: i < p.indice || (i == p.indice && p.esDescanso)
-                        ? Colors.white.withValues(alpha: 0.85)
+                        ? acento.withValues(alpha: 0.55)
                         : i == p.indice
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.25),
+                        ? acento
+                        : AppColores.borde,
                   ),
                 ),
             ],
@@ -580,6 +621,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
   }
 
   Widget _anillo(PasoRutina p, double tam) {
+    final acento = _acento;
     final restante = p.duracion == null
         ? null
         : math.max(0, p.duracion! - _transcurridoPaso);
@@ -597,8 +639,8 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
               value: 1 - avance,
               strokeWidth: 12,
               strokeCap: StrokeCap.round,
-              color: Colors.white,
-              backgroundColor: Colors.white.withValues(alpha: 0.15),
+              color: acento,
+              backgroundColor: acento.withValues(alpha: 0.12),
             ),
           ),
           Column(
@@ -612,6 +654,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
                   fontSize: tam * 0.26,
                   fontWeight: FontWeight.w900,
                   height: 1,
+                  color: AppColores.textoPrincipal,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -620,7 +663,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     'a tu ritmo',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+                    style: const TextStyle(color: AppColores.textoSecundario),
                   ),
                 ),
             ],
@@ -635,14 +678,24 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
     child: Container(
       width: tam,
       height: tam,
-      color: Colors.white.withValues(alpha: 0.1),
+      decoration: BoxDecoration(
+        color: AppColores.superficie,
+        border: Border.all(color: AppColores.borde),
+      ),
       child: (url ?? '').isEmpty
-          ? Icon(icono ?? _m.icono, size: tam * 0.45, color: Colors.white54)
+          ? Icon(
+              icono ?? _m.icono,
+              size: tam * 0.45,
+              color: AppColores.primario.withValues(alpha: 0.5),
+            )
           : Image.network(
               url!,
               fit: BoxFit.cover,
-              errorBuilder: (_, _, _) =>
-                  Icon(icono ?? _m.icono, size: tam * 0.45, color: Colors.white54),
+              errorBuilder: (_, _, _) => Icon(
+                icono ?? _m.icono,
+                size: tam * 0.45,
+                color: AppColores.primario.withValues(alpha: 0.5),
+              ),
             ),
     ),
   );
@@ -653,9 +706,17 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
         children: [
           Text(
             '${_rondasAmrap[p.bloque] ?? 0}',
-            style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, height: 1),
+            style: TextStyle(
+              fontSize: 56,
+              fontWeight: FontWeight.w900,
+              height: 1,
+              color: AppColores.textoPrincipal,
+            ),
           ),
-          const Text('rondas completas'),
+          const Text(
+            'rondas completas',
+            style: TextStyle(color: AppColores.textoSecundario),
+          ),
           const SizedBox(height: 14),
           for (final e in p.ejercicios)
             Padding(
@@ -668,11 +729,20 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
                     width: 72,
                     child: Text(
                       e.medida(),
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        color: AppColores.primario,
+                      ),
                     ),
                   ),
                   Expanded(
-                    child: Text(e.nombre, style: const TextStyle(fontSize: 17)),
+                    child: Text(
+                      e.nombre,
+                      style: TextStyle(
+                        fontSize: 17,
+                        color: AppColores.textoPrincipal,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -684,22 +754,34 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
       final sig = p.siguiente;
       return Column(
         children: [
-          const Text(
+          Text(
             'Descansa',
-            style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+              color: AppColores.textoPrincipal,
+            ),
           ),
           if (sig != null) ...[
             const SizedBox(height: 18),
-            Text('Sigue', style: TextStyle(color: Colors.white.withValues(alpha: 0.75))),
+            const Text('Sigue', style: TextStyle(color: AppColores.textoSecundario)),
             const SizedBox(height: 8),
             _imagen(sig.imagenUrl, 84),
             const SizedBox(height: 8),
             Text(
               sig.nombre,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppColores.textoPrincipal,
+              ),
             ),
-            if (sig.medida().isNotEmpty) Text(sig.medida()),
+            if (sig.medida().isNotEmpty)
+              Text(
+                sig.medida(),
+                style: const TextStyle(color: AppColores.textoSecundario),
+              ),
           ],
         ],
       );
@@ -714,12 +796,20 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
         Text(
           e.nombre,
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, height: 1.15),
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            height: 1.15,
+            color: AppColores.textoPrincipal,
+          ),
         ),
         if (medida.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 6),
-            child: Text(medida, style: const TextStyle(fontSize: 18)),
+            child: Text(
+              medida,
+              style: TextStyle(fontSize: 18, color: AppColores.primario),
+            ),
           ),
         if ((e.observaciones ?? '').isNotEmpty)
           Padding(
@@ -727,7 +817,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
             child: Text(
               e.observaciones!,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
+              style: const TextStyle(color: AppColores.textoSecundario),
             ),
           ),
         if (despues != null)
@@ -735,7 +825,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
             padding: const EdgeInsets.only(top: 12),
             child: Text(
               'Después: ${despues.nombre}',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: const TextStyle(color: AppColores.textoSecundario),
             ),
           ),
       ],
@@ -753,8 +843,6 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
 
   Widget _controles(PasoRutina p) {
     final principal = ElevatedButton.styleFrom(
-      backgroundColor: Colors.white,
-      foregroundColor: const Color(0xFF1E3A5F),
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
       textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
@@ -770,20 +858,31 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
         ),
       );
     }
-    Widget redondo(IconData i, String t, VoidCallback? f) => Column(
-      children: [
-        IconButton.outlined(
-          onPressed: f,
-          iconSize: 26,
-          style: IconButton.styleFrom(
-            foregroundColor: Colors.white,
-            side: BorderSide(color: Colors.white.withValues(alpha: 0.6)),
+    Widget redondo(IconData i, String t, VoidCallback? f, {Color? color}) {
+      final tinta = color ?? _acento;
+      return Column(
+        children: [
+          IconButton.outlined(
+            onPressed: f,
+            iconSize: 26,
+            style: IconButton.styleFrom(
+              foregroundColor: tinta,
+              side: BorderSide(color: tinta.withValues(alpha: f == null ? 0.3 : 0.6)),
+              disabledForegroundColor: AppColores.textoSecundario.withValues(alpha: 0.4),
+            ),
+            icon: Icon(i),
           ),
-          icon: Icon(i),
-        ),
-        Text(t, style: const TextStyle(fontSize: 11)),
-      ],
-    );
+          Text(
+            t,
+            style: TextStyle(
+              fontSize: 11,
+              color: f == null ? AppColores.textoSecundario : AppColores.textoPrincipal,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       children: [
         if (p.fase == FasePaso.amrap || p.duracion == null)
@@ -818,8 +917,18 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
               _estado == _Estado.corriendo ? 'Pausar' : 'Continuar',
               _estado == _Estado.corriendo ? _pausar : _continuar,
             ),
-            redondo(Icons.skip_next_rounded, 'Saltar', () => _avanzar(_Resultado.saltado)),
-            redondo(Icons.stop_rounded, 'Finalizar', _terminar),
+            redondo(
+              Icons.skip_next_rounded,
+              'Saltar',
+              () => _avanzar(_Resultado.saltado),
+              color: AppColores.naranja,
+            ),
+            redondo(
+              Icons.stop_rounded,
+              'Finalizar',
+              _terminar,
+              color: AppColores.moroso,
+            ),
           ],
         ),
       ],
@@ -834,29 +943,56 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Text(
+            Text(
               '¿Qué día vas a entrenar?',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColores.textoPrincipal,
+              ),
             ),
             const SizedBox(height: 20),
             for (final s in sesiones)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Material(
-                  color: Colors.white.withValues(alpha: s.dia == hoy ? 0.22 : 0.1),
+                  color: s.dia == hoy
+                      ? AppColores.primario.withValues(alpha: 0.10)
+                      : AppColores.superficie,
                   borderRadius: BorderRadius.circular(14),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(14),
                     onTap: () => setState(() => _elegirSesion(s)),
-                    title: Text(
-                      s.dia == hoy ? '${s.etiqueta} · hoy' : s.etiqueta,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: s.dia == hoy
+                              ? AppColores.primario.withValues(alpha: 0.4)
+                              : AppColores.borde,
+                        ),
+                      ),
+                      child: ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        title: Text(
+                          s.dia == hoy ? '${s.etiqueta} · hoy' : s.etiqueta,
+                          style: TextStyle(
+                            color: AppColores.textoPrincipal,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${s.bloques.map((b) => b.metodologia.texto).join(' + ')} · ~${formatoDuracion(s.duracion)}',
+                          style: const TextStyle(color: AppColores.textoSecundario),
+                        ),
+                        trailing: Icon(
+                          Icons.play_arrow_rounded,
+                          color: AppColores.primario,
+                        ),
+                      ),
                     ),
-                    subtitle: Text(
-                      '${s.bloques.map((b) => b.metodologia.texto).join(' + ')} · ~${formatoDuracion(s.duracion)}',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.75)),
-                    ),
-                    trailing: const Icon(Icons.play_arrow_rounded, color: Colors.white),
                   ),
                 ),
               ),
@@ -879,14 +1015,30 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
     Widget dato(String v, String t) => Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: AppColores.superficie,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColores.borde),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(v, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
-          Text(t, style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
+          Text(
+            v,
+            style: TextStyle(
+              fontSize: 26,
+              height: 1.1,
+              fontWeight: FontWeight.w900,
+              color: AppColores.textoPrincipal,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            t,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 13, color: AppColores.textoSecundario),
+          ),
         ],
       ),
     );
@@ -895,29 +1047,42 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
       child: Column(
         children: [
           const SizedBox(height: 12),
-          const Icon(Icons.emoji_events_outlined, size: 72, color: Colors.white),
+          Icon(Icons.emoji_events_outlined, size: 72, color: AppColores.primario),
           const SizedBox(height: 8),
           Text(
             _completo ? '¡Rutina completada!' : 'Entrenamiento finalizado',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              color: AppColores.textoPrincipal,
+            ),
           ),
           const SizedBox(height: 24),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.9,
-            children: [
-              dato(formatoReloj(_tiempoActivo), 'duración real'),
-              dato(formatoReloj(_tiempoTotal.inSeconds), 'con pausas'),
-              dato('${r.ejercicios}', unica == FormaMetodologia.series ? 'series hechas' : 'ejercicios / series hechos'),
-              dato('${r.rondas}', etiquetaRondas),
-              if (r.saltados > 0) dato('${r.saltados}', 'saltados'),
-              dato(formatoReloj(MotorRutina.sumar(_pasos)), 'estimado'),
-            ],
+          LayoutBuilder(
+            builder: (context, c) {
+              final anchoCelda = (c.maxWidth - 12) / 2;
+              Widget celda(Widget hijo) => SizedBox(width: anchoCelda, child: hijo);
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  celda(dato(formatoReloj(_tiempoActivo), 'duración real')),
+                  celda(dato(formatoReloj(_tiempoTotal.inSeconds), 'con pausas')),
+                  celda(
+                    dato(
+                      '${r.ejercicios}',
+                      unica == FormaMetodologia.series
+                          ? 'series hechas'
+                          : 'ejercicios / series hechos',
+                    ),
+                  ),
+                  celda(dato('${r.rondas}', etiquetaRondas)),
+                  if (r.saltados > 0) celda(dato('${r.saltados}', 'saltados')),
+                  celda(dato(formatoReloj(MotorRutina.sumar(_pasos)), 'estimado')),
+                ],
+              );
+            },
           ),
           const SizedBox(height: 28),
           Row(
@@ -925,8 +1090,8 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white70),
+                    foregroundColor: AppColores.primario,
+                    side: BorderSide(color: AppColores.primario),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: _reiniciar,
@@ -938,8 +1103,6 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF1E3A5F),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () => Navigator.pop(context),

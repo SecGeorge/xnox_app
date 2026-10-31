@@ -126,4 +126,67 @@ void main() {
       'Martes-MUSCULACION',
     ]);
   });
+
+  // Mismo caso que el PHP y el web: 3 x (10 reps x (5 + 1) s + 60) - 60 = 300.
+  test('el tempo (baja 5 s, sube 1 s) cuenta en la duración', () {
+    const sentadilla = PlanEjercicio(
+      nombre: 'Sentadilla lenta',
+      series: 3,
+      repeticiones: 10,
+      descansoSeg: 60,
+      tempoBajadaSeg: 5,
+      tempoSubidaSeg: 1,
+      velocidad: 'LENTO',
+    );
+    final plan = PlanRutina(nombre: 'x', bloques: [
+      PlanBloque(tipo: 'MUSCULACION', diaSemana: 'Lunes', ejercicios: [sentadilla]),
+    ]);
+    expect(MotorRutina.segundosPorRep(sentadilla), 6);
+    expect(MotorRutina.duracionEstimada(plan), 300);
+    // Sin tempo sigue siendo 3 s por repetición.
+    expect(MotorRutina.segundosPorRep(ej('Remo', r: 10, s: 3)), 3);
+    expect(sentadilla.medida(), '10 reps · ↓5 s ↑1 s · Lento');
+    expect(Tempo.largo(5, 1), 'Baja en 5 s · sube en 1 s');
+    expect(Tempo.ritmo(null, null, 'RAPIDO'), 'Rápido');
+    expect(Tempo.ritmo(null, null, null), '');
+  });
+
+  test('validaciones de tempo y velocidad como en el backend', () {
+    PlanRutina con(PlanEjercicio e) =>
+        PlanRutina(nombre: 'x', bloques: [PlanBloque(tipo: 'MUSCULACION', ejercicios: [e])]);
+    expect(
+      MotorRutina.validar(con(const PlanEjercicio(nombre: 'X', series: 3, repeticiones: 10, tempoBajadaSeg: 45))),
+      contains('tempo'),
+    );
+    expect(
+      MotorRutina.validar(con(const PlanEjercicio(nombre: 'X', series: 3, repeticiones: 10, velocidad: 'TURBO'))),
+      contains('velocidad'),
+    );
+    expect(
+      MotorRutina.validar(con(const PlanEjercicio(
+          nombre: 'X', series: 3, repeticiones: 10, tempoBajadaSeg: 5, tempoSubidaSeg: 1, velocidad: 'EXPLOSIVO'))),
+      isNull,
+    );
+  });
+
+  test('el entrenador envía y recibe el tempo y la velocidad', () {
+    final e = EjercicioAdmin(
+      nombre: 'Saltos',
+      series: 3,
+      repeticiones: 12,
+      tempoBajadaSeg: 2,
+      tempoSubidaSeg: 1,
+      velocidad: 'RAPIDO',
+    );
+    final json = e.toJson(0);
+    expect(json['tempo_bajada_seg'], 2);
+    expect(json['tempo_subida_seg'], 1);
+    expect(json['velocidad'], 'RAPIDO');
+    final leido = EjercicioAdmin.fromJson(json);
+    expect(leido.tempoBajadaSeg, 2);
+    expect(leido.plan.velocidad, 'RAPIDO');
+    expect(leido.copia().tempoSubidaSeg, 1);
+    // Sin tempo no se manda nada.
+    expect(EjercicioAdmin(nombre: 'Remo').toJson(0).containsKey('tempo_bajada_seg'), isFalse);
+  });
 }

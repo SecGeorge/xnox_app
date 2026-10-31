@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xnox_app/core/servicios/servicio_alarma_descanso.dart';
+import 'package:xnox_app/core/servicios/voz_entrenamiento.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/dialogo_permiso_alarma.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/hoja_numero.dart';
@@ -27,7 +28,6 @@ class ControlDescanso {
 class _Sonidos {
   _Sonidos._();
 
-  static final _tic = AudioPlayer(playerId: 'descanso_tic');
   static final _fin = AudioPlayer(playerId: 'descanso_fin');
   static Future<void>? _preparando;
 
@@ -45,12 +45,9 @@ class _Sonidos {
 
   static Future<void> _preparar() => _preparando ??= () async {
     try {
-      for (final p in [_tic, _fin]) {
-        await p.setAudioContext(_contexto);
-        await p.setPlayerMode(PlayerMode.lowLatency);
-        await p.setReleaseMode(ReleaseMode.stop);
-      }
-      await _tic.setSource(AssetSource('sonidos/tic.wav'));
+      await _fin.setAudioContext(_contexto);
+      await _fin.setPlayerMode(PlayerMode.lowLatency);
+      await _fin.setReleaseMode(ReleaseMode.stop);
       await _fin.setSource(AssetSource('sonidos/descanso_fin.wav'));
     } catch (e) {
       debugPrint('[DESCANSO] no se pudo preparar el sonido: $e');
@@ -68,7 +65,6 @@ class _Sonidos {
     }
   }
 
-  static Future<void> tic() => _sonar(_tic, 'sonidos/tic.wav');
   static Future<void> fin() => _sonar(_fin, 'sonidos/descanso_fin.wav');
 }
 
@@ -283,6 +279,7 @@ class _TemporizadorDescansoState extends State<TemporizadorDescanso>
     setState(() => _restante = _segundos);
     _timer = Timer.periodic(const Duration(milliseconds: 250), (_) => _tic());
     _programarAlarma();
+    VozEntrenamiento.instancia.decir('Tiempo de recuperación');
   }
 
   /// Recalcula el restante contra la hora de fin.
@@ -297,8 +294,13 @@ class _TemporizadorDescansoState extends State<TemporizadorDescanso>
     }
     if (restante == _restante) return;
     setState(() => _restante = restante);
-    // Cuenta regresiva audible: 3, 2, 1.
-    if (restante <= 3 && _enPrimerPlano) _Sonidos.tic();
+    // Cuenta regresiva audible con voz: "tres", "dos", "uno, empecemos".
+    if (restante <= 3 && _enPrimerPlano) {
+      final numero = VozEntrenamiento.numeroTexto(restante);
+      VozEntrenamiento.instancia.decir(
+        restante == 1 ? '$numero, empecemos' : numero,
+      );
+    }
   }
 
   void _terminar() {

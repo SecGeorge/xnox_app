@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/dia_rutina.dart';
@@ -638,6 +639,21 @@ class _DiaRutinaScreenState extends State<DiaRutinaScreen> {
                               ],
                             ],
                           ),
+                          // Tempo y velocidad que pidió el gimnasio.
+                          if (e.tieneRitmo) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              Tempo.ritmo(
+                                e.tempoBajadaSeg,
+                                e.tempoSubidaSeg,
+                                e.velocidad,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                color: AppColores.textoSecundario,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

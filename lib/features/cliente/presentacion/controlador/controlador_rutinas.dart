@@ -1,5 +1,6 @@
 import 'package:xnox_app/features/cliente/datos/almacen_rutinas.dart';
 import 'package:xnox_app/features/cliente/datos/repositorio_rutinas_remoto.dart';
+import 'package:xnox_app/features/cliente/dominio/entidades/dia_rutina.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
 
@@ -57,6 +58,27 @@ class ControladorRutinas {
   // ------------------------------------------------ Mutaciones (solo cliente)
   Future<int> crearRutina(String nombre, String descripcion) =>
       _almacen.crearRutina(nombre, descripcion);
+
+  /// Crea o reemplaza una rutina propia armada en el editor de rutinas.
+  Future<int> guardarRutinaPropia({
+    int? id,
+    required String nombre,
+    required String descripcion,
+    String? objetivo,
+    String? nivel,
+    required String tipo,
+    int? duracionSeg,
+    required List<DiaRutina> dias,
+  }) => _almacen.guardarRutinaPropia(
+    id: id,
+    nombre: nombre,
+    descripcion: descripcion,
+    objetivo: objetivo,
+    nivel: nivel,
+    tipo: tipo,
+    duracionSeg: duracionSeg,
+    dias: dias,
+  );
 
   Future<void> editarRutina(int id, String nombre, String descripcion) =>
       _almacen.editarRutina(id, nombre, descripcion);

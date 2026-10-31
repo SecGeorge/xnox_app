@@ -31,6 +31,13 @@ class Ejercicio {
   /// Peso sugerido por el gimnasio (kg), si lo fijó.
   final double? pesoKg;
 
+  /// Tempo de cada repetición: segundos al bajar y al subir (ej. 5 y 1).
+  final int? tempoBajadaSeg;
+  final int? tempoSubidaSeg;
+
+  /// Ritmo de ejecución: LENTO, MODERADO, RAPIDO o EXPLOSIVO.
+  final String? velocidad;
+
   /// Se hace un lado a la vez (curl con mancuerna a un brazo, zancada…): cada
   /// serie registra las repeticiones del lado izquierdo y del derecho.
   final bool unilateral;
@@ -47,11 +54,20 @@ class Ejercicio {
     this.descansoSeg,
     this.trabajoSeg,
     this.pesoKg,
+    this.tempoBajadaSeg,
+    this.tempoSubidaSeg,
+    this.velocidad,
     this.unilateral = false,
     List<Marca>? marcas,
   }) : marcas = marcas ?? [];
 
   bool get tieneVideo => (videoUrl ?? '').isNotEmpty;
+
+  /// Tiene tempo o velocidad indicados por el gimnasio.
+  bool get tieneRitmo =>
+      (tempoBajadaSeg ?? 0) > 0 ||
+      (tempoSubidaSeg ?? 0) > 0 ||
+      (velocidad ?? '').isNotEmpty;
 
   /// Mejor marca histórica (mayor peso) = récord personal.
   Marca? get mejorMarca {

@@ -268,9 +268,20 @@ class EjercicioAdmin {
   /// [descansoSeg] es el descanso después del ejercicio.
   int? trabajoSeg;
   double? pesoKg;
+
+  /// Tempo de cada repetición (segundos al bajar y al subir) y velocidad
+  /// (LENTO, MODERADO, RAPIDO, EXPLOSIVO).
+  int? tempoBajadaSeg;
+  int? tempoSubidaSeg;
+  String? velocidad;
   String? observaciones;
   int? catalogoId;
   String? imagenUrl;
+
+  /// Solo en las rutinas propias del socio (no viajan a rutinas.php): un lado
+  /// a la vez y el video del catálogo que ya tenía el ejercicio.
+  bool unilateral;
+  String? videoUrl;
 
   EjercicioAdmin({
     required this.nombre,
@@ -279,9 +290,14 @@ class EjercicioAdmin {
     this.descansoSeg,
     this.trabajoSeg,
     this.pesoKg,
+    this.tempoBajadaSeg,
+    this.tempoSubidaSeg,
+    this.velocidad,
     this.observaciones,
     this.catalogoId,
     this.imagenUrl,
+    this.unilateral = false,
+    this.videoUrl,
   });
 
   /// Completa lo que la metodología [m] necesita (p. ej. tiempo en HIIT).
@@ -307,9 +323,14 @@ class EjercicioAdmin {
     descansoSeg: descansoSeg,
     trabajoSeg: trabajoSeg,
     pesoKg: pesoKg,
+    tempoBajadaSeg: tempoBajadaSeg,
+    tempoSubidaSeg: tempoSubidaSeg,
+    velocidad: velocidad,
     observaciones: observaciones,
     catalogoId: catalogoId,
     imagenUrl: imagenUrl,
+    unilateral: unilateral,
+    videoUrl: videoUrl,
   );
 
   PlanEjercicio get plan => PlanEjercicio(
@@ -319,6 +340,9 @@ class EjercicioAdmin {
     trabajoSeg: trabajoSeg,
     pesoKg: pesoKg,
     descansoSeg: descansoSeg,
+    tempoBajadaSeg: tempoBajadaSeg,
+    tempoSubidaSeg: tempoSubidaSeg,
+    velocidad: velocidad,
     observaciones: observaciones,
     imagenUrl: imagenUrl,
   );
@@ -330,6 +354,11 @@ class EjercicioAdmin {
     descansoSeg: _int(j['descanso_seg']) > 0 ? _int(j['descanso_seg']) : null,
     trabajoSeg: _positivo(j['trabajo_seg']),
     pesoKg: double.tryParse(j['peso_kg']?.toString() ?? ''),
+    tempoBajadaSeg: _positivo(j['tempo_bajada_seg']),
+    tempoSubidaSeg: _positivo(j['tempo_subida_seg']),
+    velocidad: (j['velocidad']?.toString().trim().isEmpty ?? true)
+        ? null
+        : j['velocidad'].toString(),
     observaciones: (j['observaciones']?.toString().trim().isEmpty ?? true)
         ? null
         : j['observaciones'].toString(),
@@ -349,6 +378,9 @@ class EjercicioAdmin {
     if (descansoSeg != null) 'descanso_seg': descansoSeg,
     if (trabajoSeg != null) 'trabajo_seg': trabajoSeg,
     if (pesoKg != null) 'peso_kg': pesoKg,
+    if (tempoBajadaSeg != null) 'tempo_bajada_seg': tempoBajadaSeg,
+    if (tempoSubidaSeg != null) 'tempo_subida_seg': tempoSubidaSeg,
+    if (velocidad != null) 'velocidad': velocidad,
     if (observaciones != null && observaciones!.isNotEmpty)
       'observaciones': observaciones,
     'orden': orden,

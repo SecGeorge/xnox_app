@@ -82,6 +82,13 @@ class RepositorioRutinasRemoto {
               ? _entero(em['trabajo_seg'])
               : null,
           pesoKg: double.tryParse(em['peso_kg']?.toString() ?? ''),
+          tempoBajadaSeg: _entero(em['tempo_bajada_seg']) > 0
+              ? _entero(em['tempo_bajada_seg'])
+              : null,
+          tempoSubidaSeg: _entero(em['tempo_subida_seg']) > 0
+              ? _entero(em['tempo_subida_seg'])
+              : null,
+          velocidad: _textoNullable(em['velocidad']),
         );
       }).toList();
       return DiaRutina(

@@ -113,6 +113,26 @@ class PaletasApp {
     textoPrincipal: Color(0xFF1A2B4C),
   );
 
+  /// Estilo de XNET: igual que el de XCOUNT (el blanco es el color
+  /// principal) pero con el negro del logo en bordes, íconos y textos.
+  static const xnet = PaletaApp(
+    id: 'xnet',
+    nombre: 'XNET',
+    descripcion: 'Blanco con bordes negros',
+    primario: Color(0xFF111111),
+    primarioClaro: Color(0xFF3A3A3A),
+    acento: Color(0xFF111111),
+    relleno: Color(0xFFFFFFFF),
+    rellenoClaro: Color(0xFFFFFFFF),
+    sobreRelleno: Color(0xFF111111),
+    sobreRellenoSuave: Color(0xFF5C5C5C),
+    bordeRelleno: Color(0xFF111111),
+    fondo: Color(0xFFFFFFFF),
+    superficie: Color(0xFFFFFFFF),
+    borde: Color(0xFF9A9A9A),
+    textoPrincipal: Color(0xFF111111),
+  );
+
   /// El azul marino con el que nació la app.
   static const marino = PaletaApp(
     id: 'marino',
@@ -234,6 +254,7 @@ class PaletasApp {
   );
 
   static const List<PaletaApp> plantillas = [
+    xnet,
     xnoxsoft,
     marino,
     rojo,
@@ -262,8 +283,9 @@ class PaletasApp {
     Color(0xFF212121),
   ];
 
-  /// Paleta cuando aún no hay gimnasio o el guardado no se reconoce.
-  static const PaletaApp porDefecto = marino;
+  /// Paleta cuando aún no hay gimnasio o el guardado no se reconoce: la
+  /// blanca de XNET.
+  static const PaletaApp porDefecto = xnet;
 
   /// Plantilla con la que arranca cada gimnasio hasta que elija otra. Los que
   /// no estén aquí arrancan con [porDefecto].

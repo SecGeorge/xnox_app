@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
@@ -412,7 +413,14 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${e.series} series × ${e.repeticiones} reps',
+                        [
+                          '${e.series} series × ${e.repeticiones} reps',
+                          Tempo.ritmo(
+                            e.tempoBajadaSeg,
+                            e.tempoSubidaSeg,
+                            e.velocidad,
+                          ),
+                        ].where((p) => p.isNotEmpty).join(' · '),
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColores.textoSecundario,

@@ -6,7 +6,9 @@ import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/features/rutinas_admin/datos/repositorio_rutinas_admin.dart';
 import 'package:xnox_app/features/rutinas_admin/dominio/rutina_admin.dart';
+import 'package:xnox_app/features/rutinas_admin/dominio/fuente_rutina.dart';
 import 'package:xnox_app/features/rutinas_admin/presentacion/screen/form_rutina_admin_screen.dart';
+import 'package:xnox_app/features/rutinas_admin/presentacion/widget/tarjeta_rutina_resumen.dart';
 
 /// Rutinas personalizadas de un miembro. Permite ver, asignar una plantilla,
 /// crear/editar y anular/eliminar (según el permiso de gestión).
@@ -68,7 +70,9 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
   Future<void> _nueva() async {
     final creado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => FormRutinaAdminScreen(miembroId: widget.miembroId),
+        builder: (_) => FormRutinaAdminScreen(
+          fuente: FuenteRutinaServidor(miembroId: widget.miembroId),
+        ),
       ),
     );
     if (creado == true) _cargar();
@@ -77,8 +81,9 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
   Future<void> _editar(RutinaResumen r) async {
     final editado = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) =>
-            FormRutinaAdminScreen(miembroId: widget.miembroId, rutinaId: r.id),
+        builder: (_) => FormRutinaAdminScreen(
+          fuente: FuenteRutinaServidor(miembroId: widget.miembroId, rutinaId: r.id),
+        ),
       ),
     );
     if (editado == true) _cargar();
@@ -285,137 +290,15 @@ class _RutinasMiembroScreenState extends State<RutinasMiembroScreen> {
           )
         else
           for (var i = 0; i < _rutinas.length; i++) ...[
-            _tarjeta(_rutinas[i], _fotos[i % _fotos.length]),
+            TarjetaRutinaResumen(
+              r: _rutinas[i],
+              foto: _fotos[i % _fotos.length],
+              puedeGestionar: _puedeGestionar,
+              onAccion: (op) => op == 'editar' ? _editar(_rutinas[i]) : _cambiarEstado(_rutinas[i], op),
+            ),
             const SizedBox(height: AppEspaciado.sm + 4),
           ],
       ],
-    );
-  }
-
-  Widget _tarjeta(RutinaResumen r, String foto) {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: AppColores.superficie,
-        borderRadius: BorderRadius.circular(AppEspaciado.radio + 2),
-        border: Border.all(color: AppColores.borde),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _puedeGestionar ? () => _editar(r) : null,
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  width: 92,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.asset(foto, fit: BoxFit.cover, cacheWidth: 300),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: AppColores.primario.withValues(alpha: 0.25),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          r.nombre,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: FontWeight.w800,
-                            color: AppColores.textoPrincipal,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(r.metodologia.icono, size: 14, color: r.metodologia.color),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${r.metodologia.texto}'
-                              '${r.duracionSeg != null ? ' · ~${formatoDuracion(r.duracionSeg!)}' : ''}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: r.metodologia.color,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${r.totalEjercicios} ${r.totalEjercicios == 1 ? 'ejercicio' : 'ejercicios'}'
-                          '${r.origenNombre != null ? ' · de "${r.origenNombre}"' : ''}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            color: AppColores.textoSecundario,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        EtiquetaEstado(
-                          texto: r.activa ? 'Activa' : 'Inactiva',
-                          color: r.activa
-                              ? AppColores.activo
-                              : AppColores.vencido,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (_puedeGestionar)
-                  PopupMenuButton<String>(
-                    icon: const Icon(
-                      Icons.more_vert_rounded,
-                      color: AppColores.textoSecundario,
-                    ),
-                    onSelected: (op) {
-                      if (op == 'editar') _editar(r);
-                      if (op == 'estado') _cambiarEstado(r, 'estado');
-                      if (op == 'duplicar') _cambiarEstado(r, 'duplicar');
-                      if (op == 'eliminar') _cambiarEstado(r, 'eliminar');
-                    },
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'editar',
-                        child: Text('Editar'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'duplicar',
-                        child: Text('Duplicar'),
-                      ),
-                      PopupMenuItem(
-                        value: 'estado',
-                        child: Text(r.activa ? 'Desactivar' : 'Activar'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'eliminar',
-                        child: Text(
-                          'Eliminar',
-                          style: TextStyle(color: AppColores.moroso),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

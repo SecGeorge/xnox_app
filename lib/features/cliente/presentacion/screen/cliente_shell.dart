@@ -11,6 +11,7 @@ import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_m
 import 'package:xnox_app/features/cliente/presentacion/screen/cliente_publicidad_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/inicio_cliente_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/screen/membresia_screen.dart';
+import 'package:xnox_app/features/cliente/presentacion/screen/mis_datos_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/modal_vencimiento.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
@@ -28,7 +29,7 @@ import 'package:xnox_app/features/notificaciones/presentacion/controlador/contro
 import 'package:xnox_app/features/notificaciones/presentacion/screen/notificaciones_screen.dart';
 import 'package:xnox_app/features/recomendaciones/presentacion/screen/enviar_recomendacion_screen.dart';
 import 'package:xnox_app/features/nutricion/presentacion/screen/nutricion_screen.dart';
-import 'package:xnox_app/features/clases/presentacion/screen/clases_screen.dart';
+import 'package:xnox_app/features/citas/presentacion/screen/reservas_screen.dart';
 
 /// Definición de una sección navegable del cliente.
 class _SeccionNav {
@@ -254,10 +255,17 @@ class _ClienteShellState extends State<ClienteShell> {
     );
   }
 
-  /// Clases con reserva: también en su propia pantalla, como Nutrición.
+  /// Reservas (clases, masajes, nutricionista…): una sola entrada con sus
+  /// categorías adentro, para no llenar el menú de opciones sueltas.
   Future<void> _abrirClases() async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ClasesScreen()),
+      MaterialPageRoute(builder: (_) => const ReservasScreen()),
+    );
+  }
+
+  Future<void> _abrirMisDatos() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const MisDatosScreen()),
     );
   }
 
@@ -397,8 +405,8 @@ class _ClienteShellState extends State<ClienteShell> {
               const SizedBox(height: AppEspaciado.sm + 2),
               _tarjetaMas(
                 Icons.event_available_rounded,
-                'Clases',
-                'Horario y reserva de clases',
+                'Reservas',
+                'Clases, masajes y nutricionista',
                 activo: false,
                 onTap: () => ir(_abrirClases),
               ),
@@ -420,6 +428,13 @@ class _ClienteShellState extends State<ClienteShell> {
                 ),
                 child: Column(
                   children: [
+                    _filaMas(
+                      Icons.badge_rounded,
+                      'Mis datos',
+                      'Salud, seguro y contacto de emergencia',
+                      () => ir(_abrirMisDatos),
+                    ),
+                    Divider(height: 1, indent: 64, color: AppColores.borde),
                     _filaMas(
                       Icons.notifications_rounded,
                       'Avisos',
@@ -647,6 +662,7 @@ class _ClienteShellState extends State<ClienteShell> {
                     onAbrirAvisos: _abrirAvisos,
                     onAbrirMenu: _abrirMenuMas,
                     avisosPendientes: _avisosPendientes,
+                    activa: _selectedIndex == _iInicio,
                   )
                 : Padding(
                     padding: const EdgeInsets.only(bottom: 76),
@@ -675,16 +691,19 @@ class _ClienteShellState extends State<ClienteShell> {
 
     final masActivo = _enSeccionSecundaria;
     final qrActivo = _selectedIndex == _iQr;
-    return SafeArea(
-      top: false,
-      child: SizedBox(
-        height: 76,
+    // El fondo de la barra también cubre la franja de gestos del sistema: si
+    // quedara transparente, al deslizar se vería el contenido por detrás
+    // (la pantalla se extiende bajo la barra con extendBody).
+    final abajo = MediaQuery.paddingOf(context).bottom;
+    return SizedBox(
+        height: 76 + abajo,
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.bottomCenter,
           children: [
             Container(
-              height: 66,
+              height: 66 + abajo,
+              padding: EdgeInsets.only(bottom: abajo),
               decoration: BoxDecoration(
                 color: AppColores.superficie,
                 border: Border(top: BorderSide(color: AppColores.borde)),
@@ -750,7 +769,6 @@ class _ClienteShellState extends State<ClienteShell> {
             ),
           ],
         ),
-      ),
     );
   }
 

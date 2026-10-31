@@ -24,6 +24,16 @@ class RepositorioRutinasAdmin {
     return _listaResumen(resp);
   }
 
+  /// Todas las rutinas generales de la sucursal, activas e inactivas (lo
+  /// mismo que lista la pantalla Rutinas del web).
+  Future<List<RutinaResumen>> listarGenerales() async {
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'listar',
+      'sucursal_id': await _sucursalId(),
+    }, 'rutinas.php');
+    return _listaResumen(resp);
+  }
+
   /// Plantillas generales de la sucursal, para asignarlas a un miembro.
   Future<List<RutinaResumen>> listarPlantillas() async {
     final resp = await _http.obtenerConDatos({

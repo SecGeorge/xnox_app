@@ -10,6 +10,8 @@ import 'package:xnox_app/features/cliente/dominio/entidades/dia_rutina.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/ejercicio.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/marca.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/rutina.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 
 /// Almacén de rutinas respaldado por SQLite, con una caché en memoria.
 ///
@@ -165,6 +167,9 @@ class AlmacenRutinas {
               descansoSeg: e['descanso_seg'] as int?,
               trabajoSeg: e['trabajo_seg'] as int?,
               pesoKg: (e['peso_kg'] as num?)?.toDouble(),
+              tempoBajadaSeg: e['tempo_bajada_seg'] as int?,
+              tempoSubidaSeg: e['tempo_subida_seg'] as int?,
+              velocidad: e['velocidad'] as String?,
               unilateral: (e['unilateral'] as int? ?? 0) == 1,
               marcas: marcasPorEj[id] ?? [],
             ),
@@ -240,6 +245,53 @@ class AlmacenRutinas {
     await cargar();
     _subirCambios();
     return id;
+  }
+
+  /// Crea ([id] null) o reemplaza una rutina propia con lo armado en el editor
+  /// de rutinas: bloques por día con su metodología y ejercicios con tempo,
+  /// velocidad, peso... Los ejercicios que siguen (mismo nombre en el mismo
+  /// bloque) conservan su id y por tanto sus marcas. Devuelve el id local.
+  Future<int> guardarRutinaPropia({
+    int? id,
+    required String nombre,
+    required String descripcion,
+    String? objetivo,
+    String? nivel,
+    required String tipo,
+    int? duracionSeg,
+    required List<DiaRutina> dias,
+  }) async {
+    final db = await BaseDatosLocal.instancia.db;
+    final datos = {
+      'nombre': nombre,
+      'descripcion': descripcion,
+      'tipo': tipo,
+      'objetivo': objetivo,
+      'nivel': nivel,
+      'duracion_seg': duracionSeg,
+    };
+    var rutinaId = id;
+    await db.transaction((txn) async {
+      if (rutinaId == null) {
+        rutinaId = await txn.insert('rutina', {
+          ...datos,
+          'servidor_id': null,
+          'origen': 'cliente',
+          'fecha_sync': null,
+          'uid': _nuevoUid(),
+          'pendiente': 1,
+        });
+      } else {
+        await txn.rawUpdate(
+          "UPDATE rutina SET nombre = ?, descripcion = ?, tipo = ?, objetivo = ?, nivel = ?, duracion_seg = ?, pendiente = pendiente + 1 WHERE id = ? AND origen = 'cliente'",
+          [nombre, descripcion, tipo, objetivo, nivel, duracionSeg, rutinaId],
+        );
+      }
+      await _upsertDias(txn, rutinaId!, dias, propia: true);
+    });
+    await cargar();
+    _subirCambios();
+    return rutinaId!;
   }
 
   Future<void> editarRutina(int id, String nombre, String descripcion) async {
@@ -822,6 +874,9 @@ class AlmacenRutinas {
         'descanso_seg': ej.descansoSeg,
         'trabajo_seg': ej.trabajoSeg,
         'peso_kg': ej.pesoKg,
+        'tempo_bajada_seg': ej.tempoBajadaSeg,
+        'tempo_subida_seg': ej.tempoSubidaSeg,
+        'velocidad': ej.velocidad,
         if (propia) 'unilateral': ej.unilateral ? 1 : 0,
         'orden': orden,
       };
@@ -1094,6 +1149,14 @@ class AlmacenRutinas {
       for (final d in dias)
         {
           'dia_semana': d['dia_semana'],
+          // Metodología del bloque y sus reglas (circuito, HIIT, EMOM...).
+          'tipo': d['tipo'],
+          'nombre': d['nombre'],
+          'rondas': d['rondas'],
+          'descanso_ronda_seg': d['descanso_ronda_seg'],
+          'tiempo_limite_seg': d['tiempo_limite_seg'],
+          'intervalo_seg': d['intervalo_seg'],
+          'descanso_bloque_seg': d['descanso_bloque_seg'],
           'ejercicios': [
             for (final e in await db.query(
               'ejercicio',
@@ -1110,6 +1173,11 @@ class AlmacenRutinas {
                 'imagen_url': e['imagen_url'],
                 'video_url': e['video_url'],
                 'descanso_seg': e['descanso_seg'],
+                'trabajo_seg': e['trabajo_seg'],
+                'peso_kg': e['peso_kg'],
+                'tempo_bajada_seg': e['tempo_bajada_seg'],
+                'tempo_subida_seg': e['tempo_subida_seg'],
+                'velocidad': e['velocidad'],
                 'unilateral': e['unilateral'],
               },
           ],
@@ -1171,6 +1239,14 @@ class AlmacenRutinas {
           DiaRutina(
             id: 0,
             diaSemana: d['dia_semana']?.toString() ?? '',
+            // Rutinas subidas por versiones antiguas no traen tipo: musculación.
+            tipo: _texto(d['tipo']) ?? Metodologia.musculacion,
+            nombre: _texto(d['nombre']),
+            rondas: (_entero(d['rondas']) ?? 1) < 1 ? 1 : _entero(d['rondas'])!,
+            descansoRondaSeg: _entero(d['descanso_ronda_seg']),
+            tiempoLimiteSeg: _entero(d['tiempo_limite_seg']),
+            intervaloSeg: _entero(d['intervalo_seg']),
+            descansoBloqueSeg: _entero(d['descanso_bloque_seg']),
             ejercicios: [
               for (final e in _lista(d['ejercicios']))
                 Ejercicio(
@@ -1183,11 +1259,24 @@ class AlmacenRutinas {
                   imagenUrl: _texto(e['imagen_url']),
                   videoUrl: _texto(e['video_url']),
                   descansoSeg: _entero(e['descanso_seg']),
+                  trabajoSeg: _entero(e['trabajo_seg']),
+                  pesoKg: double.tryParse('${e['peso_kg'] ?? ''}'),
+                  tempoBajadaSeg: _entero(e['tempo_bajada_seg']),
+                  tempoSubidaSeg: _entero(e['tempo_subida_seg']),
+                  velocidad: _texto(e['velocidad']),
                   unilateral: _entero(e['unilateral']) == 1,
                 ),
             ],
           ),
       ];
+      // El tipo de la rutina (MUSCULACION, HIIT... o MIXTO) sale de sus bloques.
+      final plan = PlanRutina(nombre: '', bloques: [for (final d in dias) d.plan]);
+      await txn.update(
+        'rutina',
+        {'tipo': plan.tipo, 'duracion_seg': MotorRutina.duracionEstimada(plan)},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
       await _upsertDias(txn, id, dias, propia: true);
     }
 
