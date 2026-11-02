@@ -46,7 +46,16 @@ class ControladorRutinas {
   /// rutinas y sesiones; va después para enganchar las sesiones a los
   /// ejercicios del gimnasio ya actualizados). Sin Internet, se queda con
   /// SQLite.
-  Future<void> sincronizar() async {
+  Future<void> sincronizar() =>
+      _sincronizacion ??= _sincronizar().whenComplete(
+        () => _sincronizacion = null,
+      );
+
+  /// La sincronización en curso: el inicio y Rutinas la comparten en vez de
+  /// lanzar cada uno la suya.
+  static Future<void>? _sincronizacion;
+
+  Future<void> _sincronizar() async {
     await _almacen.asegurarCargado();
     final remotas = await _remoto.obtenerSugeridas();
     if (remotas.isNotEmpty) {

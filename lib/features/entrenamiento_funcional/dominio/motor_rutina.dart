@@ -144,6 +144,9 @@ class PlanEjercicio {
   final int? tempoBajadaSeg;
   final int? tempoSubidaSeg;
   final String? velocidad;
+
+  /// Esfuerzo objetivo (1 a 10, escala de Borg).
+  final int? rpe;
   final String? observaciones;
   final String? imagenUrl;
 
@@ -157,11 +160,12 @@ class PlanEjercicio {
     this.tempoBajadaSeg,
     this.tempoSubidaSeg,
     this.velocidad,
+    this.rpe,
     this.observaciones,
     this.imagenUrl,
   });
 
-  /// "10 reps · 30 s · 20 kg · ↓5 s ↑1 s · Lento"
+  /// "10 reps · 30 s · 20 kg · ↓5 s ↑1 s · Lento · RPE 7"
   String medida({bool conTiempo = true}) {
     final ritmo = Tempo.ritmo(tempoBajadaSeg, tempoSubidaSeg, velocidad);
     final partes = <String>[
@@ -169,6 +173,7 @@ class PlanEjercicio {
       if (conTiempo && (trabajoSeg ?? 0) > 0) '$trabajoSeg s',
       if ((pesoKg ?? 0) > 0) '${formatoKg(pesoKg!)} kg',
       if (ritmo.isNotEmpty) ritmo,
+      if (Rpe.banda(rpe) != null) 'RPE $rpe',
     ];
     return partes.join(' · ');
   }
@@ -511,6 +516,9 @@ class MotorRutina {
         }
         if (!Velocidad.esValida(e.velocidad)) {
           return '${e.nombre}: velocidad no válida';
+        }
+        if (e.rpe != null && Rpe.banda(e.rpe) == null) {
+          return '${e.nombre}: el RPE debe estar entre 1 y 10';
         }
         if (m.esSeries) continue;
         if (m.trabajoObligatorio && (e.trabajoSeg ?? 0) <= 0) {

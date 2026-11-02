@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/features/rutinas_admin/dominio/rutina_admin.dart';
 
@@ -188,5 +189,80 @@ void main() {
     expect(leido.copia().tempoSubidaSeg, 1);
     // Sin tempo no se manda nada.
     expect(EjercicioAdmin(nombre: 'Remo').toJson(0).containsKey('tempo_bajada_seg'), isFalse);
+  });
+
+  group('tipos nuevos, RPE y restricciones por nivel', () {
+    test('calentamiento, movilidad, estabilidad y core se recorren como circuito', () {
+      for (final tipo in ['CALENTAMIENTO', 'MOVILIDAD', 'ESTABILIDAD', 'CORE']) {
+        final m = Metodologia.de(tipo);
+        expect(m.valor, tipo);
+        expect(m.forma, FormaMetodologia.circuito);
+        final bloque = PlanBloque(
+          tipo: tipo,
+          rondas: 2,
+          descansoRondaSeg: 30,
+          ejercicios: const [
+            PlanEjercicio(nombre: 'Plancha', trabajoSeg: 30, descansoSeg: 10),
+            PlanEjercicio(nombre: 'Puente', trabajoSeg: 40),
+          ],
+        );
+        expect(MotorRutina.duracionBloque(bloque), 2 * (30 + 10 + 40) + 30);
+      }
+    });
+
+    test('calentamiento y movilidad no cuentan en el máximo por día', () {
+      expect(Metodologia.de('CALENTAMIENTO').sinLimite, isTrue);
+      expect(Metodologia.de('MOVILIDAD').sinLimite, isTrue);
+      expect(Metodologia.de('CORE').sinLimite, isFalse);
+      expect(Metodologia.de('MUSCULACION').sinLimite, isFalse);
+    });
+
+    test('la escala de Borg ubica cada valor en su banda', () {
+      expect(Rpe.texto(2), 'RPE 2 · Muy ligero');
+      expect(Rpe.texto(7), 'RPE 7 · Fuerte');
+      expect(Rpe.texto(10), 'RPE 10 · Muy fuerte a máximo');
+      expect(Rpe.texto(null), '');
+      expect(Rpe.banda(11), isNull);
+      expect(const PlanEjercicio(nombre: 'Remo', repeticiones: 10, rpe: 7).medida(), '10 reps · RPE 7');
+    });
+
+    test('un RPE fuera de la escala no valida', () {
+      const plan = PlanRutina(nombre: 'x', bloques: [
+        PlanBloque(ejercicios: [PlanEjercicio(nombre: 'Remo', series: 3, repeticiones: 10, rpe: 11)]),
+      ]);
+      expect(MotorRutina.validar(plan), contains('RPE'));
+    });
+
+    test('la regla del nivel acota el catálogo y deja pasar lo sin clasificar', () {
+      final regla = ReglaNivel.fromJson({
+        'nivel': 'PRINCIPIANTE',
+        'max_ejercicios_dia': '2',
+        'tipos_ejercicio': 'AISLADO,CORE',
+        'nivel_ejercicio_max': 'PRINCIPIANTE',
+      });
+      expect(regla.maxEjerciciosDia, 2);
+      expect(regla.permite(nivel: 'PRINCIPIANTE', tipo: 'AISLADO'), isTrue);
+      expect(regla.permite(), isTrue);
+      expect(regla.permite(tipo: 'COMPUESTO'), isFalse);
+      expect(regla.permite(nivel: 'INTERMEDIO'), isFalse);
+      expect(regla.resumen, 'Hasta 2 ejercicios por día · Aislado, Core · ejercicios hasta nivel Principiante');
+      final libre = ReglaNivel.fromJson({
+        'nivel': 'AVANZADO',
+        'max_ejercicios_dia': null,
+        'tipos_ejercicio': 'COMPUESTO',
+        'nivel_ejercicio_max': 'AVANZADO',
+      });
+      expect(libre.maxEjerciciosDia, isNull);
+      expect(libre.permite(nivel: 'AVANZADO', tipo: 'COMPUESTO'), isTrue);
+    });
+
+    test('el RPE viaja del servidor al plan y de vuelta', () {
+      final e = EjercicioAdmin.fromJson({'nombre': 'Remo', 'series': 3, 'repeticiones': 10, 'rpe': '7'});
+      expect(e.rpe, 7);
+      expect(e.copia().rpe, 7);
+      expect(e.plan.rpe, 7);
+      expect(e.toJson(1)['rpe'], 7);
+      expect(EjercicioAdmin(nombre: 'x').toJson(1).containsKey('rpe'), isFalse);
+    });
   });
 }

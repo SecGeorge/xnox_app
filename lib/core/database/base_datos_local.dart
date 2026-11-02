@@ -12,7 +12,7 @@ class BaseDatosLocal {
   static final BaseDatosLocal instancia = BaseDatosLocal._interno();
 
   static const _nombreArchivo = 'xnox_app.db';
-  static const _version = 19;
+  static const _version = 20;
 
   /// Código de la empresa de desarrollo que se sembraba mientras se trabajaba
   /// contra el servidor local. Ya no se siembra: la migración v5 la borra.
@@ -319,6 +319,12 @@ class BaseDatosLocal {
         }
       }
     }
+    if (desde < 20) {
+      // v20: esfuerzo objetivo del ejercicio (RPE, escala de Borg).
+      if (!await _existeColumna(db, 'ejercicio', 'rpe')) {
+        await db.execute('ALTER TABLE ejercicio ADD COLUMN rpe INTEGER');
+      }
+    }
   }
 
   /// Valor de partida para las filas que ya existían: mientras un gimnasio no
@@ -493,6 +499,7 @@ class BaseDatosLocal {
         tempo_bajada_seg INTEGER,
         tempo_subida_seg INTEGER,
         velocidad TEXT,
+        rpe INTEGER,
         nombre TEXT NOT NULL,
         series INTEGER NOT NULL DEFAULT 0,
         repeticiones INTEGER NOT NULL DEFAULT 0,

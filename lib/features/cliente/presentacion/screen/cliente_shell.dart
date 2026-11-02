@@ -172,6 +172,11 @@ class _ClienteShellState extends State<ClienteShell> {
     );
   }
 
+  /// Secciones ya abiertas. Cada una se monta la primera vez que se entra y
+  /// luego queda viva: montarlas todas al arrancar disparaba sus peticiones
+  /// de golpe, muchas repetidas con las del inicio.
+  final _abiertas = <int>{_iInicio};
+
   // Índices de las secciones en el IndexedStack.
   static const _iInicio = 0;
   static const _iRutinas = 1;
@@ -612,6 +617,7 @@ class _ClienteShellState extends State<ClienteShell> {
 
   @override
   Widget build(BuildContext context) {
+    _abiertas.add(_selectedIndex);
     // Inicio, Rutinas, Tienda y Membresía traen su propia cabecera.
     final enInicio =
         _selectedIndex == _iInicio ||
@@ -650,7 +656,9 @@ class _ClienteShellState extends State<ClienteShell> {
           for (var i = 0; i < _secciones.length; i++)
             // Las secciones con la barra flotante encima necesitan aire abajo;
             // el inicio ya lo reserva en su propia lista.
-            i == _iRutinas ||
+            !_abiertas.contains(i)
+                ? const SizedBox.shrink()
+                : i == _iRutinas ||
                     i == _iTienda ||
                     i == _iMembresia ||
                     i == _iQr ||

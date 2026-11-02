@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/hoja_moderna.dart';
 import 'package:xnox_app/features/cliente/presentacion/controlador/controlador_foto_perfil.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Avatar redondo del socio: su foto de perfil o, si no tiene, la inicial
 /// sobre el color de la marca. Con [editable] lleva una cámara para cambiarla.
@@ -53,11 +54,12 @@ class AvatarSocio extends StatelessWidget {
                   ),
                   child: url == null
                       ? inicial
-                      : Image.network(
+                      : imagenRed(
                           url,
                           width: tamano,
                           height: tamano,
                           fit: BoxFit.cover,
+                          cacheWidth: (tamano * 3).ceil(),
                           errorBuilder: (_, _, _) => inicial,
                         ),
                 ),

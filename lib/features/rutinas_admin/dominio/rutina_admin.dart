@@ -11,6 +11,48 @@
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 
+/// Restricciones de un nivel de rutina en la sucursal (Configuración > Rutinas
+/// en el web). El backend las aplica al guardar; aquí acotan lo que se ofrece.
+class ReglaNivel {
+  final String nivel;
+
+  /// Null = ilimitado.
+  final int? maxEjerciciosDia;
+  final List<String> tipos;
+  final String nivelEjercicioMax;
+
+  const ReglaNivel({
+    required this.nivel,
+    this.maxEjerciciosDia,
+    required this.tipos,
+    required this.nivelEjercicioMax,
+  });
+
+  factory ReglaNivel.fromJson(Map<String, dynamic> j) => ReglaNivel(
+    nivel: j['nivel']?.toString() ?? '',
+    maxEjerciciosDia: _positivo(j['max_ejercicios_dia']),
+    tipos: (j['tipos_ejercicio']?.toString() ?? '').split(',').where((t) => t.isNotEmpty).toList(),
+    nivelEjercicioMax: j['nivel_ejercicio_max']?.toString() ?? '',
+  );
+
+  /// Lo que no está clasificado no se bloquea.
+  bool permite({String? nivel, String? tipo}) {
+    if (tipo != null && !tipos.contains(tipo)) return false;
+    if (nivel == null) return true;
+    final orden = nivelesRutina.keys.toList();
+    return orden.indexOf(nivel) <= orden.indexOf(nivelEjercicioMax);
+  }
+
+  /// "Hasta 2 ejercicios por día · Aislado, Core · ejercicios hasta nivel Principiante"
+  String get resumen {
+    final maximo = maxEjerciciosDia == null
+        ? 'Ejercicios ilimitados por día'
+        : 'Hasta $maxEjerciciosDia ejercicios por día';
+    final permitidos = tipos.map((t) => tiposEjercicio[t] ?? t).join(', ');
+    return '$maximo · $permitidos · ejercicios hasta nivel ${nivelesRutina[nivelEjercicioMax] ?? nivelEjercicioMax}';
+  }
+}
+
 /// Resumen de una rutina para listados (metadata, sin el árbol de ejercicios).
 class RutinaResumen {
   final int id;
@@ -171,7 +213,7 @@ class DiaAdmin {
     return DiaAdmin(
       diaSemana: dia,
       tipo: m.valor,
-      rondas: m.usa(CampoMetodologia.rondas) ? 3 : 1,
+      rondas: m.usa(CampoMetodologia.rondas) ? m.rondasDefecto : 1,
       descansoRondaSeg: m.usa(CampoMetodologia.descansoRonda) ? 60 : null,
       tiempoLimiteSeg: m.usa(CampoMetodologia.tiempoLimite) ? 600 : null,
       intervaloSeg: m.forma == FormaMetodologia.emom ? 60 : null,
@@ -274,6 +316,9 @@ class EjercicioAdmin {
   int? tempoBajadaSeg;
   int? tempoSubidaSeg;
   String? velocidad;
+
+  /// Esfuerzo objetivo (1 a 10, escala de Borg).
+  int? rpe;
   String? observaciones;
   int? catalogoId;
   String? imagenUrl;
@@ -293,6 +338,7 @@ class EjercicioAdmin {
     this.tempoBajadaSeg,
     this.tempoSubidaSeg,
     this.velocidad,
+    this.rpe,
     this.observaciones,
     this.catalogoId,
     this.imagenUrl,
@@ -326,6 +372,7 @@ class EjercicioAdmin {
     tempoBajadaSeg: tempoBajadaSeg,
     tempoSubidaSeg: tempoSubidaSeg,
     velocidad: velocidad,
+    rpe: rpe,
     observaciones: observaciones,
     catalogoId: catalogoId,
     imagenUrl: imagenUrl,
@@ -343,6 +390,7 @@ class EjercicioAdmin {
     tempoBajadaSeg: tempoBajadaSeg,
     tempoSubidaSeg: tempoSubidaSeg,
     velocidad: velocidad,
+    rpe: rpe,
     observaciones: observaciones,
     imagenUrl: imagenUrl,
   );
@@ -359,6 +407,7 @@ class EjercicioAdmin {
     velocidad: (j['velocidad']?.toString().trim().isEmpty ?? true)
         ? null
         : j['velocidad'].toString(),
+    rpe: _positivo(j['rpe']),
     observaciones: (j['observaciones']?.toString().trim().isEmpty ?? true)
         ? null
         : j['observaciones'].toString(),
@@ -381,6 +430,7 @@ class EjercicioAdmin {
     if (tempoBajadaSeg != null) 'tempo_bajada_seg': tempoBajadaSeg,
     if (tempoSubidaSeg != null) 'tempo_subida_seg': tempoSubidaSeg,
     if (velocidad != null) 'velocidad': velocidad,
+    if (rpe != null) 'rpe': rpe,
     if (observaciones != null && observaciones!.isNotEmpty)
       'observaciones': observaciones,
     'orden': orden,

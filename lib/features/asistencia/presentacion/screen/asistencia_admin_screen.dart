@@ -12,6 +12,7 @@ import 'package:xnox_app/features/miembros/dominio/entidades/miembro.dart';
 import 'package:xnox_app/features/miembros/presentacion/controlador/controlador_miembros.dart';
 import 'package:xnox_app/features/pagos/dominio/entidades/resumen_pagos.dart';
 import 'package:xnox_app/features/pagos/presentacion/widget/grafico_barra.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Registro de asistencia desde el móvil (solo personal del gimnasio): la
 /// versión de bolsillo del "Registro rápido" del panel web (`Asistencia.vue`).
@@ -490,7 +491,7 @@ class _AsistenciaAdminScreenState extends State<AsistenciaAdminScreen> {
       ),
       child: url == null
           ? inicial
-          : Image.network(
+          : imagenRed(
               url,
               width: tamano,
               height: tamano,

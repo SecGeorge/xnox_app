@@ -20,6 +20,9 @@ abstract class FuenteRutina {
 
   /// Null si guardó; si no, el mensaje de error.
   Future<String?> guardar(RutinaAdmin rutina);
+
+  /// Restricciones por nivel. Las rutinas propias del socio no tienen.
+  Future<List<ReglaNivel>> reglas();
 }
 
 /// Rutinas del personal: generales ([miembroId] null) o personalizadas de un
@@ -47,6 +50,9 @@ class FuenteRutinaServidor implements FuenteRutina {
 
   @override
   Future<String?> guardar(RutinaAdmin rutina) => _repo.guardar(rutina);
+
+  @override
+  Future<List<ReglaNivel>> reglas() => _repo.reglasNivel();
 }
 
 /// Rutinas propias del socio: viven en SQLite y se sincronizan solas.
@@ -59,6 +65,9 @@ class FuenteRutinaLocal implements FuenteRutina {
 
   @override
   String get descripcion => 'Tu rutina de la semana';
+
+  @override
+  Future<List<ReglaNivel>> reglas() async => const [];
 
   @override
   Future<RutinaAdmin?> cargar() async {
@@ -95,6 +104,7 @@ class FuenteRutinaLocal implements FuenteRutina {
                   tempoBajadaSeg: e.tempoBajadaSeg,
                   tempoSubidaSeg: e.tempoSubidaSeg,
                   velocidad: e.velocidad,
+                  rpe: e.rpe,
                   observaciones: e.observaciones,
                   catalogoId: e.catalogoId,
                   imagenUrl: e.imagenUrl,
@@ -160,6 +170,7 @@ class FuenteRutinaLocal implements FuenteRutina {
                     tempoBajadaSeg: e.tempoBajadaSeg,
                     tempoSubidaSeg: e.tempoSubidaSeg,
                     velocidad: e.velocidad,
+                    rpe: e.rpe,
                     unilateral: e.unilateral,
                   ),
               ],

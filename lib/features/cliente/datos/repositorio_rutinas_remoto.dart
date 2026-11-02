@@ -89,6 +89,7 @@ class RepositorioRutinasRemoto {
               ? _entero(em['tempo_subida_seg'])
               : null,
           velocidad: _textoNullable(em['velocidad']),
+          rpe: _positivo(em['rpe']),
         );
       }).toList();
       return DiaRutina(

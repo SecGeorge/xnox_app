@@ -7,6 +7,18 @@ import 'package:xnox_app/features/miembros/dominio/entidades/miembro.dart';
 class ControladorMembresia {
   final HttpService _httpService = HttpService();
 
+  /// Última membresía leída del servidor. Compartida entre controladores para
+  /// que el QR salga al instante mientras se revalida.
+  static ({int miembroId, MembresiaCliente membresia})? _ultima;
+
+  /// La última membresía de este socio, o null si aún no se leyó ninguna.
+  Future<MembresiaCliente?> ultimaConocida() async {
+    final prefs = await SharedPreferences.getInstance();
+    final miembroId = int.tryParse(prefs.getString('miembroId') ?? '') ?? 0;
+    final ultima = _ultima;
+    return ultima?.miembroId == miembroId ? ultima?.membresia : null;
+  }
+
   Future<MembresiaCliente?> obtenerMembresia() async {
     final prefs = await SharedPreferences.getInstance();
     final miembroId = int.tryParse(prefs.getString('miembroId') ?? '') ?? 0;
@@ -45,7 +57,7 @@ class ControladorMembresia {
     final deuda = double.tryParse(contrato['deuda']?.toString() ?? '0') ?? 0;
     final est = int.tryParse(contrato['estado']?.toString() ?? '0') ?? 0;
 
-    return MembresiaCliente(
+    final membresia = MembresiaCliente(
       nombre: contrato['nombre_completo']?.toString() ?? '',
       plan: contrato['membresia']?.toString() ?? 'Sin membresía',
       estado: _estado(est, deuda),
@@ -59,6 +71,8 @@ class ControladorMembresia {
       codigoQr: qr,
       contratoId: int.tryParse(contrato['contrato_id']?.toString() ?? ''),
     );
+    _ultima = (miembroId: miembroId, membresia: membresia);
+    return membresia;
   }
 
   /// Misma lógica de estado que el panel: 5 activo, 6 deudor, 7 vencido/moroso.

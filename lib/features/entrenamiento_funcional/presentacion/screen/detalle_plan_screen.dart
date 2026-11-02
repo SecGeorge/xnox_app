@@ -3,6 +3,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/presentacion/screen/ejecutar_rutina_screen.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// La semana de una rutina: cada día con sus bloques (circuitos, HIIT, EMOM,
 /// AMRAP, estaciones o musculación) y el botón para entrenarlo con el
@@ -196,6 +197,7 @@ class DetallePlanScreen extends StatelessWidget {
         'desc. ${e.descansoSeg} s',
       if (Tempo.ritmo(e.tempoBajadaSeg, e.tempoSubidaSeg, e.velocidad).isNotEmpty)
         Tempo.ritmo(e.tempoBajadaSeg, e.tempoSubidaSeg, e.velocidad),
+      if (Rpe.texto(e.rpe).isNotEmpty) Rpe.texto(e.rpe),
     ];
     return partes.join(' · ');
   }
@@ -254,7 +256,7 @@ class DetallePlanScreen extends StatelessWidget {
                         color: AppColores.fondo,
                         child: (e.imagenUrl ?? '').isEmpty
                             ? Icon(m.icono, size: 18, color: AppColores.textoSecundario)
-                            : Image.network(
+                            : imagenRed(
                                 e.imagenUrl!,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, _, _) =>

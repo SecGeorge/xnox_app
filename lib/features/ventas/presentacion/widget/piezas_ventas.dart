@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:xnox_app/core/network/http_service.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Piezas comunes de las vistas de Ventas (vender, pedidos e historial), con
 /// el mismo estilo de la tienda del socio.
@@ -49,7 +50,7 @@ class FotoProducto extends StatelessWidget {
     if (url.isEmpty) return vacio;
     return Container(
       color: Colors.white,
-      child: Image.network(
+      child: imagenRed(
         url,
         fit: BoxFit.cover,
         cacheWidth: 600,

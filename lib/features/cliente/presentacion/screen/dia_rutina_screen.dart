@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
@@ -12,6 +13,7 @@ import 'package:xnox_app/features/cliente/presentacion/screen/detalle_rutina_scr
 import 'package:xnox_app/features/cliente/presentacion/screen/sesion_ejercicio_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/foto_sesion.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/temporizador_descanso.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Un día de la rutina para entrenar: cronómetro de la sesión, notas del
 /// entrenador y los ejercicios con su casilla (se marca al terminarlo) y su
@@ -565,7 +567,7 @@ class _DiaRutinaScreenState extends State<DiaRutinaScreen> {
                                       ),
                                     ),
                                   )
-                                : Image.network(
+                                : imagenRed(
                                     e.imagenUrl!,
                                     fit: BoxFit.cover,
                                     cacheWidth: 200,
@@ -639,15 +641,18 @@ class _DiaRutinaScreenState extends State<DiaRutinaScreen> {
                               ],
                             ],
                           ),
-                          // Tempo y velocidad que pidió el gimnasio.
-                          if (e.tieneRitmo) ...[
+                          // Tempo, velocidad y esfuerzo que pidió el gimnasio.
+                          if (e.tieneRitmo || e.rpe != null) ...[
                             const SizedBox(height: 2),
                             Text(
-                              Tempo.ritmo(
-                                e.tempoBajadaSeg,
-                                e.tempoSubidaSeg,
-                                e.velocidad,
-                              ),
+                              [
+                                Tempo.ritmo(
+                                  e.tempoBajadaSeg,
+                                  e.tempoSubidaSeg,
+                                  e.velocidad,
+                                ),
+                                Rpe.texto(e.rpe),
+                              ].where((p) => p.isNotEmpty).join(' · '),
                               style: const TextStyle(
                                 fontSize: 12.5,
                                 color: AppColores.textoSecundario,

@@ -15,6 +15,7 @@ import 'package:xnox_app/features/tienda/presentacion/controlador/controlador_ti
 import 'package:xnox_app/features/tienda_xnox/datos/repositorio_tienda_xnox.dart';
 import 'package:xnox_app/features/tienda_xnox/dominio/producto_xnox.dart';
 import 'package:xnox_app/features/tienda_xnox/presentacion/widget/seccion_tienda_xnox.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Tienda del socio: catálogo en cuadrícula con categorías, ficha de cada
 /// producto, carrito y pedido (queda pendiente hasta que se paga por Yape o
@@ -58,9 +59,15 @@ class _ComprarScreenState extends State<ComprarScreen> {
   }
 
   Future<void> _cargar() async {
-    setState(() => _cargando = true);
     // Va aparte: es otro servidor y se ve aunque falle el del gimnasio.
     _cargarXnox();
+    // Con un catálogo ya leído la tienda abre al instante y se refresca debajo.
+    final previo = _catalogo ?? await _controlador.ultimoCatalogo();
+    if (!mounted) return;
+    setState(() {
+      _catalogo = previo;
+      _cargando = previo == null;
+    });
     try {
       final catalogo = await _controlador.obtenerCatalogo();
       // Los puntos y los pedidos son secundarios: si fallan, no rompen la
@@ -847,7 +854,7 @@ class _ComprarScreenState extends State<ComprarScreen> {
     if (url.isEmpty) return vacio;
     return Container(
       color: Colors.white,
-      child: Image.network(
+      child: imagenRed(
         url,
         fit: BoxFit.cover,
         cacheWidth: 600,

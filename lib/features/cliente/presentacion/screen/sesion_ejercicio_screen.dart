@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
@@ -12,6 +13,7 @@ import 'package:xnox_app/features/cliente/presentacion/widget/temporizador_desca
 import 'package:xnox_app/features/ejercicios/datos/repositorio_ejercicios.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/screen/detalle_ejercicio_screen.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/screen/reproductor_ejercicio_screen.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Un ejercicio de la rutina, listo para entrenar: foto, objetivo, carga de
 /// hoy, descanso entre series, las series del día (se marcan una a una) y la
@@ -198,6 +200,10 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                 ],
                 const SizedBox(height: AppEspaciado.md),
                 _datos(e, hoy),
+                if (Rpe.banda(e.rpe) != null) ...[
+                  const SizedBox(height: 12),
+                  _esfuerzo(e.rpe!),
+                ],
                 if (e.tieneRitmo) ...[
                   const SizedBox(height: AppEspaciado.sm + 2),
                   _ritmo(e),
@@ -268,7 +274,7 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                     controller: _paginas,
                     itemCount: _imagenes.length,
                     onPageChanged: (i) => setState(() => _foto = i),
-                    itemBuilder: (_, i) => Image.network(
+                    itemBuilder: (_, i) => imagenRed(
                       _imagenes[i],
                       fit: BoxFit.cover,
                       cacheWidth: 1000,
@@ -389,7 +395,7 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                       ),
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: Image.network(
+                    child: imagenRed(
                       _imagenes[i],
                       fit: BoxFit.cover,
                       cacheWidth: 200,
@@ -456,6 +462,60 @@ class _SesionEjercicioScreenState extends State<SesionEjercicioScreen> {
                 height: 1.4,
                 color: AppColores.textoPrincipal,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Esfuerzo que pide el gimnasio, con su lugar en la escala de Borg.
+  Widget _esfuerzo(int rpe) {
+    final banda = Rpe.banda(rpe)!;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColores.superficie,
+        borderRadius: BorderRadius.circular(AppEspaciado.radio),
+        border: Border.all(color: AppColores.borde),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: banda.color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              '$rpe',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: banda.color,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Esfuerzo objetivo: ${banda.texto}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  banda.detalle,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: AppColores.textoSecundario,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

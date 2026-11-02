@@ -36,6 +36,9 @@ class _QrScreenState extends State<QrScreen> {
   }
 
   Future<void> _cargar() async {
+    // El socio lo abre en la puerta: lo último conocido sale sin esperar a la red.
+    final previa = await _controlador.ultimaConocida();
+    if (previa != null && mounted) setState(() => _membresia = previa);
     final m = await _controlador.obtenerMembresia();
     if (!mounted) return;
     setState(() => _membresia = m);

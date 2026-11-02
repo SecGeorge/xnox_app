@@ -8,6 +8,7 @@ import 'package:xnox_app/core/widgets/hoja_moderna.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/tienda_xnox/datos/repositorio_tienda_xnox.dart';
 import 'package:xnox_app/features/tienda_xnox/dominio/producto_xnox.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Piezas comunes de la tienda de XNOX: la tarjeta del producto, su ficha y
 /// el pedido por WhatsApp. Las usan la sección de la tienda del socio y la
@@ -41,7 +42,7 @@ class FotoProductoXnox extends StatelessWidget {
     if (url.isEmpty) return vacio;
     return Container(
       color: Colors.white,
-      child: Image.network(
+      child: imagenRed(
         url,
         fit: BoxFit.cover,
         cacheWidth: 600,

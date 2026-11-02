@@ -38,6 +38,9 @@ class Ejercicio {
   /// Ritmo de ejecución: LENTO, MODERADO, RAPIDO o EXPLOSIVO.
   final String? velocidad;
 
+  /// Esfuerzo objetivo (1 a 10, escala de Borg).
+  final int? rpe;
+
   /// Se hace un lado a la vez (curl con mancuerna a un brazo, zancada…): cada
   /// serie registra las repeticiones del lado izquierdo y del derecho.
   final bool unilateral;
@@ -57,6 +60,7 @@ class Ejercicio {
     this.tempoBajadaSeg,
     this.tempoSubidaSeg,
     this.velocidad,
+    this.rpe,
     this.unilateral = false,
     List<Marca>? marcas,
   }) : marcas = marcas ?? [];

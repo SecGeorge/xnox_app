@@ -3,6 +3,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/features/ejercicios/datos/repositorio_ejercicios.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/screen/reproductor_ejercicio_screen.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Cómo se hace un ejercicio: la galería COMPLETA del catálogo a pantalla
 /// grande (con zoom) más el video de ejecución, si el gimnasio lo subió.
@@ -261,7 +262,7 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
                 itemBuilder: (_, i) => InteractiveViewer(
                   minScale: 1,
                   maxScale: 4,
-                  child: Image.network(
+                  child: imagenRed(
                     _imagenes[i],
                     fit: BoxFit.contain,
                     loadingBuilder: (_, hijo, progreso) => progreso == null
@@ -355,7 +356,7 @@ class _DetalleEjercicioScreenState extends State<DetalleEjercicioScreen> {
                 ),
               ),
               clipBehavior: Clip.antiAlias,
-              child: Image.network(
+              child: imagenRed(
                 _imagenes[i],
                 fit: BoxFit.cover,
                 errorBuilder: (_, _, _) => const Icon(

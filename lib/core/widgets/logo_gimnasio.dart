@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/tema/controlador_marca.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Logo del gimnasio al que apunta la app, sin marco: solo la imagen. Si no
 /// tiene logo o no carga, muestra la inicial de su nombre con el color de marca.
@@ -85,9 +86,10 @@ class _Logo extends StatelessWidget {
     return SizedBox(
       width: tamano,
       height: tamano,
-      child: Image.network(
+      child: imagenRed(
         url,
         fit: BoxFit.contain,
+        cacheWidth: (tamano * 3).ceil(),
         errorBuilder: (_, _, _) => inicial,
       ),
     );

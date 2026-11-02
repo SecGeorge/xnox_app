@@ -11,11 +11,12 @@ import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.d
 import 'package:xnox_app/features/entrenamiento_funcional/presentacion/screen/detalle_plan_screen.dart';
 import 'package:xnox_app/features/rutinas_admin/dominio/fuente_rutina.dart';
 import 'package:xnox_app/features/rutinas_admin/dominio/rutina_admin.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Editor de rutinas, con los mismos datos y la misma forma que el del web:
 /// datos de la rutina, la semana (cada día con uno o varios bloques), cada
 /// bloque con su metodología y reglas, y cada ejercicio con su grupo
-/// muscular, series, repeticiones, peso, descanso, tempo y velocidad.
+/// muscular, series, repeticiones, peso, descanso, tempo, velocidad y RPE.
 ///
 /// Dónde carga y guarda lo decide [fuente]: el personal guarda en el
 /// servidor (rutinas generales o de un socio) y el socio, su rutina propia en
@@ -44,6 +45,11 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
   List<EjercicioCatalogo> _catalogo = [];
   List<String> _grupos = [];
 
+  /// Restricciones de cada nivel (el backend las aplica al guardar).
+  List<ReglaNivel> _reglas = [];
+
+  ReglaNivel? get _regla => _reglas.where((r) => r.nivel == _rutina.nivel).firstOrNull;
+
   /// Grupo muscular elegido en cada fila de ejercicio (solo filtra la búsqueda).
   final _grupoFila = Map<EjercicioAdmin, String?>.identity();
 
@@ -64,6 +70,7 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
     super.initState();
     _cargar();
     _cargarCatalogo();
+    _cargarReglas();
   }
 
   @override
@@ -114,6 +121,29 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
       _grupos = grupos;
     });
   }
+
+  Future<void> _cargarReglas() async {
+    final reglas = await widget.fuente.reglas();
+    if (mounted) setState(() => _reglas = reglas);
+  }
+
+  /// Lo que se puede elegir en un bloque: lo acotan su tipo, el nivel de la
+  /// rutina y el grupo de la fila. Lo sin clasificar siempre se ofrece.
+  List<EjercicioCatalogo> _catalogoPara(DiaAdmin b, String? grupo) {
+    final regla = _regla;
+    final tipo = b.metodologia.tipoEjercicio;
+    return _catalogo
+        .where((x) =>
+            (grupo == null || _normalizar(x.grupoMuscular ?? '') == _normalizar(grupo)) &&
+            (tipo == null || x.tipo == null || x.tipo == tipo) &&
+            (regla == null || regla.permite(nivel: x.nivel, tipo: x.tipo)))
+        .toList();
+  }
+
+  /// Ejercicios del día que consumen su máximo (sin calentamiento ni movilidad).
+  int get _cuentaDelDia => _bloquesDelDia
+      .where((b) => !b.metodologia.sinLimite)
+      .fold(0, (s, b) => s + b.ejercicios.where((e) => e.nombre.trim().isNotEmpty).length);
 
   /// "Glúteo " -> "gluteo" para comparar sin tildes ni mayúsculas.
   static String _normalizar(String t) {
@@ -256,9 +286,7 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (c) => _HojaElegirEjercicio(
-        catalogo: grupo == null
-            ? _catalogo
-            : _catalogo.where((x) => _normalizar(x.grupoMuscular ?? '') == _normalizar(grupo)).toList(),
+        catalogo: _catalogoPara(b, grupo),
         grupo: grupo,
         inicial: e.nombre,
       ),
@@ -593,6 +621,13 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
         const SizedBox(height: 12),
         _etiqueta('Nivel'),
         _niveles(),
+        if (_regla != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _regla!.resumen,
+            style: const TextStyle(fontSize: 12, color: AppColores.textoSecundario),
+          ),
+        ],
         const SizedBox(height: 12),
         _etiqueta('Objetivo'),
         TextField(
@@ -689,6 +724,15 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
                   : '${delDia.length} ${delDia.length == 1 ? 'bloque' : 'bloques'} · ~${formatoDuracion(sesion.duracion)}',
               style: const TextStyle(fontSize: 13, color: AppColores.textoSecundario),
             ),
+            if (_regla?.maxEjerciciosDia != null)
+              Text(
+                '$_cuentaDelDia de ${_regla!.maxEjerciciosDia} ejercicios',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _cuentaDelDia > _regla!.maxEjerciciosDia! ? AppColores.error : AppColores.primario,
+                ),
+              ),
           ],
         ),
         if (delDia.isNotEmpty) ...[
@@ -1235,6 +1279,33 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
                   ],
                 ),
               ),
+              // Esfuerzo objetivo: escala de Borg del 1 al 10.
+              SizedBox(
+                width: 190,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _etiqueta('Esfuerzo (RPE)'),
+                    DropdownButtonFormField<int?>(
+                      key: ValueKey('${identityHashCode(e)}-rpe-$_version'),
+                      initialValue: e.rpe,
+                      isExpanded: true,
+                      decoration: _decoracion(),
+                      hint: const Text('—'),
+                      items: [
+                        const DropdownMenuItem<int?>(value: null, child: Text('—')),
+                        for (final b in Rpe.bandas)
+                          for (var v = b.desde; v <= b.hasta; v++)
+                            DropdownMenuItem<int?>(
+                              value: v,
+                              child: Text('$v · ${b.texto}', overflow: TextOverflow.ellipsis),
+                            ),
+                      ],
+                      onChanged: (v) => setState(() => e.rpe = v),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1281,7 +1352,7 @@ class _FormRutinaAdminScreenState extends State<FormRutinaAdminScreen> {
       clipBehavior: Clip.antiAlias,
       child: url == null
           ? Icon(Icons.fitness_center_rounded, size: 18, color: AppColores.primario.withValues(alpha: 0.5))
-          : Image.network(
+          : imagenRed(
               url,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) =>
@@ -1396,6 +1467,13 @@ class _HojaElegirEjercicio extends StatefulWidget {
 class _HojaElegirEjercicioState extends State<_HojaElegirEjercicio> {
   late final _ctrl = TextEditingController(text: widget.inicial);
 
+  /// "Pecho · Principiante · Aislado"
+  static String _detalle(EjercicioCatalogo e) => [
+    e.grupoMuscular,
+    nivelesRutina[e.nivel],
+    tiposEjercicio[e.tipo],
+  ].whereType<String>().join(' · ');
+
   @override
   void dispose() {
     _ctrl.dispose();
@@ -1473,7 +1551,7 @@ class _HojaElegirEjercicioState extends State<_HojaElegirEjercicio> {
                                     color: AppColores.fondo,
                                     child: const Icon(Icons.fitness_center_rounded, size: 18),
                                   )
-                                : Image.network(
+                                : imagenRed(
                                     e.imagenUrl!,
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, _, _) => const Icon(Icons.fitness_center_rounded, size: 18),
@@ -1481,7 +1559,7 @@ class _HojaElegirEjercicioState extends State<_HojaElegirEjercicio> {
                           ),
                         ),
                         title: Text(e.nombre, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: e.grupoMuscular == null ? null : Text(e.grupoMuscular!),
+                        subtitle: _detalle(e).isEmpty ? null : Text(_detalle(e)),
                         onTap: () => Navigator.pop(context, _Elegido(e.nombre, catalogo: e)),
                       ),
                     if (lista.isEmpty)

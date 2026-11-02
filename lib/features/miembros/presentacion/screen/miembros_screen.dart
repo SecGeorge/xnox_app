@@ -8,6 +8,7 @@ import 'package:xnox_app/core/widgets/diseno_app.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/miembros/dominio/entidades/miembro.dart';
 import 'package:xnox_app/features/miembros/presentacion/controlador/controlador_miembros.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Qué lista se ve. Arranca en [atencion]: los que están por vencer y los
 /// vencidos a recuperar, que son a quienes hay que llamar primero.
@@ -309,7 +310,7 @@ class _MiembrosScreenState extends State<MiembrosScreen> {
       ),
       child: url == null
           ? inicial
-          : Image.network(
+          : imagenRed(
               url,
               width: tamano,
               height: tamano,

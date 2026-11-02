@@ -12,6 +12,12 @@ class EjercicioCatalogo {
   final String nombre;
   final String? descripcion;
   final String? grupoMuscular;
+
+  /// PRINCIPIANTE, INTERMEDIO o AVANZADO (null = sin clasificar).
+  final String? nivel;
+
+  /// AISLADO, COMPUESTO, CORE, MOVILIDAD o ESTABILIDAD (null = sin clasificar).
+  final String? tipo;
   final int? miembroId;
 
   /// URL absoluta de la portada, ya resuelta contra el servidor de la empresa.
@@ -31,6 +37,8 @@ class EjercicioCatalogo {
     required this.nombre,
     this.descripcion,
     this.grupoMuscular,
+    this.nivel,
+    this.tipo,
     this.miembroId,
     this.imagenUrl,
     this.videoUrl,

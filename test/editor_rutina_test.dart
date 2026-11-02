@@ -26,6 +26,9 @@ class _FuenteFalsa implements FuenteRutina {
     guardada = rutina;
     return null;
   }
+
+  @override
+  Future<List<ReglaNivel>> reglas() async => const [];
 }
 
 RutinaAdmin _rutinaEjemplo() => RutinaAdmin(

@@ -8,6 +8,7 @@ import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/publicidad/presentacion/controlador/controlador_publicidad.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
 import 'package:xnox_app/features/publicidad/presentacion/screen/formulario_publicidad_screen.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 class PublicidadScreen extends StatefulWidget {
   const PublicidadScreen({super.key});
@@ -227,7 +228,7 @@ class _PublicidadScreenState extends State<PublicidadScreen> {
               fit: StackFit.expand,
               children: [
                 pub.imagenUrl != null
-                    ? Image.network(
+                    ? imagenRed(
                         pub.imagenUrl!,
                         fit: BoxFit.cover,
                         alignment: pub.alineacion,

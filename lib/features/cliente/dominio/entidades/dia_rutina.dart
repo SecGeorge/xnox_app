@@ -55,6 +55,7 @@ class DiaRutina {
           tempoBajadaSeg: e.tempoBajadaSeg,
           tempoSubidaSeg: e.tempoSubidaSeg,
           velocidad: e.velocidad,
+          rpe: e.rpe,
           observaciones: e.observaciones,
           imagenUrl: e.imagenUrl,
         ),

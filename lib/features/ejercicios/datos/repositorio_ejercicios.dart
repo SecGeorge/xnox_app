@@ -43,6 +43,8 @@ class RepositorioEjercicios {
       nombre: j['nombre']?.toString() ?? '',
       descripcion: _textoNullable(j['descripcion']),
       grupoMuscular: _textoNullable(j['grupo_muscular']),
+      nivel: _textoNullable(j['nivel']),
+      tipo: _textoNullable(j['tipo']),
       miembroId: miembro == 0 ? null : miembro,
       imagenUrl: _urlImagen(j['imagen']),
       videoUrl: _urlImagen(j['video']),

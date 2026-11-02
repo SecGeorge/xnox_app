@@ -20,8 +20,8 @@ enum CampoMetodologia {
   descanso,
 }
 
-/// Una metodología de rutina: musculación, circuito, HIIT, EMOM, AMRAP o
-/// estaciones.
+/// Una metodología de rutina: musculación, circuito, HIIT, EMOM, AMRAP,
+/// estaciones, calentamiento, movilidad, estabilidad o core.
 ///
 /// Es el espejo de `src/components/Rutinas/metodologias.js` (web) y de
 /// `RutinaMetodologia.php` (backend): los tres calculan la duración igual.
@@ -41,6 +41,15 @@ class Metodologia {
   final String etiquetaRondas;
   final String etiquetaEjercicio;
 
+  /// Rondas con las que nace un bloque nuevo.
+  final int rondasDefecto;
+
+  /// Preparación: no consume el máximo de ejercicios por día del nivel.
+  final bool sinLimite;
+
+  /// Tipo de ejercicio que el bloque ofrece al elegir del catálogo.
+  final String? tipoEjercicio;
+
   const Metodologia({
     required this.valor,
     required this.texto,
@@ -54,6 +63,9 @@ class Metodologia {
     this.etiquetaBloque = 'Bloque',
     this.etiquetaRondas = 'Rondas',
     this.etiquetaEjercicio = 'Ejercicio',
+    this.rondasDefecto = 3,
+    this.sinLimite = false,
+    this.tipoEjercicio,
   });
 
   bool usa(CampoMetodologia c) => campos.contains(c);
@@ -161,6 +173,57 @@ class Metodologia {
       etiquetaRondas: 'Vueltas',
       etiquetaEjercicio: 'Estación',
     ),
+    Metodologia(
+      valor: 'CALENTAMIENTO',
+      texto: 'Calentamiento',
+      icono: Icons.local_fire_department_rounded,
+      color: Color(0xFFD97706),
+      forma: FormaMetodologia.circuito,
+      ayuda: 'Activación antes de entrenar: ejercicios suaves por tiempo o repeticiones.',
+      campos: _circuito,
+      etiquetaDescanso: 'Descanso después (s)',
+      etiquetaBloque: 'Calentamiento',
+      rondasDefecto: 1,
+      sinLimite: true,
+    ),
+    Metodologia(
+      valor: 'MOVILIDAD',
+      texto: 'Movilidad',
+      icono: Icons.self_improvement_rounded,
+      color: Color(0xFF059669),
+      forma: FormaMetodologia.circuito,
+      ayuda: 'Rango de movimiento de las articulaciones, con posiciones sostenidas por tiempo.',
+      campos: _circuito,
+      etiquetaDescanso: 'Descanso después (s)',
+      etiquetaBloque: 'Movilidad',
+      rondasDefecto: 1,
+      sinLimite: true,
+      tipoEjercicio: 'MOVILIDAD',
+    ),
+    Metodologia(
+      valor: 'ESTABILIDAD',
+      texto: 'Estabilidad',
+      icono: Icons.balance_rounded,
+      color: Color(0xFF4F46E5),
+      forma: FormaMetodologia.circuito,
+      ayuda: 'Equilibrio y control del cuerpo, por tiempo o repeticiones.',
+      campos: _circuito,
+      etiquetaDescanso: 'Descanso después (s)',
+      etiquetaBloque: 'Estabilidad',
+      tipoEjercicio: 'ESTABILIDAD',
+    ),
+    Metodologia(
+      valor: 'CORE',
+      texto: 'Core',
+      icono: Icons.adjust_rounded,
+      color: Color(0xFFBE123C),
+      forma: FormaMetodologia.circuito,
+      ayuda: 'Abdomen, zona lumbar y cadera, por tiempo o repeticiones.',
+      campos: _circuito,
+      etiquetaDescanso: 'Descanso después (s)',
+      etiquetaBloque: 'Core',
+      tipoEjercicio: 'CORE',
+    ),
   ];
 
   /// Tipo de la rutina cuando sus bloques combinan metodologías.
@@ -197,3 +260,47 @@ const nivelesRutina = {
   'INTERMEDIO': 'Intermedio',
   'AVANZADO': 'Avanzado',
 };
+
+/// Tipo de un ejercicio del catálogo.
+const tiposEjercicio = {
+  'AISLADO': 'Aislado',
+  'COMPUESTO': 'Compuesto',
+  'CORE': 'Core',
+  'MOVILIDAD': 'Movilidad',
+  'ESTABILIDAD': 'Estabilidad',
+};
+
+/// Un tramo de la escala de esfuerzo.
+class BandaRpe {
+  final int desde;
+  final int hasta;
+  final String texto;
+  final String detalle;
+  final Color color;
+
+  const BandaRpe(this.desde, this.hasta, this.texto, this.detalle, this.color);
+}
+
+/// Esfuerzo objetivo de un ejercicio: escala de Borg CR10, del 1 al 10.
+class Rpe {
+  static const bandas = [
+    BandaRpe(1, 2, 'Muy ligero', 'Reposo, paseo suave', Color(0xFF059669)),
+    BandaRpe(3, 4, 'Ligero a moderado', 'Conversación cómoda', Color(0xFF65A30D)),
+    BandaRpe(5, 6, 'Moderado', 'Conversación algo entrecortada', Color(0xFFD97706)),
+    BandaRpe(7, 8, 'Fuerte', 'Difícil mantener una conversación larga', Color(0xFFEA580C)),
+    BandaRpe(9, 10, 'Muy fuerte a máximo', 'Incapaz de hablar, fatiga extrema', Color(0xFFDC2626)),
+  ];
+
+  static BandaRpe? banda(int? rpe) {
+    for (final b in bandas) {
+      if (rpe != null && rpe >= b.desde && rpe <= b.hasta) return b;
+    }
+    return null;
+  }
+
+  /// "RPE 7 · Fuerte" (vacío sin RPE).
+  static String texto(int? rpe) {
+    final b = banda(rpe);
+    return b == null ? '' : 'RPE $rpe · ${b.texto}';
+  }
+}

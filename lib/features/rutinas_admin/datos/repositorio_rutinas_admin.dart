@@ -43,6 +43,21 @@ class RepositorioRutinasAdmin {
     return _listaResumen(resp);
   }
 
+  /// Restricciones de cada nivel en la sucursal.
+  Future<List<ReglaNivel>> reglasNivel() async {
+    final resp = await _http.obtenerConDatos({
+      'metodo': 'reglas_nivel',
+      'sucursal_id': await _sucursalId(),
+    }, 'rutinas.php');
+    if (resp is Map && resp['resultado'] == true && resp['datos'] is List) {
+      return (resp['datos'] as List)
+          .whereType<Map>()
+          .map((e) => ReglaNivel.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    }
+    return const [];
+  }
+
   /// Árbol completo de una rutina (para ver/editar). Las imágenes se vuelven
   /// URLs absolutas.
   Future<RutinaAdmin?> obtener(int id) async {

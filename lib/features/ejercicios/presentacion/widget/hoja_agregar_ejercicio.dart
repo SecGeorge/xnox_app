@@ -9,6 +9,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/widgets_comunes.dart';
 import 'package:xnox_app/features/ejercicios/datos/repositorio_ejercicios.dart';
 import 'package:xnox_app/features/ejercicios/dominio/entidades/ejercicio_catalogo.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Lo que devuelve la hoja al agregar un ejercicio a un día de la rutina.
 class EjercicioElegido {
@@ -936,9 +937,10 @@ class _HojaAgregarEjercicioState extends State<_HojaAgregarEjercicio> {
               size: 20,
               color: AppColores.textoSecundario,
             )
-          : Image.network(
+          : imagenRed(
               url,
               fit: BoxFit.cover,
+              cacheWidth: 132,
               errorBuilder: (_, _, _) => const Icon(
                 Icons.fitness_center,
                 size: 20,

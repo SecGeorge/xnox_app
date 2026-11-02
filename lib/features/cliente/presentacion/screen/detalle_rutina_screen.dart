@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/diseno_app.dart';
@@ -14,6 +15,7 @@ import 'package:xnox_app/features/cliente/presentacion/screen/sesion_ejercicio_s
 import 'package:xnox_app/features/cliente/presentacion/widget/grafico_evolucion.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/screen/detalle_ejercicio_screen.dart';
 import 'package:xnox_app/features/ejercicios/presentacion/widget/hoja_agregar_ejercicio.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Detalle de una rutina: días de entrenamiento con sus ejercicios. Permite,
 /// solo en las rutinas del cliente, agregar días y ejercicios. Registrar marcas
@@ -356,7 +358,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                           ),
                           child: e.imagenUrl == null
                               ? _sinImagen()
-                              : Image.network(
+                              : imagenRed(
                                   e.imagenUrl!,
                                   width: 72,
                                   height: 72,
@@ -420,6 +422,7 @@ class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
                             e.tempoSubidaSeg,
                             e.velocidad,
                           ),
+                          Rpe.texto(e.rpe),
                         ].where((p) => p.isNotEmpty).join(' · '),
                         style: const TextStyle(
                           fontSize: 13,

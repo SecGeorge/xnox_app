@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/features/cliente/dominio/entidades/membresia_cliente.dart';
 import 'package:xnox_app/features/publicidad/dominio/entidades/publicidad.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Días antes del vencimiento en que se avisa al socio.
 const diasAvisoVencimiento = 7;
@@ -299,7 +300,7 @@ class _AvisoVencimiento extends StatelessWidget {
                             color: AppColores.sobreRelleno,
                           ),
                         )
-                      : Image.network(
+                      : imagenRed(
                           imagen,
                           fit: BoxFit.cover,
                           cacheWidth: 200,

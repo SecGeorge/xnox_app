@@ -18,6 +18,7 @@ import 'package:xnox_app/features/cliente/presentacion/screen/dia_rutina_screen.
 import 'package:xnox_app/features/cliente/presentacion/screen/sesion_ejercicio_screen.dart';
 import 'package:xnox_app/features/cliente/presentacion/widget/foto_sesion.dart';
 import 'package:xnox_app/core/widgets/foto_tarjeta.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Rutinas del socio en tres vistas:
 /// - Mi semana: lo que le toca cada día, con el avance del día elegido. Si
@@ -65,6 +66,9 @@ class _RutinasScreenState extends State<RutinasScreen> {
 
   Future<void> _cargar() async {
     try {
+      // Lo del SQLite se ve al instante; la sincronización sigue por detrás.
+      await _controlador.asegurarCargado();
+      if (mounted && _todas.isNotEmpty) setState(() => _cargando = false);
       await _controlador.sincronizar();
     } catch (_) {
       // Sin red: se queda con lo del SQLite.
@@ -923,7 +927,7 @@ class _RutinasScreenState extends State<RutinasScreen> {
                     height: 56,
                     child: (e.imagenUrl ?? '').isEmpty
                         ? _miniaturaVacia()
-                        : Image.network(
+                        : imagenRed(
                             e.imagenUrl!,
                             fit: BoxFit.cover,
                             cacheWidth: 200,
@@ -974,8 +978,8 @@ class _RutinasScreenState extends State<RutinasScreen> {
                           color: AppColores.textoSecundario,
                         ),
                       ),
-                      // Tempo y velocidad que pidió el gimnasio.
-                      if (e.tieneRitmo) ...[
+                      // Tempo, velocidad y esfuerzo que pidió el gimnasio.
+                      if (e.tieneRitmo || e.rpe != null) ...[
                         const SizedBox(height: 5),
                         Wrap(
                           spacing: 6,
@@ -992,6 +996,12 @@ class _RutinasScreenState extends State<RutinasScreen> {
                                 Icons.speed_rounded,
                                 Velocidad.texto(e.velocidad),
                                 color: _colorVelocidad(e.velocidad),
+                              ),
+                            if (Rpe.banda(e.rpe) != null)
+                              _chipRitmo(
+                                Icons.local_fire_department_rounded,
+                                Rpe.texto(e.rpe),
+                                color: Rpe.banda(e.rpe)!.color,
                               ),
                           ],
                         ),

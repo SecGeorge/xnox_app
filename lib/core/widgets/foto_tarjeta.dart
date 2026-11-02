@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:xnox_app/core/tema/app_tema.dart';
 
@@ -45,10 +47,21 @@ class FotoTarjeta extends StatelessWidget {
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: Image.asset(
-                    foto,
-                    fit: BoxFit.cover,
-                    alignment: alineacion,
+                  child: LayoutBuilder(
+                    builder: (context, caja) {
+                      // Decodifica solo lo que se ve. Ninguna foto es más
+                      // apaisada que 1.6:1, así que ese ancho cubre la caja
+                      // sin pixelarse.
+                      final ancho =
+                          math.max(caja.maxWidth, caja.maxHeight * 1.6) *
+                          MediaQuery.devicePixelRatioOf(context);
+                      return Image.asset(
+                        foto,
+                        fit: BoxFit.cover,
+                        alignment: alineacion,
+                        cacheWidth: ancho.isFinite ? ancho.ceil() : null,
+                      );
+                    },
                   ),
                 ),
                 Positioned.fill(

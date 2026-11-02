@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,6 +29,16 @@ class HttpService {
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ));
+
+    // Pocas conexiones y reutilizadas: abrir una nueva cuesta unos 300 ms de
+    // TLS, y una ráfaga de peticiones a la vez hace que el hosting devuelva
+    // 500 sin cuerpo. El servidor cierra las inactivas a los 5 s (keep-alive),
+    // así que esperar más que eso solo daría errores por sockets muertos.
+    _dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () => HttpClient()
+        ..idleTimeout = const Duration(seconds: 4)
+        ..maxConnectionsPerHost = 4,
+    );
 
     // Jar en memoria como arranque; se reemplaza por uno persistente en init().
     _cookieManager = CookieManager(CookieJar());

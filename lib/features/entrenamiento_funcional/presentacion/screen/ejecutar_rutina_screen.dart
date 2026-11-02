@@ -10,6 +10,7 @@ import 'package:xnox_app/core/tema/app_tema.dart';
 import 'package:xnox_app/core/widgets/dialogo_salir_entrenamiento.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/metodologia.dart';
 import 'package:xnox_app/features/entrenamiento_funcional/dominio/motor_rutina.dart';
+import 'package:xnox_app/core/widgets/imagen_red.dart';
 
 /// Alertas configurables del temporizador (se recuerdan en el teléfono).
 class _Alertas {
@@ -688,7 +689,7 @@ class _EjecutarRutinaScreenState extends State<EjecutarRutinaScreen> {
               size: tam * 0.45,
               color: AppColores.primario.withValues(alpha: 0.5),
             )
-          : Image.network(
+          : imagenRed(
               url!,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => Icon(
